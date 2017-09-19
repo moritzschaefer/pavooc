@@ -10,6 +10,10 @@ Run
 
 to download all the required datasets,
 
+    python -m pavooc.preprocessing.sgrna_finder
+
+to build a CSV with the positions of all possible sgrnas along with the exons which they target.
+
 # Conventions
 
 - All sequences are saved in gene-relative direction ('-'-strands are reverse-complemented).
