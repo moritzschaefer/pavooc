@@ -1,0 +1,4 @@
+scikit-bio==0.5.1
+pandas==0.20.1
+numpy==1.12.1
+gtfparse==0.0.6
