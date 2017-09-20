@@ -57,9 +57,9 @@ def find_sgRNAs():
                 # for the reverse strand, inversecomplement the chromosome
                 if strand == '-':
                     chr_sequence = chr_sequence.reverse_complement()
-                # 20 Protospacer + 1 PAM-nucleotide
+                # 20 Protospacer + 1 PAM-nucleotide, find overlapping sequences
                 for guide_position in chr_sequence. \
-                        find_with_regex('(.{21}GG)'):
+                        find_with_regex('(?=(.{21}GG))'):
 
                     # if backward strand, reverse the position to
                     # a forward strand position
