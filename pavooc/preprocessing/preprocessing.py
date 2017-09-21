@@ -2,11 +2,13 @@
 
 import os
 import logging
+import pickle
 
 from gtfparse import read_gtf_as_dataframe
 from skbio.sequence import DNA
+from intervaltree import IntervalTree
 
-from pavooc.config import CHROMOSOMES, DATADIR
+from pavooc.config import DATADIR, CHROMOSOMES, EXON_INTERVAL_TREE_FILE
 
 logging.basicConfig(level=logging.INFO)
 
@@ -37,6 +39,23 @@ def generateRawChromosomes():
         with open(raw_chromose_file, 'w') as chromosome_file:
             chromosome_file.write(
                     chromosome[2+len(chromosome_number):].replace('\n', ''))
+
+
+def exon_interval_tree():
+    '''
+    Generate an exon interval tree
+    '''
+    logging.info('Building exon tree')
+    tree = IntervalTree()
+    for index, row in gencode.iterrows():
+        if row['feature'] == 'exon':
+            if row['end'] > row['start']:
+                tree[row['start']:row['end']] = \
+                    (row['gene_id'], row['exon_number'])
+
+    logging.info('Built exon tree with {} nodes'.format(len(tree)))
+
+    return tree
 
 
 def generateExonFiles():
@@ -71,4 +90,7 @@ def generateExonFiles():
 
 if __name__ == "__main__":
     generateRawChromosomes()
-    generateExonFiles()
+    # generateExonFiles()
+    tree = exon_interval_tree()
+    with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
+        pickle.dump(tree, f)

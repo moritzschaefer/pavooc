@@ -3,3 +3,4 @@ pandas==0.20.1
 numpy==1.12.1
 gtfparse==0.0.6
 intervaltree==2.1.0
+pymongo==3.5.1
