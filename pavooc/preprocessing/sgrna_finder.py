@@ -60,8 +60,7 @@ def find_sgRNAs_for_chromosome(chromosome):
                         'strand': strand,
                         'position': int(position),  # convert from np.int64
                         'exons': [exon[2] for exon in exons],
-                        'protospacer': str(chr_sequence[guide_position].
-                                           reverse_complement())
+                        'protospacer': str(chr_sequence[guide_position])
                 }
                 sgRNA_collection.insert_one(doc)
                 count += 1

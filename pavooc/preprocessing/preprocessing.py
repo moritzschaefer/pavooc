@@ -8,15 +8,11 @@ from gtfparse import read_gtf_as_dataframe
 from skbio.sequence import DNA
 from intervaltree import IntervalTree
 
-from pavooc.config import DATADIR, CHROMOSOMES, EXON_INTERVAL_TREE_FILE
+from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREE_FILE, GENCODE_FILE, \
+        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
 
 logging.basicConfig(level=logging.INFO)
 
-
-GENCODE_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
-CHROMOSOME_FILE = os.path.join(DATADIR, '{}.fa')
-CHROMOSOME_RAW_FILE = os.path.join(DATADIR, '{}.raw')
-EXON_DIR = os.path.join(DATADIR, 'exons/')
 
 try:
     os.mkdir(EXON_DIR)
@@ -24,10 +20,9 @@ except OSError:
     pass
 
 headerNames = ['bin', 'name', 'chrom', 'strand', 'txStart', 'txEnd', 'cdsStart', 'cdsEnd', 'exonCount', 'exonStarts', 'exonEnds', 'score', 'name2', 'cdsStartStat', 'cdsEndStat', 'exonFrames']  # noqa
-gencode = read_gtf_as_dataframe(GENCODE_FILE)
 
 
-def generateRawChromosomes():
+def generate_raw_chromosomes():
     # delete newlines from chromosomes
     logging.info('Convert chromosomes into raw form')
     for chromosome_number in CHROMOSOMES:
@@ -45,6 +40,7 @@ def exon_interval_tree():
     '''
     Generate an exon interval tree
     '''
+    gencode = read_gtf_as_dataframe(GENCODE_FILE)
     logging.info('Building exon tree')
     tree = IntervalTree()
     for index, row in gencode.iterrows():
@@ -59,6 +55,7 @@ def exon_interval_tree():
 
 
 def generateExonFiles():
+    gencode = read_gtf_as_dataframe(GENCODE_FILE)
     logging.info('Generate gene_exon files')
     # for each exon create one file
     chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
@@ -88,9 +85,30 @@ def generateExonFiles():
             exon_file.write(exon)
 
 
-if __name__ == "__main__":
-    generateRawChromosomes()
+def combine_genome():
+    '''
+    Create a file genome.fa which combines all chromosome.fas
+    bash:
+    # for i in {1..22..1} X Y; do
+    # cat chr${i}.fa >> genome.fa
+    # done
+    '''
+    logging.info('Build all-in-one-file genome')
+    with open(GENOME_FILE, 'w') as genome_file:
+        for chromosome in CHROMOSOMES:
+            with open(CHROMOSOME_FILE.format(chromosome)) as chr_file:
+                genome_file.write(chr_file.read())
+
+
+def main():
+    generate_raw_chromosomes()
+    combine_genome()
+
     # generateExonFiles()
     tree = exon_interval_tree()
     with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
         pickle.dump(tree, f)
+
+
+if __name__ == "__main__":
+    main()

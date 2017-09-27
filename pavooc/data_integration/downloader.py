@@ -19,8 +19,14 @@ logging.basicConfig(level=logging.INFO)
 
 
 def download_unzip(url):
-    logging.info('downloading {}'.format(url))
     download_filename = os.path.basename(url)
+
+    if os.path.exists(os.path.join(DATADIR, download_filename)):
+        logging.warn('{} already exists. Skipping download. Delete files first \
+                to force download')
+        return
+    logging.info('downloading {}'.format(url))
+
     urlretrieve(url, os.path.join(DATADIR, download_filename))
 
     logging.info('unpacking {}'.format(download_filename))
@@ -31,6 +37,10 @@ def download_unzip(url):
             datafile.write(file_content)
 
 
-if __name__ == "__main__":
+def main():
     for url in URLS:
         download_unzip(url)
+
+
+if __name__ == "__main__":
+    main()
