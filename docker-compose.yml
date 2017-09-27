@@ -1,7 +1,11 @@
-version: '3'
+version: '2'
 services:
   main:
+    environment:
+      MONGO_HOST: "mongo:27017"
     build: .
     volumes:
       - .:/usr/app
+  mongo:
+    image: mongo:latest
 
