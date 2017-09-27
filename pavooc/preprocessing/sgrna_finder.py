@@ -10,7 +10,9 @@ import os
 import logging
 import pickle
 
+
 from skbio.sequence import DNA
+import pymongo
 
 from pavooc.config import CHROMOSOMES, DATADIR, EXON_INTERVAL_TREE_FILE
 
@@ -87,5 +89,16 @@ def find_sgRNAs():
     logging.info('Found {} sgRNA sites'.format(sgRNA_count))
 
 
-if __name__ == "__main__":
+def create_protospacer_index():
+    logging.info('Create Protospacer index')
+    sgRNA_collection.create_index([("chromosome", pymongo.DESCENDING),
+                                   ("protospacer", pymongo.DESCENDING)])
+
+
+def main():
     find_sgRNAs()
+    create_protospacer_index()
+
+
+if __name__ == "__main__":
+    main()
