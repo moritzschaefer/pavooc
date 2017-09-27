@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 from urllib.request import urlretrieve
+from urllib.error import HTTPError
 import gzip
 import logging
 import os
+import subprocess
 
 from pavooc.config import CHROMOSOMES, DATADIR
 
@@ -27,7 +29,12 @@ def download_unzip(url):
         return
     logging.info('downloading {}'.format(url))
 
-    urlretrieve(url, os.path.join(DATADIR, download_filename))
+    try:
+        urlretrieve(url, os.path.join(DATADIR, download_filename))
+    except HTTPError:
+        subprocess.Popen(['curl', '-o',
+                          os.path.join(DATADIR, download_filename),
+                          url]).wait()
 
     logging.info('unpacking {}'.format(download_filename))
     if download_filename[-3:] == '.gz':
