@@ -4,15 +4,11 @@ Prediction and visualization of on- and off-targets for CRISPR
 
 # Run it
 
-Run
+    python -m pavooc.pipeline
 
-    python -m pavooc.data_integration.downloader
+runs everything required to get you started. Additionally there is a docker-environment which should get you started with
 
-to download all the required datasets,
-
-    python -m pavooc.preprocessing.sgrna_finder
-
-to build a CSV with the positions of all possible sgrnas along with the exons which they target.
+    docker-compose up
 
 # Conventions
 
