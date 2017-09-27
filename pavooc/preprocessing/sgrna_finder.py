@@ -23,11 +23,8 @@ logging.basicConfig(level=logging.INFO)
 EXON_FILE = os.path.join(DATADIR, 'exons/{}_{}')
 CHROMOSOME_RAW_FILE = os.path.join(DATADIR, '{}.raw')
 
-with open(EXON_INTERVAL_TREE_FILE, 'rb') as f:
-    exon_interval_tree = pickle.load(f)
 
-
-def find_sgRNAs_for_chromosome(chromosome):
+def find_sgRNAs_for_chromosome(chromosome, exon_interval_tree):
     '''
     Find all sgRNAs for a chromosome sequence
     Save the sgRNAs along with their positions and included exons
@@ -79,12 +76,15 @@ def find_sgRNAs():
     'tcg^acgtataaatatatcgatatNGG' would result in a tuple (3, '+')
     'atttgCCNgateagctcgatctattata^tgat' would result in a tuple (8, '-')
     '''
+
+    with open(EXON_INTERVAL_TREE_FILE, 'rb') as f:
+        exon_interval_tree = pickle.load(f)
     sgRNA_count = 0
     sgRNA_collection.drop()
     logging.info('Old sgRNA collection deleted')
     for chromosome in CHROMOSOMES:
         logging.info('find pams in {}'.format(chromosome))
-        sgRNA_count += find_sgRNAs_for_chromosome(chromosome)
+        sgRNA_count += find_sgRNAs_for_chromosome(chromosome, exon_interval_tree)
 
     logging.info('Found {} sgRNA sites'.format(sgRNA_count))
 
