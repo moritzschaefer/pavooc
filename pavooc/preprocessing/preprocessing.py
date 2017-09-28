@@ -54,7 +54,7 @@ def exon_interval_tree():
     return tree
 
 
-def generateExonFiles():
+def generate_exon_files():
     gencode = read_gtf_as_dataframe(GENCODE_FILE)
     logging.info('Generate gene_exon files')
     # for each exon create one file
@@ -104,7 +104,7 @@ def main():
     generate_raw_chromosomes()
     combine_genome()
 
-    # generateExonFiles()
+    generate_exon_files()
     tree = exon_interval_tree()
     with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
         pickle.dump(tree, f)
