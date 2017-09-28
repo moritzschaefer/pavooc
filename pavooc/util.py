@@ -7,7 +7,7 @@ def kmer_to_int(kmer):
         raise ValueError('Only 20mers supported')
 
     v = 0
-    for i, c in enumerate(kmer):
+    for i, c in enumerate(str(kmer)):
         v <<= 2
         v += code[c]
 
