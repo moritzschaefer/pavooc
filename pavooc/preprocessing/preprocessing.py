@@ -4,12 +4,13 @@ import os
 import logging
 import pickle
 
-from gtfparse import read_gtf_as_dataframe
 from skbio.sequence import DNA
 from intervaltree import IntervalTree
 
-from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREE_FILE, GENCODE_FILE, \
-        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
+from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREE_FILE, \
+        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR, \
+        EXON_PADDING
+from pavooc.gencode import read_gencode
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,10 +41,9 @@ def exon_interval_tree():
     '''
     Generate an exon interval tree
     '''
-    gencode = read_gtf_as_dataframe(GENCODE_FILE)
     logging.info('Building exon tree')
     tree = IntervalTree()
-    for index, row in gencode.iterrows():
+    for index, row in read_gencode().iterrows():
         if row['feature'] == 'exon':
             if row['end'] > row['start']:
                 tree[row['start']:row['end']] = \
@@ -54,18 +54,15 @@ def exon_interval_tree():
     return tree
 
 
-def generate_exon_files():
-    gencode = read_gtf_as_dataframe(GENCODE_FILE)
+def generate_gene_files():
     logging.info('Generate gene_exon files')
     # for each exon create one file
     chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
                         for c in CHROMOSOMES}
-    for index, row in gencode.iterrows():
+    for index, row in read_gencode().iterrows():
         if row['feature'] != 'exon':
             continue
 
-        logging.debug('Generate file for gene {} with exon {}'
-                      .format(row['gene_id'], row['exon_number']))
         try:
             chromosome = chromosomes_read[row['seqname']]
         except KeyError as e:
@@ -73,16 +70,22 @@ def generate_exon_files():
                           .format(e.args[0]))
             continue
 
-        exon = chromosome[row['start']:row['end']]
+        if row['start'] < EXON_PADDING or \
+                row['end'] + EXON_PADDING > len(chromosome):
+            logging.fatal('exon paddings overflowed chromosome ends. '
+                          'be careful with exon {}'.format(row['exon_id']))
 
-        exon_filename = os.path.join(
-                EXON_DIR,
-                '{}_{}'.format(row['gene_id'], row['exon_number']))
+        exon = chromosome[row['start']-EXON_PADDING:row['end']+EXON_PADDING]
+
         if row.strand == '-':
             exon = str(DNA(exon.upper()).reverse_complement())
 
-        with open(exon_filename, 'w') as exon_file:
-            exon_file.write(exon)
+        with open(os.path.join(EXON_DIR, row['gene_id']), 'a') as gene_file:
+            logging.debug('Write exon {} to gene file {}'
+                          .format(row['exon_number'], row['gene_id']))
+            gene_file.write('>{} {}\n{}\n'.format(row['exon_number'],
+                                                  row['exon_id'],
+                                                  exon))
 
 
 def combine_genome():
@@ -104,7 +107,7 @@ def main():
     generate_raw_chromosomes()
     combine_genome()
 
-    generate_exon_files()
+    generate_gene_files()
     tree = exon_interval_tree()
     with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
         pickle.dump(tree, f)
