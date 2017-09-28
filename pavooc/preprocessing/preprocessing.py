@@ -20,8 +20,6 @@ try:
 except OSError:
     pass
 
-headerNames = ['bin', 'name', 'chrom', 'strand', 'txStart', 'txEnd', 'cdsStart', 'cdsEnd', 'exonCount', 'exonStarts', 'exonEnds', 'score', 'name2', 'cdsStartStat', 'cdsEndStat', 'exonFrames']  # noqa
-
 
 def generate_raw_chromosomes():
     # delete newlines from chromosomes
@@ -43,7 +41,7 @@ def exon_interval_tree():
     '''
     logging.info('Building exon tree')
     tree = IntervalTree()
-    for index, row in read_gencode().iterrows():
+    for _, row in read_gencode().iterrows():
         if row['feature'] == 'exon':
             if row['end'] > row['start']:
                 tree[row['start']:row['end']] = \
@@ -55,37 +53,61 @@ def exon_interval_tree():
 
 
 def generate_gene_files():
-    logging.info('Generate gene_exon files')
+    logging.info('Generate gene files containing all exons')
     # for each exon create one file
     chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
                         for c in CHROMOSOMES}
-    for index, row in read_gencode().iterrows():
-        if row['feature'] != 'exon':
-            continue
+    gencode = read_gencode().copy()
+    gencode = gencode[gencode['gene_type'] == 'protein_coding']
 
+    for gene_id in gencode[(gencode['feature'] == 'gene')]['gene_id']:
+        exons = gencode[(gencode['feature'] == 'exon') & (gencode['gene_id'] == gene_id)]
+        # if gene_id == 'ENSG00000187634.6':
+        #     import ipdb
+        #     ipdb.set_trace()
         try:
-            chromosome = chromosomes_read[row['seqname']]
+            chromosome = chromosomes_read[exons.iloc[0]['seqname']]
         except KeyError as e:
             logging.error('Failed to get data for chromosome "{}"'
                           .format(e.args[0]))
             continue
 
-        if row['start'] < EXON_PADDING or \
-                row['end'] + EXON_PADDING > len(chromosome):
-            logging.fatal('exon paddings overflowed chromosome ends. '
-                          'be careful with exon {}'.format(row['exon_id']))
+        with open(os.path.join(EXON_DIR, gene_id), 'w') as gene_file:
+            for exon_id, exon_group in exons.groupby('exon_id'):
+                assert len(exon_group['start'].unique()) == 1
+                assert len(exon_group['end'].unique()) == 1
 
-        exon = chromosome[row['start']-EXON_PADDING:row['end']+EXON_PADDING]
+                exon = exon_group.iloc[0]
 
-        if row.strand == '-':
-            exon = str(DNA(exon.upper()).reverse_complement())
+                if exon['start'] < EXON_PADDING or \
+                        exon['end'] + EXON_PADDING > len(chromosome):
+                    logging.fatal('exon paddings overflowed chromosome ends. '
+                                  'be careful with exon {}'.format(exon['exon_id']))
 
-        with open(os.path.join(EXON_DIR, row['gene_id']), 'a') as gene_file:
-            logging.debug('Write exon {} to gene file {}'
-                          .format(row['exon_number'], row['gene_id']))
-            gene_file.write('>{} {}\n{}\n'.format(row['exon_number'],
-                                                  row['exon_id'],
-                                                  exon))
+                exon_seq = chromosome[exon['start']-EXON_PADDING:exon['end']+EXON_PADDING]
+
+                if exon.strand == '-':
+                    exon_seq = str(DNA(exon_seq.upper()).reverse_complement())
+
+                transcript_ids = ','.join(['{}:{}'.format(v.transcript_id, v.exon_number)
+                                          for _, v in exon_group.iterrows()])
+
+                logging.debug('Write exon {} to gene file {}'
+                              .format(exon['exon_number'], exon['gene_id']))
+                gene_file.write('>{} {}\n{}\n'.format(exon_id,
+                                                      transcript_ids,
+                                                      exon_seq))
+
+
+        # group by start,end, check that exon_id is the same for each group
+        # for each group
+        # get all transcript_ids and exon_numbers, append them
+        # check for duplicates
+        # order by exon_id, save ">exonid transcript1:3,transcript2:1"
+        # if both HAVANA AND ENSEMBL exist.. what then..?
+
+
+
 
 
 def combine_genome():
@@ -104,13 +126,13 @@ def combine_genome():
 
 
 def main():
-    generate_raw_chromosomes()
-    combine_genome()
+    # generate_raw_chromosomes()
+    # combine_genome()
 
     generate_gene_files()
-    tree = exon_interval_tree()
-    with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
-        pickle.dump(tree, f)
+    # tree = exon_interval_tree()
+    # with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
+    #     pickle.dump(tree, f)
 
 
 if __name__ == "__main__":
