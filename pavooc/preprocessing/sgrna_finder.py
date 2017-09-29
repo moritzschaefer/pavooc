@@ -86,7 +86,7 @@ def find_sgRNAs():
 
     logging.info('Found {} sgRNA sites'.format(sgRNA_count))
     logging.info('Found {} distinct protospacers'.format(len(sgRNA_dict)))
-    with open(os.path.join(DATADIR, 'sgRNA_dict')) as f:
+    with open(os.path.join(DATADIR, 'sgRNA_dict.pkl')) as f:
         pickle.dump(sgRNA_dict, f)
 
 
