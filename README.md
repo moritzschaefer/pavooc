@@ -14,6 +14,7 @@ runs everything required to get you started. Additionally there is a docker-envi
 
 - All sequences are saved in gene-relative direction ('-'-strands are reverse-complemented).
 - Ensembl gene IDs are used
+- Exon are saved with paddings such that a sgRNA search can find all guides that would cut inside the exon. Forward strand: (16padding)(exon)(6padding), Backward strand: (6padding)(exon)(16padding)
 
 # Datasources
 

@@ -8,8 +8,7 @@ from skbio.sequence import DNA
 from intervaltree import IntervalTree
 
 from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREE_FILE, \
-        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR, \
-        EXON_PADDING
+        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
 from pavooc.gencode import read_gencode
 
 logging.basicConfig(level=logging.INFO)
@@ -73,30 +72,37 @@ def generate_gene_files():
             continue
 
         with open(os.path.join(EXON_DIR, gene_id), 'w') as gene_file:
+            # TODO double check if it works the other way round: group by
+            # start, end and check if if is the same exon_id always...
             for exon_id, exon_group in exons.groupby('exon_id'):
                 assert len(exon_group['start'].unique()) == 1
                 assert len(exon_group['end'].unique()) == 1
 
                 exon = exon_group.iloc[0]
 
-                if exon['start'] < EXON_PADDING or \
-                        exon['end'] + EXON_PADDING > len(chromosome):
-                    logging.fatal('exon paddings overflowed chromosome ends. '
-                                  'be careful with exon {}'.format(exon['exon_id']))
+                assert (exon['start'] >= EXON_PADDING and
+                        exon['end'] + EXON_PADDING > len(chromosome),
+                    'exon paddings overflowed chromosome ends. {}'
+                    .format(exon['exon_id'])
 
-                exon_seq = chromosome[exon['start']-EXON_PADDING:exon['end']+EXON_PADDING]
-
-                if exon.strand == '-':
+                if exon.strand == '+':
+                    exon_seq = chromosome[exon['start']-16:exon['end']+6]
+                elif exon.strand == '-':
+                    exon_seq = chromosome[exon['start']-6:exon['end']+16]
                     exon_seq = str(DNA(exon_seq.upper()).reverse_complement())
+                # make sure the exon paddings didn't overflow chromosome ends
+                assert len(exon_seq) == (exon['end'] - exon['start']) + 22
 
-                transcript_ids = ','.join(['{}:{}'.format(v.transcript_id, v.exon_number)
+                transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
+                                                          v.exon_number)
                                           for _, v in exon_group.iterrows()])
 
                 logging.debug('Write exon {} to gene file {}'
                               .format(exon['exon_number'], exon['gene_id']))
-                gene_file.write('>{} {}\n{}\n'.format(exon_id,
-                                                      transcript_ids,
-                                                      exon_seq))
+                gene_file.write('>{}{} {}\n{}\n'.format(exon_id,
+                                                        exon.strand,
+                                                        transcript_ids,
+                                                        exon_seq))
 
 
         # group by start,end, check that exon_id is the same for each group
@@ -126,8 +132,8 @@ def combine_genome():
 
 
 def main():
-    # generate_raw_chromosomes()
-    # combine_genome()
+    generate_raw_chromosomes()
+    combine_genome()
 
     generate_gene_files()
     # tree = exon_interval_tree()

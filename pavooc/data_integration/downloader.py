@@ -25,7 +25,7 @@ def download_unzip(url):
 
     if os.path.exists(os.path.join(DATADIR, download_filename)):
         logging.warn('{} already exists. Skipping download. Delete files first \
-                to force download')
+                to force download'.format(download_filename))
         return
     logging.info('downloading {}'.format(url))
 
@@ -38,9 +38,9 @@ def download_unzip(url):
 
     logging.info('unpacking {}'.format(download_filename))
     if download_filename[-3:] == '.gz':
-        with gzip.open(download_filename, 'rb') as gz_file:
+        with gzip.open(os.path.join(DATADIR, download_filename), 'rb') as gz_file:
             file_content = gz_file.read()
-        with open(download_filename[:-3], 'wb') as datafile:
+        with open(os.ptah.join(DATADIR, download_filename[:-3]), 'wb') as datafile:
             datafile.write(file_content)
 
 
