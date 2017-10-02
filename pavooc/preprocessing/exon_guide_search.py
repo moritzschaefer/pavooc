@@ -64,7 +64,7 @@ def generate_exon_guides(gene, mismatches):
     for index, row in data.iterrows():
         if row['overflow'] == 'OVERFLOW':
             overflow_count += 1
-            data.loc[index]['delete'] = True
+            data.loc[index, 'delete'] = True
 
         if row['otCount'] == 0:
             continue
@@ -116,7 +116,7 @@ def generate_exon_guides(gene, mismatches):
 
             # if there is an exact in-extron match which is not in this gene
             if result.group('mismatch_count') == 0 and in_exons_summary:
-                data.loc[index]['delete'] = True
+                data.loc[index, 'delete'] = True
 
     data[~data['delete']].to_csv(target_file, sep='\t')
 

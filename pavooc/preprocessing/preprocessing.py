@@ -86,10 +86,8 @@ def generate_gene_files():
 
                 exon = exon_group.iloc[0]
 
-                if exon.strand == '+':
-                    exon_seq = chromosome[exon['start']-16:exon['end']+6]
-                elif exon.strand == '-':
-                    exon_seq = chromosome[exon['start']-6:exon['end']+16]
+                exon_seq = chromosome[exon['start']-16:exon['end']+16]
+                if exon.strand == '-':
                     exon_seq = str(DNA(exon_seq.upper()).reverse_complement())
                 # make sure the exon paddings didn't overflow chromosome ends
                 assert len(exon_seq) == (exon['end'] - exon['start']) + 22
@@ -100,11 +98,12 @@ def generate_gene_files():
 
                 logging.debug('Write exon {} to gene file {}'
                               .format(exon['exon_number'], exon['gene_id']))
-                gene_file.write('>{}{} {}\n{}\n'.format(exon_id,
-                                                        exon.strand,
-                                                        transcript_ids,
-                                                        exon_seq))
-
+                gene_file.write('>{};{};{};{}\n{}\n'.format(
+                    exon_id,
+                    exon.strand,
+                    exon['start']-16,
+                    transcript_ids,
+                    exon_seq))
 
         # group by start,end, check that exon_id is the same for each group
         # for each group
