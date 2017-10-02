@@ -7,7 +7,7 @@ import pickle
 from skbio.sequence import DNA
 from intervaltree import IntervalTree
 
-from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREE_FILE, \
+from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREES_FILE, \
         GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
 from pavooc.gencode import read_gencode
 
@@ -34,21 +34,27 @@ def generate_raw_chromosomes():
                     chromosome[2+len(chromosome_number):].replace('\n', ''))
 
 
-def exon_interval_tree():
+def exon_interval_trees():
     '''
     Generate an exon interval tree
+    TODO: build one for each chromosome...
     '''
     logging.info('Building exon tree')
-    tree = IntervalTree()
-    for _, row in read_gencode().iterrows():
-        if row['feature'] == 'exon':
-            if row['end'] > row['start']:
-                tree[row['start']:row['end']] = \
-                    (row['gene_id'], row['exon_number'])
+    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
+    relevant_exons = read_gencode()[
+            (read_gencode()['feature'] == 'exon') &
+            (read_gencode()['gene_type'] == 'protein_coding') &
+            (read_gencode()['seqname'].isin(CHROMOSOMES))
+    ]
+    for _, row in relevant_exons.iterrows():
+        if row['end'] > row['start']:
+            trees[row['seqname']][row['start']:row['end']] = \
+                (row['gene_id'], row['exon_number'])
 
-    logging.info('Built exon tree with {} nodes'.format(len(tree)))
+    logging.info('Built exon tree with {} nodes'
+                 .format(sum([len(tree) for tree in trees])))
 
-    return tree
+    return trees
 
 
 def generate_gene_files():
@@ -57,10 +63,10 @@ def generate_gene_files():
     chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
                         for c in CHROMOSOMES}
     gencode = read_gencode().copy()
-    gencode = gencode[gencode['gene_type'] == 'protein_coding']
+    gencode = gencode[(gencode['gene_type'] == 'protein_coding') &
+                      (gencode['feature'] == 'exon')]
 
-    for gene_id in gencode[(gencode['feature'] == 'gene')]['gene_id']:
-        exons = gencode[(gencode['feature'] == 'exon') & (gencode['gene_id'] == gene_id)]
+    for gene_id, exons in gencode.groupby('gene_id'):
         # if gene_id == 'ENSG00000187634.6':
         #     import ipdb
         #     ipdb.set_trace()
@@ -79,11 +85,6 @@ def generate_gene_files():
                 assert len(exon_group['end'].unique()) == 1
 
                 exon = exon_group.iloc[0]
-
-                assert (exon['start'] >= EXON_PADDING and
-                        exon['end'] + EXON_PADDING > len(chromosome),
-                    'exon paddings overflowed chromosome ends. {}'
-                    .format(exon['exon_id'])
 
                 if exon.strand == '+':
                     exon_seq = chromosome[exon['start']-16:exon['end']+6]
@@ -113,9 +114,6 @@ def generate_gene_files():
         # if both HAVANA AND ENSEMBL exist.. what then..?
 
 
-
-
-
 def combine_genome():
     '''
     Create a file genome.fa which combines all chromosome.fas
@@ -136,9 +134,9 @@ def main():
     combine_genome()
 
     generate_gene_files()
-    # tree = exon_interval_tree()
-    # with open(EXON_INTERVAL_TREE_FILE, 'wb') as f:
-    #     pickle.dump(tree, f)
+    trees = exon_interval_trees()
+    with open(EXON_INTERVAL_TREES_FILE, 'wb') as f:
+        pickle.dump(trees, f)
 
 
 if __name__ == "__main__":

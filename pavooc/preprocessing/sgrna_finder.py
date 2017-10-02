@@ -14,7 +14,7 @@ import pickle
 from skbio.sequence import DNA
 import pymongo
 
-from pavooc.config import CHROMOSOMES, DATADIR, EXON_INTERVAL_TREE_FILE
+from pavooc.config import CHROMOSOMES, DATADIR, EXON_INTERVAL_TREES_FILE
 from pavooc.db import sgRNA_collection
 from pavooc.util import kmer_to_int
 
@@ -24,8 +24,9 @@ EXON_FILE = os.path.join(DATADIR, 'exons/{}_{}')
 CHROMOSOME_RAW_FILE = os.path.join(DATADIR, '{}.raw')
 
 
+# TODO exon_interval_tree changed. is now a dict
 def process_sgRNA(guide_position, chr_sequence, strand, chromosome,
-                  exon_interval_tree):
+                  exon_interval_trees):
     # if backward strand, reverse the position to a forward strand position
     if strand == '-':
         position = len(chr_sequence) - guide_position.start
@@ -34,7 +35,7 @@ def process_sgRNA(guide_position, chr_sequence, strand, chromosome,
         position = guide_position.start
         dsb_position = position + 17
 
-    exons = exon_interval_tree[dsb_position]
+    exons = exon_interval_trees[chromosome][dsb_position]
 
     # save the sgRNA
     doc = {
@@ -58,8 +59,8 @@ def find_sgRNAs():
     'atttgCCNgateagctcgatctattata^tgat' would result in a tuple (8, '-')
     '''
 
-    with open(EXON_INTERVAL_TREE_FILE, 'rb') as f:
-        exon_interval_tree = pickle.load(f)
+    with open(EXON_INTERVAL_TREES_FILE, 'rb') as f:
+        exon_interval_trees = pickle.load(f)
     sgRNA_count = 0
     sgRNA_dict = {}
     sgRNA_collection.drop()
@@ -77,7 +78,7 @@ def find_sgRNAs():
                         find_with_regex('(?=([ACTG]{20})[ACTG]GG)'):
 
                     process_sgRNA(guide_position, chr_sequence, chromosome,
-                                  strand, exon_interval_tree)
+                                  strand, exon_interval_trees)
                     try:
                         sgRNA_dict[kmer_to_int(chr_sequence[guide_position])] += 1
                     except KeyError:
