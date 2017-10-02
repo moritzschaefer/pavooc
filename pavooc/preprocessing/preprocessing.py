@@ -90,7 +90,7 @@ def generate_gene_files():
                 if exon.strand == '-':
                     exon_seq = str(DNA(exon_seq.upper()).reverse_complement())
                 # make sure the exon paddings didn't overflow chromosome ends
-                assert len(exon_seq) == (exon['end'] - exon['start']) + 22
+                assert len(exon_seq) == (exon['end'] - exon['start']) + 32
 
                 transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
                                                           v.exon_number)
@@ -98,10 +98,11 @@ def generate_gene_files():
 
                 logging.debug('Write exon {} to gene file {}'
                               .format(exon['exon_number'], exon['gene_id']))
-                gene_file.write('>{};{};{};{}\n{}\n'.format(
+                gene_file.write('>{};{};{};{};{}\n{}\n'.format(
                     exon_id,
                     exon.strand,
-                    exon['start']-16,
+                    exon['start'],
+                    exon['end'],
                     transcript_ids,
                     exon_seq))
 

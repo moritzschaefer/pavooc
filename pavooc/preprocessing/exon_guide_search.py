@@ -69,6 +69,17 @@ def generate_exon_guides(gene, mismatches):
         if row['otCount'] == 0:
             continue
 
+        # check if the DSB is really inside the exon
+        # (we padded the exons by 16bps on both sides)
+        exon_data = row['contig'].split(';')
+        padded_exon_length = int(exon_data[3]) - int(exon_data[2])
+        if (row['orientation'] == 'FWD' and
+                row['end']+10 > padded_exon_length) or \
+            (row['orientation'] == 'RVS' and
+                row['start'] < 10):
+            data.loc[index, 'delete'] = True
+            continue
+
         # off-target statistics
         for off_targets in row['offTargets'].split(','):
             result = pattern.match(off_targets)
