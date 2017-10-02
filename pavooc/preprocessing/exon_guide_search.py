@@ -74,7 +74,7 @@ def generate_exon_guides(gene, mismatches):
         exon_data = row['contig'].split(';')
         padded_exon_length = int(exon_data[3]) - int(exon_data[2])
         if (row['orientation'] == 'FWD' and
-                row['end']+10 > padded_exon_length) or \
+                row['stop']+10 > padded_exon_length) or \
             (row['orientation'] == 'RVS' and
                 row['start'] < 10):
             data.loc[index, 'delete'] = True
