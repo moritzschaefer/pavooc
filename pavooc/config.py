@@ -12,6 +12,7 @@ CHROMOSOME_FILE = os.path.join(DATADIR, '{}.fa')
 CHROMOSOME_RAW_FILE = os.path.join(DATADIR, '{}.raw')
 EXON_DIR = os.path.join(DATADIR, 'exons/')
 GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
+GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 EXON_PADDING = 18
 
 

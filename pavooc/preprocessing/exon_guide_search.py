@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-        EXON_INTERVAL_TREES_FILE, CHROMOSOMES
+        EXON_INTERVAL_TREES_FILE, CHROMOSOMES, GUIDES_FILE
 from pavooc.gencode import read_gencode
 
 logging.basicConfig(level=logging.INFO,
@@ -29,7 +29,7 @@ def generate_exon_guides(gene, mismatches):
     overflow_count = 0
     gene_file = os.path.join(EXON_DIR, gene)
 
-    target_file = os.path.join(EXON_DIR, '{}.guides'.format(gene))
+    target_file = GUIDES_FILE.format(gene)
     subprocess.Popen([
             'java',
             '-Xmx{}g'.format(JAVA_RAM),

@@ -9,7 +9,7 @@ from intervaltree import IntervalTree
 
 from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREES_FILE, \
         GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
-from pavooc.gencode import read_gencode
+from pavooc.gencode import read_gencode, gencode_exons_gene_grouped
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,14 +62,7 @@ def generate_gene_files():
     # for each exon create one file
     chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
                         for c in CHROMOSOMES}
-    gencode = read_gencode().copy()
-    gencode = gencode[(gencode['gene_type'] == 'protein_coding') &
-                      (gencode['feature'] == 'exon')]
-
-    for gene_id, exons in gencode.groupby('gene_id'):
-        # if gene_id == 'ENSG00000187634.6':
-        #     import ipdb
-        #     ipdb.set_trace()
+    for gene_id, exons in gencode_exons_gene_grouped:
         try:
             chromosome = chromosomes_read[exons.iloc[0]['seqname']]
         except KeyError as e:
