@@ -9,7 +9,7 @@ from intervaltree import IntervalTree
 
 from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREES_FILE, \
         GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
-from pavooc.gencode import read_gencode, gencode_exons_gene_grouped
+from pavooc.data import read_gencode, gencode_exons_gene_grouped, chromosomes
 
 logging.basicConfig(level=logging.INFO)
 
@@ -57,14 +57,50 @@ def exon_interval_trees():
     return trees
 
 
+def exon_to_fasta(exon_id, exon_data):
+    '''
+    :returns: a string with two lines, one with a fasta header
+    and one with the exon sequence
+    '''
+    assert len(exon_data['start'].unique()) == 1
+    assert len(exon_data['end'].unique()) == 1
+
+    exon = exon_data.iloc[0]
+
+    # 17=16+1, 'end' is included
+    # and we start counting at 0 instead of 1 (gencode)
+    exon_slice = slice(exon['start']-17, exon['end']+16)
+    exon_seq = chromosomes()[exon['seqname']][exon_slice].upper()
+
+    if exon.strand == '-':
+        exon_seq = str(DNA(exon_seq).reverse_complement())
+    # make sure the exon paddings didn't overflow chromosome ends
+    assert len(exon_seq) == (exon['end'] - exon['start']) + 33
+
+    transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
+                                              v.exon_number)
+                              for _, v in exon_data.iterrows()])
+    return '>{};{};{};{};{}\n{}\n'.format(
+            exon_id,
+            exon.strand,
+            exon['start'],
+            exon['end'],
+            transcript_ids,
+            exon_seq)
+
+
 def generate_gene_files():
+    '''
+    Generate fasta(-like) files containing all exons for a given gene
+    '''
     logging.info('Generate gene files containing all exons')
     # for each exon create one file
-    chromosomes_read = {c: open(CHROMOSOME_RAW_FILE.format(c)).read()
-                        for c in CHROMOSOMES}
     for gene_id, exons in gencode_exons_gene_grouped:
         try:
-            chromosome = chromosomes_read[exons.iloc[0]['seqname']]
+            # TODO delete try/except
+            # check existence of chromosome to speed up tests
+            # normally all chromosomes are available
+            chromosomes()[exons.iloc[0]['seqname']]
         except KeyError as e:
             logging.error('Failed to get data for chromosome "{}"'
                           .format(e.args[0]))
@@ -74,31 +110,10 @@ def generate_gene_files():
             # TODO double check if it works the other way round: group by
             # start, end and check if if is the same exon_id always...
             for exon_id, exon_group in exons.groupby('exon_id'):
-                assert len(exon_group['start'].unique()) == 1
-                assert len(exon_group['end'].unique()) == 1
-
-                exon = exon_group.iloc[0]
-
-                exon_seq = chromosome[exon['start']-16:exon['end']+16]
-                if exon.strand == '-':
-                    exon_seq = str(DNA(exon_seq.upper()).reverse_complement())
-                # make sure the exon paddings didn't overflow chromosome ends
-                assert len(exon_seq) == (exon['end'] - exon['start']) + 32
-
-                transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
-                                                          v.exon_number)
-                                          for _, v in exon_group.iterrows()])
-
                 logging.debug('Write exon {} to gene file {}'
-                              .format(exon['exon_number'], exon['gene_id']))
-                gene_file.write('>{};{};{};{};{}\n{}\n'.format(
-                    exon_id,
-                    exon.strand,
-                    exon['start'],
-                    exon['end'],
-                    transcript_ids,
-                    exon_seq))
-
+                              .format(exon_id, exon_group.iloc[0]['gene_id']))
+                gene_file.write(exon_to_fasta(exon_id, exon_group))
+        # TODO i think this is resolved
         # group by start,end, check that exon_id is the same for each group
         # for each group
         # get all transcript_ids and exon_numbers, append them

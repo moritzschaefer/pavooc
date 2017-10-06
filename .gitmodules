@@ -1,0 +1,4 @@
+[submodule "pavooc/scoring/Azimuth"]
+	path = vendor/Azimuth
+	url = git@github.com:MicrosoftResearch/Azimuth.git
+	branch = master
