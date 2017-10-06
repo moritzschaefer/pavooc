@@ -48,11 +48,12 @@ def exon_interval_trees():
     ]
     for _, row in relevant_exons.iterrows():
         if row['end'] > row['start']:
-            trees[row['seqname']][row['start']:row['end']] = \
+            # end is included, start count at 0 instead of 1
+            trees[row['seqname']][row['start']-1:row['end']] = \
                 (row['gene_id'], row['exon_number'])
 
     logging.info('Built exon tree with {} nodes'
-                 .format(sum([len(tree) for tree in trees])))
+                 .format(sum([len(tree) for tree in trees.values()])))
 
     return trees
 
@@ -75,6 +76,7 @@ def exon_to_fasta(exon_id, exon_data):
     if exon.strand == '-':
         exon_seq = str(DNA(exon_seq).reverse_complement())
     # make sure the exon paddings didn't overflow chromosome ends
+    # end is included so 16+16+1
     assert len(exon_seq) == (exon['end'] - exon['start']) + 33
 
     transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
@@ -95,7 +97,7 @@ def generate_gene_files():
     '''
     logging.info('Generate gene files containing all exons')
     # for each exon create one file
-    for gene_id, exons in gencode_exons_gene_grouped:
+    for gene_id, exons in gencode_exons_gene_grouped():
         try:
             # TODO delete try/except
             # check existence of chromosome to speed up tests
