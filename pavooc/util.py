@@ -1,4 +1,4 @@
-
+import pandas as pd
 def kmer_to_int(kmer):
     '''Transform a 20bp DNA sequence to a 64 bit integer'''
     code = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
@@ -25,3 +25,36 @@ def int_to_kmer(v):
         v >>= 2
 
     return kmer
+
+
+def buffer_return_value(func):
+    def wrapper(*args, **kwargs):
+        if isinstance(wrapper.buffer, type(None)):
+            wrapper.buffer = func(*args, **kwargs)
+        return wrapper.buffer
+
+    wrapper.buffer = None
+
+    return wrapper
+
+
+def read_guides(guides_file):
+    '''
+    Read a guides file (CSV format)
+    :guides_file: Filename of the guides file
+    :returns: Pandas dataframe
+    '''
+    return pd.read_csv(
+            guides_file,
+            sep='\t',
+            dtype={
+                'contig': str,
+                'start': int,
+                'stop': int,
+                'target': str,
+                'context': str,
+                'overflow': str,
+                'orientation': str,
+                'otCount': int, 'offTargets': str
+                }
+            )
