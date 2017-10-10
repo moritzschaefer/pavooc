@@ -3,11 +3,15 @@ Buffered data loading
 '''
 import os
 import pickle
+import logging
 
+import pandas as pd
 from gtfparse import read_gtf_as_dataframe
 import azimuth
+from intervaltree import IntervalTree
 
-from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE
+from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
+        DATADIR
 from pavooc.util import buffer_return_value
 
 
@@ -66,3 +70,39 @@ def azimuth_model(nopos=True):
     model_path = os.path.join(azimuth_saved_model_dir, model_name)
     with open(model_path, 'rb') as f:
         return pickle.load(f)
+
+
+@buffer_return_value
+def domain_interval_trees():
+    '''
+    Generate interval trees for all domains from Pfam
+    '''
+    logging.info('Building domain tree')
+    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
+    domains = pd.read_csv(
+            os.path.join(DATADIR, 'ucscGenePfam.txt'),
+            sep='\t',
+            header=None,
+            names=[
+                'bin', 'chrom', 'chromStart', 'chromEnd', 'name', 'score',
+                'strand', 'thickStart', 'thickEnd', 'reserved', 'blockCount',
+                'blockSizes', 'chromStarts'],
+            index_col=False)
+
+    domains = domains[domains['chrom'].isin(CHROMOSOMES)]
+
+    for _, row in domains.iterrows():
+        if row['chromEnd'] > row['chromStart']:
+            for local_start, block_size in zip(
+                    row['chromStarts'].split(',')[:-1],
+                    row['blockSizes'].split(',')[:-1]):
+                # TODO, DELETE, strand is for verification only
+                trees[row['chrom']][
+                        row['chromStart']+int(local_start):
+                        row['chromStart']+int(local_start)+int(block_size)] = \
+                                (row['name'], row['strand'])
+
+    logging.info('Built domain tree with {} nodes'
+                 .format(sum([len(tree) for tree in trees.values()])))
+
+    return trees

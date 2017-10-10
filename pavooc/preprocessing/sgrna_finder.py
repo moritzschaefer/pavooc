@@ -1,4 +1,5 @@
 '''
+DEPRECATED!
 Find sgRNAs and save them in a CSV file
 Corresponding Protospacers are saved to a separate CSV file
 

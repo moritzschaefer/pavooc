@@ -37,7 +37,6 @@ def generate_raw_chromosomes():
 def exon_interval_trees():
     '''
     Generate an exon interval tree
-    TODO: build one for each chromosome...
     '''
     logging.info('Building exon tree')
     trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}

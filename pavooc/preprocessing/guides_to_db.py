@@ -8,7 +8,7 @@ from multiprocessing import Pool
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
 from pavooc.util import read_guides
 from pavooc.db import guide_collection
-from pavooc.data import gencode_exons_gene_grouped
+from pavooc.data import gencode_exons_gene_grouped, domain_interval_trees
 from pavooc.scoring import azimuth
 
 logging.basicConfig(level=logging.INFO,
@@ -21,6 +21,7 @@ def build_gene_document(gene):
     the gene
     '''
     gene_id, exons = gene
+    strand = exons.iloc[0]['strand']
     try:
         guides = read_guides(GUIDES_FILE.format(gene_id))
     except Exception as e:
@@ -29,7 +30,7 @@ def build_gene_document(gene):
         return None
     # TODO, we can get transcription-ids here (as in preprocessing.py)
     unique_exons = exons.groupby('exon_id').first().reset_index()[
-            ['start', 'end', 'exon_id', 'strand']]
+            ['start', 'end', 'exon_id']]
     # revert padding introduced before guide-finding (flashfry)
     guides['start'] -= 16
 
@@ -41,10 +42,20 @@ def build_gene_document(gene):
     # TODO add amino acid cut position and percent peptides
     logging.info(
             'Insert gene {} with its data into mongodb'.format(gene_id))
+
+    domain_tree = domain_interval_trees()[exons.iloc[0]['seqname']]
+
+    interval_domains = domain_tree[exons['start'].min():exons['end'].max()]
+    # filter for domains in the correct direction
+    domains = [domain[2][0] for domain in interval_domains
+               if domain[2][1] == strand]
+
     return {
         'gene_id': gene_id,
+        'strand': strand,
         'chromosome': exons.iloc[0]['seqname'],
         'exons': list(unique_exons.T.to_dict().values()),
+        'domains': domains,
         'guides':
         list(guides[
             ['exon_id', 'start', 'orientation', 'otCount', 'score']
@@ -55,14 +66,18 @@ def build_gene_document(gene):
 def integrate():
     guide_collection.drop()
 
-    with Pool(COMPUTATION_CORES) as pool:
-        for doc in pool.imap_unordered(
-                build_gene_document,
-                gencode_exons_gene_grouped()):
+    if COMPUTATION_CORES > 1:
+        with Pool(COMPUTATION_CORES) as pool:
+            for doc in pool.imap_unordered(
+                    build_gene_document,
+                    gencode_exons_gene_grouped()):
+                if doc:
+                    guide_collection.insert_one(doc)
+    else:
+        for gene in gencode_exons_gene_grouped():
+            doc = build_gene_document(gene)
             if doc:
                 guide_collection.insert_one(doc)
-    for gene in gencode_exons_gene_grouped():
-        doc = build_gene_document(gene)
 
 
 def main():
