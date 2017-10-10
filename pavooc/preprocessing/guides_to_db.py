@@ -47,7 +47,8 @@ def build_gene_document(gene):
 
     interval_domains = domain_tree[exons['start'].min():exons['end'].max()]
     # filter for domains in the correct direction
-    domains = [domain[2][0] for domain in interval_domains
+    domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
+               for domain in interval_domains
                if domain[2][1] == strand]
 
     return {
