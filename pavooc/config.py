@@ -17,7 +17,7 @@ EXON_PADDING = 18
 
 
 JAVA_RAM = os.environ.get('JAVA_RAM', '4')
-COMPUTATION_CORES = os.environ.get('COMPUTATION_CORES', '1')
+COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')
 FLASHFRY_DB_FILE = os.path.join(DATADIR, 'flashfry_genome_db')
 
