@@ -47,10 +47,10 @@ gencode_mock = pd.DataFrame(
 # 16 needs to be subtracted to account for the padding added in preprocessing
 start_in_exons = [3-16, 10-16, 7-16, 67-16]  # taken from .guides file
 contexts = [
-        'CGCGCCCTTTCCTCGCAGTACATCGCGGTG',
-        'CATTGGTGAATTCCTGAATGTGCTGTGGAC',  # reverse-complemented as necessary
-        'CCTTCAGATACTAAAGAGAAGATAGAGGGG',  # reverse-complemented as necessary
-        'ATTGACCCAAGGTCACAGAGCCTGTAGGAG'
+        'GCGCCCTTTCCTCGCAGTACATCGCGGTGC',
+        'ATTGGTGAATTCCTGAATGTGCTGTGGACA',  # reverse-complemented as necessary
+        'CTTCAGATACTAAAGAGAAGATAGAGGGGT',  # reverse-complemented as necessary
+        'TTGACCCAAGGTCACAGAGCCTGTAGGAGA'
         ]
 
 

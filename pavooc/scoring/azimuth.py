@@ -28,14 +28,14 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
         exon = exon.iloc[0]
 
     exon_start = exon['start'] - 1  # gencode starts counting at 1 instead of 0
-    # 20bp protospacer + 5bp padding at each side
+    # 20bp protospacer + 5bp padding at each side (or so for azimuth..)
     if exon['strand'] == '+':
         # if guide_direction == 'FWD':
         start = exon_start + start_in_exon - \
-                (5 if guide_direction == 'FWD' else 2)
+                (4 if guide_direction == 'FWD' else 3)
     else:
         start = exon['end'] - start_in_exon - 23 - \
-                (5 if guide_direction == 'RVS' else 2)
+                (4 if guide_direction == 'RVS' else 3)
 
     seq = chromosomes()[exon['seqname']][start:start+30].upper()
 
@@ -44,7 +44,7 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
         seq = str(DNA(seq).reverse_complement())
 
     try:
-        assert seq[26:28] == 'GG', \
+        assert seq[25:27] == 'GG', \
                 'the generated context is invalid (PAM) site'
     except:
         print(seq, exon['strand'], guide_direction)
