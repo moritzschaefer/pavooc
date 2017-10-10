@@ -10,11 +10,11 @@ from pavooc.data import gencode_exons, chromosomes, azimuth_model
 from azimuth.model_comparison import predict as azimuth_predict
 
 
-def _context_guide(exon_id, start_in_exon, strand, context_length=5):
+def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     '''
     :exon_id: ensembl id
     :start_in_exon: bp position start of guide(!) relative to ensembl start
-    :strand: either 'FWD' or 'RVS'
+    :guide_direction: either 'FWD' or 'RVS'
     :context_length: option to adjust padding in bps TODO: implement
     :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
         capital letters
@@ -29,14 +29,25 @@ def _context_guide(exon_id, start_in_exon, strand, context_length=5):
 
     exon_start = exon['start'] - 1  # gencode starts counting at 1 instead of 0
     # 20bp protospacer + 5bp padding at each side
-    start = exon_start + start_in_exon - (5 if strand == 'FWD' else 2)
-    end = exon_start + start_in_exon + 23 + (2 if strand == 'FWD' else 5)
-    seq = chromosomes()[exon['seqname']][start:end].upper()
+    if exon['strand'] == '+':
+        # if guide_direction == 'FWD':
+        start = exon_start + start_in_exon - \
+                (5 if guide_direction == 'FWD' else 2)
+    else:
+        start = exon['end'] - start_in_exon - 23 - \
+                (5 if guide_direction == 'RVS' else 2)
 
-    if strand == 'RVS':
+    seq = chromosomes()[exon['seqname']][start:start+30].upper()
+
+    # if the strands don't match, it needs to be reversed
+    if (guide_direction == 'RVS') != (exon['strand'] == '-'):
         seq = str(DNA(seq).reverse_complement())
 
-    assert seq[26:28] == 'GG', 'the generated context is invalid (PAM) site'
+    try:
+        assert seq[26:28] == 'GG', \
+                'the generated context is invalid (PAM) site'
+    except:
+        print(seq, exon['strand'], guide_direction)
     return seq
 
 
