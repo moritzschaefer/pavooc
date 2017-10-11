@@ -16,6 +16,7 @@ GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 EXON_PADDING = 18
 
 
+DEBUG = os.environ.get('DEBUG', 'True') in ['True', 'true', '1', 'y', 't']
 JAVA_RAM = os.environ.get('JAVA_RAM', '4')
 COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')
