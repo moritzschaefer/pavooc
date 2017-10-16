@@ -1,0 +1,32 @@
+.radioButton:first-child {
+  margin-top: 22px;
+}
+.radioButton {
+  margin-bottom: 10px;
+}
+
+.initialForm {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 300px;
+Check out the Simple Component Communication lesson from react-training for an example of how to pass a callback function from a state-holding parent to a child component which needs to trigger a state change.
+
+  padding-top: 20px;
+  padding-right: 50px;
+}
+
+.formButton {
+  margin-top: 20px;
+}
+
+.geneChip {
+  margin: 4px;
+}
+
+.chipWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  max-height: 200px;
+  overflow-y: auto;
+}

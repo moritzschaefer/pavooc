@@ -1,22 +1,20 @@
 import * as React from 'react';
-import './App.css';
 
-const logo = require('./logo.svg');
+import { MuiThemeProvider, createMuiTheme } from 'material-ui/styles';
+import Initial from './components/Initial';
 
-class App extends React.Component {
+
+const theme = createMuiTheme();
+
+
+export default class App extends React.Component {
   render() {
     return (
-      <div className="App">
-        <div className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h2>Welcome to React</h2>
-        </div>
-        <p className="App-intro">
-          To get started, edit <code>src/App.tsx</code> and save to reload.
-        </p>
-      </div>
+      <MuiThemeProvider
+        theme={theme}
+      >
+        <Initial geneIds={['ENSG00000251357.4.guides', 'ENSG10000251357.4.guides', 'ENSG00000251352.4.guides', 'ENSG04000251357.4.guides', 'ENSG00a000251357.4.guides', 'ENSG0e0000251357.4.guides']} celllines={['A', 'B', 'CCC', 'AC']} />
+      </MuiThemeProvider>
     );
   }
 }
-
-export default App;

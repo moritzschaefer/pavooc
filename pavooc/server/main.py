@@ -14,12 +14,10 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
 from pavooc.config import DEBUG  # noqa
 from pavooc.db import guide_collection  # noqa
-from pavooc.server.encoder import JSONEncoder  # noqa
 
 
 app = Flask(__name__)
 api = Api(app)
-api.json_encoder = JSONEncoder
 ns = api.namespace('api', description='API')
 
 knockout_input = api.model('KnockoutInput', {
