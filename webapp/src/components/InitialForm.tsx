@@ -2,6 +2,7 @@ import * as React from 'react';
 import AutoComplete from './AutoComplete';
 import Radio, { RadioGroup } from 'material-ui/Radio';
 import { FormControlLabel } from 'material-ui/Form';
+import { push } from 'react-router-redux'
 import Button from 'material-ui/Button';
 import Chip from 'material-ui/Chip';
 import './InitialForm.css';
@@ -29,6 +30,15 @@ export default class InitialForm extends React.Component<Props, State> {
         'ENS5',
         'ENS9',
     ]};
+  }
+
+  _buttonClick = () => {
+    // Show waiting spinner
+    push('/knockout')
+  }
+
+  _setExperimentType = (event: any) => {
+    this.setState({ experimentType: event.target.value });
   }
 
   addGene = (gene: string) => {
@@ -76,6 +86,7 @@ export default class InitialForm extends React.Component<Props, State> {
           className="radioButtonGroup"
           name="experimentType"
           value={this.state.experimentType}
+          onChange={this._setExperimentType}
         >
             <FormControlLabel className="radioButton" value="knockout" control={<Radio />} label="Gene knockout" />
             <FormControlLabel className="radioButton" value="edit" control={<Radio />} label="Gene editing" />
@@ -94,8 +105,7 @@ export default class InitialForm extends React.Component<Props, State> {
             this)
           }
         </div>
-        <Button raised={true} className="formButton">Go</Button>
-
+        <Button onClick={this._buttonClick} raised={true} className="formButton">Go</Button>
       </div>
     );
   }
