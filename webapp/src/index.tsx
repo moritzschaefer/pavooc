@@ -12,8 +12,8 @@ import { MuiThemeProvider, createMuiTheme } from 'material-ui/styles';
 import registerServiceWorker from './registerServiceWorker';
 import './index.css';
 
-import Initial from './components/Initial';
-import KnockoutList from './components/KnockoutList';
+import Initial from './Initial';
+import KnockoutList from './KnockoutList';
 
 import IOEpic from './IO/epic';
 import IOReducer from './IO/reducer';

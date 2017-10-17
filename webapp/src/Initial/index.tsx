@@ -1,6 +1,6 @@
 import * as React from 'react';
-import './Initial.css';
-import InitialForm from '../containers/InitialForm';
+import './style.css';
+import InitialForm from './FormContainer';
 
 export interface Props {
   geneIds: Array<string>;

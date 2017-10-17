@@ -17,7 +17,14 @@ class KnockoutList extends React.Component<Props, object> {
   }
 }
 
+const mapStateToProps = () => ({
+
+});
+
+const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
+  push: (route: any) => dispatch(push(route))
+});
+
 export default connect<any, Props, any>(
-  () => ({}),
-    (dispatch: any, ownProps: any) => ({push: (route: any) => dispatch(push(route))})
-)(KnockoutList);
+  mapStateToProps,
+  mapDispatchToProps)(KnockoutList);

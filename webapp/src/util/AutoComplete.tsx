@@ -9,6 +9,7 @@ interface Props {
   dataSource: Array<string>;
   floatingLabelText: string;
   openOnFocus: boolean;
+  deleteOnSelect: boolean;
 }
 
 interface State {
@@ -46,7 +47,7 @@ export default class AutoComplete extends React.Component<Props, State> {
   }
 
   onInputChange = ({ inputValue }: any) => {
-    const { onSelect, dataSource } = this.props;
+    const { onSelect, dataSource, deleteOnSelect } = this.props;
     if (typeof inputValue !== 'string') {
       return;
     }
@@ -65,9 +66,12 @@ export default class AutoComplete extends React.Component<Props, State> {
     } else {
       if (dataSource.find(v => v.toUpperCase() === upperInput)) {
         this.onChange(upperInput, undefined);
+        if (!deleteOnSelect) {
+          this.setState({ inputValue });
+        }
       } else {
         // this is the usual case
-        this.setState({ inputValue: inputValue });
+        this.setState({ inputValue });
       }
     }
 
@@ -88,7 +92,7 @@ export default class AutoComplete extends React.Component<Props, State> {
       }
 
       console.log(`Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`);
-      if(added > 0) {
+      if(added > 0 && deleteOnSelect) {
         // TODO use Toast
         this.setState({ inputValue: '' });
       } else {

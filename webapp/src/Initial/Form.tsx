@@ -1,27 +1,30 @@
 import * as React from 'react';
-import AutoComplete from './AutoComplete';
+import AutoComplete from '../util/AutoComplete';
 import Radio, { RadioGroup } from 'material-ui/Radio';
 import { FormControlLabel } from 'material-ui/Form';
-import { push } from 'react-router-redux'
+//import { push } from 'react-router-redux'
 import Button from 'material-ui/Button';
 import Chip from 'material-ui/Chip';
-import './InitialForm.css';
+import './Form.css';
 
 export interface Props {
+  go: (geneSelection: Array<string>, cellline: string) => {};
   geneIds: Array<string>;
   celllines: Array<string>;
   className: string;
 }
 
 interface State {
+  cellline: string,
   geneSelection: Array<string>;
   experimentType: string;
 }
 
-export default class InitialForm extends React.Component<Props, State> {
+export default class Form extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      cellline: '',
       experimentType: 'knockout',
       geneSelection: [
         'ENS1',
@@ -30,11 +33,6 @@ export default class InitialForm extends React.Component<Props, State> {
         'ENS5',
         'ENS9',
     ]};
-  }
-
-  _buttonClick = () => {
-    // Show waiting spinner
-    push('/knockout')
   }
 
   _setExperimentType = (event: any) => {
@@ -48,6 +46,11 @@ export default class InitialForm extends React.Component<Props, State> {
     const geneSelection = [...this.state.geneSelection];
     geneSelection.push(gene);
     this.setState({geneSelection: geneSelection});
+    return true;
+  }
+
+  selectCellline = (cellline: string): boolean => {
+    this.setState({ cellline });
     return true;
   }
 
@@ -70,6 +73,7 @@ export default class InitialForm extends React.Component<Props, State> {
 
   render() {
     const { geneIds, celllines, className } = this.props;
+    const { geneSelection, cellline } = this.state;
     let classes = 'initialForm ';
     if (className) {
       classes += className;
@@ -77,7 +81,8 @@ export default class InitialForm extends React.Component<Props, State> {
     return (
       <div className={classes}>
         <AutoComplete
-          onSelect={undefined}
+          onSelect={this.selectCellline}
+          deleteOnSelect={false}
           floatingLabelText="Cancer cellline"
           openOnFocus={true}
           dataSource={celllines}
@@ -93,6 +98,7 @@ export default class InitialForm extends React.Component<Props, State> {
         </RadioGroup>
         <AutoComplete
           floatingLabelText="Genes"
+          deleteOnSelect={true}
           openOnFocus={true}
           dataSource={geneIds}
           onSelect={this.addGene}
@@ -105,7 +111,7 @@ export default class InitialForm extends React.Component<Props, State> {
             this)
           }
         </div>
-        <Button onClick={this._buttonClick} raised={true} className="formButton">Go</Button>
+        <Button onClick={() => this.props.go(geneSelection, cellline)} raised={true} className="formButton">Go</Button>
       </div>
     );
   }
