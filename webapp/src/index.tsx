@@ -57,7 +57,6 @@ ReactDOM.render(
         <Route exact path="/" component={Initial}/>
         <Route path="/knockout" component={KnockoutList}/>
         {/* <Route path="/topics" component={App}/> */}
-        {/* <Initial geneIds={['ENSG00000251357.4.guides', 'ENSG10000251357.4.guides', 'ENSG00000251352.4.guides', 'ENSG04000251357.4.guides', 'ENSG00a000251357.4.guides', 'ENSG0e0000251357.4.guides']} celllines={['A', 'B', 'CCC', 'AC']} /> */}
       </MuiThemeProvider>
     </ConnectedRouter>
   </Provider>,

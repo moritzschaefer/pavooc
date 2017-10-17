@@ -1,19 +1,24 @@
-import { fetchKnockoutsSuccess }  from './actions';
-import { FETCH_KNOCKOUTS }  from './actionTypes';
+import { fetchKnockoutsSuccess, FetchKnockouts }  from './actions';
+import { FETCH_KNOCKOUTS, FETCH_KNOCKOUTS_SUCCESS }  from './actionTypes';
 import { Observable } from 'rxjs/Observable';
 import { combineEpics } from 'redux-observable';
+import { push } from 'react-router-redux'
 
-const fetchKnockoutsApi = (geneIds: any) => {
-  const request = fetch(`https://jsonplaceholder.typicode.com/users/${geneIds[0]}`, {method: 'POST'})
+const fetchKnockoutsApi = (geneIds: any, cellline: string) => {
+  const request = fetch(`/api/knockout`, {method: 'POST', body: JSON.stringify({gene_ids: geneIds})})
     .then(response => response.json());
   return Observable.from(request);
 }
 
 const fetchKnockoutsEpic = (action$: any) =>
   action$.ofType(FETCH_KNOCKOUTS)
-    .mergeMap((action: any) =>
-      fetchKnockoutsApi(action.geneIds)
+    .mergeMap((action: FetchKnockouts) =>
+      fetchKnockoutsApi(action.geneIds, action.cellline)
         .map(fetchKnockoutsSuccess)
     );
 
-export default combineEpics(fetchKnockoutsEpic);
+const fetchKnockoutsSuccessEpic = (action$: any) =>
+  action$.ofType(FETCH_KNOCKOUTS_SUCCESS)
+    .map(() => push('/knockout'));
+
+export default combineEpics(fetchKnockoutsEpic, fetchKnockoutsSuccessEpic);

@@ -56,7 +56,7 @@ class KnockoutGuides(Resource):
     '''
     @api.expect(knockout_input)
     @api.marshal_with(knockout_output)
-    def get(self):
+    def post(self):
         gene_ids = request.get_json(force=True)['gene_ids']
         if not gene_ids:  # TODO improve
             raise BadRequest('gene_ids not set')

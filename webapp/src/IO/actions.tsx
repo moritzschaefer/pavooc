@@ -3,7 +3,7 @@ import * as t from './actionTypes';
 export interface FetchKnockouts {
   type: typeof t.FETCH_KNOCKOUTS;
   geneIds: Array<string>;
-  cellline: string
+  cellline: string;
 }
 
 export const fetchKnockouts = (geneIds: Array<string>, cellline: string) : FetchKnockouts => ({
