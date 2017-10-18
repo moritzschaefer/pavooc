@@ -1,9 +1,9 @@
-import * as React from 'react';
-import Downshift from 'downshift';
-import Paper from 'material-ui/Paper';
-import { MenuItem } from 'material-ui/Menu';
-import TextField from 'material-ui/TextField';
-import './AutoComplete.css';
+import * as React from "react";
+import Downshift from "downshift";
+import Paper from "material-ui/Paper";
+import { MenuItem } from "material-ui/Menu";
+import TextField from "material-ui/TextField";
+import "./AutoComplete.css";
 
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
@@ -23,33 +23,35 @@ export default class AutoComplete extends React.Component<Props, State> {
     super(props);
     this.state = {
       menuIsOpen: false,
-      inputValue: ''
+      inputValue: ""
     };
   }
 
   renderInput(value: string) {
-    return (
-      <TextField
-        autoFocus={false}
-        className="autoInput"
-        value={value}
-      />
-    );
+    return <TextField autoFocus={false} className="autoInput" value={value} />;
   }
 
-  renderSuggestion(item: string, selected: boolean, highlighted: boolean, itemProps: object) {
+  renderSuggestion(
+    item: string,
+    selected: boolean,
+    highlighted: boolean,
+    itemProps: object
+  ) {
     return (
-      <MenuItem {...itemProps} selected={highlighted} component="div" key={item}>
-        <div>
-          {item}
-        </div>
+      <MenuItem
+        {...itemProps}
+        selected={highlighted}
+        component="div"
+        key={item}
+      >
+        <div>{item}</div>
       </MenuItem>
     );
   }
 
   onInputChange = ({ inputValue }: any) => {
     const { onSelect, dataSource, deleteOnSelect } = this.props;
-    if (typeof inputValue !== 'string') {
+    if (typeof inputValue !== "string") {
       return;
     }
     if (!onSelect) {
@@ -58,12 +60,12 @@ export default class AutoComplete extends React.Component<Props, State> {
     }
     let results: Array<string> = [];
     const upperInput = inputValue.toUpperCase();
-    if (upperInput.includes(',')) {
+    if (upperInput.includes(",")) {
       // comma separated list
-      results = upperInput.split(',');
-    } else if(upperInput.includes(' ')) {
-      results = upperInput.split(' ');
-      //results = [for (let v of results) v.trim()]; m
+      results = upperInput.split(",");
+    } else if (upperInput.includes(" ")) {
+      results = upperInput.split(" ");
+      // results = [for (let v of results) v.trim()]; m
     } else {
       if (dataSource.find(v => v.toUpperCase() === upperInput)) {
         this.onChange(upperInput, undefined);
@@ -76,13 +78,13 @@ export default class AutoComplete extends React.Component<Props, State> {
       }
     }
 
-    if(results.length > 0) {
+    if (results.length > 0) {
       let added = 0;
       let invalid = 0;
       let duplicate = 0;
-      for(let result of results) {
-        if(dataSource.find(v => v.toUpperCase() === result)) {
-          if(onSelect(result)) {
+      for (let result of results) {
+        if (dataSource.find(v => v.toUpperCase() === result)) {
+          if (onSelect(result)) {
             added++;
           } else {
             duplicate++;
@@ -92,24 +94,26 @@ export default class AutoComplete extends React.Component<Props, State> {
         }
       }
 
-      console.log(`Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`);
-      if(added > 0 && deleteOnSelect) {
+      console.log(
+        `Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`
+      );
+      if (added > 0 && deleteOnSelect) {
         // TODO use Toast
-        this.setState({ inputValue: '' });
+        this.setState({ inputValue: "" });
       } else {
         this.setState({ inputValue });
       }
     }
-  }
+  };
 
   onChange = (selected: any, stateAndHelpers: object | undefined) => {
     const { onSelect } = this.props;
     this.setState({ menuIsOpen: false });
     if (onSelect) {
-      this.setState({ inputValue: '' });
+      this.setState({ inputValue: "" });
       onSelect(selected);
     }
-  }
+  };
 
   render() {
     // onOuterClick={() => this.setState({menuIsOpen: false})}
@@ -130,31 +134,34 @@ export default class AutoComplete extends React.Component<Props, State> {
           highlightedIndex,
           selectedItem,
           inputValue
-          }) => {
-            return (
+        }) => {
+          return (
             <div>
               <TextField
                 inputProps={getInputProps()}
                 label={floatingLabelText}
                 value={inputValue || undefined}
-                onFocusCapture={() => this.setState({menuIsOpen: openOnFocus})}
+                onFocusCapture={() =>
+                  this.setState({ menuIsOpen: openOnFocus })}
               />
               {menuIsOpen ? (
                 <Paper className="suggestionContainer">
                   {dataSource
                     .filter(i => !inputValue || i.includes(inputValue))
                     .map((item, index) =>
-                      this.renderSuggestion(item, selectedItem === item, highlightedIndex === index, getItemProps({index, item}))
+                      this.renderSuggestion(
+                        item,
+                        selectedItem === item,
+                        highlightedIndex === index,
+                        getItemProps({ index, item })
+                      )
                     )}
                 </Paper>
-              ) : (
-                null
-              )}
+              ) : null}
             </div>
-            )
-          }
-        }
+          );
+        }}
       </Downshift>
-      );
+    );
   }
 }
