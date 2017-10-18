@@ -9,12 +9,13 @@ import './Form.css';
 
 export interface Props {
   go: (geneSelection: Array<string>, cellline: string) => {};
+  initialLoad: () => {};
   geneIds: Array<string>;
   celllines: Array<string>;
   className: string;
 }
 
-interface State {
+export interface State {
   cellline: string,
   geneSelection: Array<string>;
   experimentType: string;
@@ -26,13 +27,11 @@ export default class Form extends React.Component<Props, State> {
     this.state = {
       cellline: '',
       experimentType: 'knockout',
-      geneSelection: [
-        'ENS1',
-        'ENS2',
-        'ENS3',
-        'ENS5',
-        'ENS9',
-    ]};
+      geneSelection: []
+    };
+  }
+  componentDidMount() {
+    this.props.initialLoad();
   }
 
   _setExperimentType = (event: any) => {
@@ -111,7 +110,7 @@ export default class Form extends React.Component<Props, State> {
             this)
           }
         </div>
-        <Button onClick={() => this.props.go(geneSelection, cellline)} raised={true} className="formButton">Go</Button>
+        <Button onClick={() => this.props.go(geneSelection, cellline)} disabled={!geneSelection.length || !cellline} raised={true} className="formButton">Go</Button>
       </div>
     );
   }

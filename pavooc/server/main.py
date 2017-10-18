@@ -22,6 +22,7 @@ ns = api.namespace('api', description='API')
 
 knockout_input = api.model('KnockoutInput', {
     'gene_ids': fields.List(fields.String),
+    'cellline': fields.String,
     })
 knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
@@ -35,6 +36,11 @@ knockout_output = api.model('KnockoutGuides', {
         }))
 })
 
+initial_output = api.model('InitialData', {
+    'gene_ids': fields.List(fields.String),
+    'celllines': fields.List(fields.String)
+})
+
 
 @ns.route('/initial')  # TODO rename
 class InitialData(Resource):
@@ -42,10 +48,35 @@ class InitialData(Resource):
     Initial data like available genes and cancer cell lines
     '''
 
+    @api.marshal_with(initial_output)
     def get(self):
         # TODO cancer celllines missing
-        gene_ids = guide_collection.find({}, {'gene_id': 1})
-        return {'gene_ids': list(gene_ids)}
+        gene_ids = [v['gene_id'] for v in guide_collection.find({}, {'gene_id': 1})]
+        return {'gene_ids': list(gene_ids), 'celllines': [
+            'UM-UC-3',
+            'NBT-II',
+            'ECV304',
+            'RT4',
+            'HT 1197',
+            'HT 1376',
+            'RT4/31',
+            'EJ138',
+            'T24/83',
+            'RT112/84',
+            'UM-UC-16',
+            'UM-UC-11',
+            'UM-UC-10',
+            'UM-UC-9',
+            'UM-UC-7',
+            'UM-UC-6',
+            'UM-UC-5',
+            'UM-UC-1',
+            'U-BLC1',
+            'SVCT',
+            'MDA-MB-231',
+            'MDA-MB-157',
+            ]
+        }
 
 
 # TODO make sure only JSON gets accepted

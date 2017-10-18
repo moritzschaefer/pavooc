@@ -3,6 +3,7 @@ import Downshift from 'downshift';
 import Paper from 'material-ui/Paper';
 import { MenuItem } from 'material-ui/Menu';
 import TextField from 'material-ui/TextField';
+import './AutoComplete.css';
 
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
@@ -139,7 +140,7 @@ export default class AutoComplete extends React.Component<Props, State> {
                 onFocusCapture={() => this.setState({menuIsOpen: openOnFocus})}
               />
               {menuIsOpen ? (
-                <Paper>
+                <Paper className="suggestionContainer">
                   {dataSource
                     .filter(i => !inputValue || i.includes(inputValue))
                     .map((item, index) =>
