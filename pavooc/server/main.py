@@ -51,7 +51,8 @@ class InitialData(Resource):
     @api.marshal_with(initial_output)
     def get(self):
         # TODO cancer celllines missing
-        gene_ids = [v['gene_id'] for v in guide_collection.find({}, {'gene_id': 1})]
+        gene_ids = [v['gene_id']
+                    for v in guide_collection.find({}, {'gene_id': 1})]
         return {'gene_ids': list(gene_ids), 'celllines': [
             'UM-UC-3',
             'NBT-II',

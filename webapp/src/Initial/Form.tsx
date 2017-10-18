@@ -25,9 +25,9 @@ export default class Form extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-      cellline: '',
+      cellline: 'UM-UC-3',
       experimentType: 'knockout',
-      geneSelection: []
+      geneSelection: ['ENSG00000015475.14', 'ENSG00000070010.14']
     };
   }
   componentDidMount() {

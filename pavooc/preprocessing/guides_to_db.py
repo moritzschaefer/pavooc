@@ -59,7 +59,7 @@ def build_gene_document(gene):
         'domains': domains,
         'guides':
         list(guides[
-            ['exon_id', 'start', 'orientation', 'otCount', 'score']
+            ['exon_id', 'start', 'orientation', 'otCount', 'score', 'target']
             ].T.to_dict().values()),
     }
 
