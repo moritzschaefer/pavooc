@@ -49,7 +49,7 @@ export default class AutoComplete extends React.Component<Props, State> {
     );
   }
 
-  onInputChange = ({ inputValue }: any) => {
+  onInputChange = ({ inputValue }: { inputValue: string }) => {
     const { onSelect, dataSource, deleteOnSelect } = this.props;
     if (typeof inputValue !== "string") {
       return;
@@ -132,8 +132,7 @@ export default class AutoComplete extends React.Component<Props, State> {
           getLabelProps,
           getItemProps,
           highlightedIndex,
-          selectedItem,
-          inputValue
+          selectedItem
         }) => {
           return (
             <div>
