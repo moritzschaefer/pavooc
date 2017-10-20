@@ -3,7 +3,6 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { createStore, combineReducers, applyMiddleware } from "redux";
 import { Provider } from "react-redux";
-import { Route } from "react-router";
 import {
   ConnectedRouter,
   routerReducer,
@@ -11,21 +10,16 @@ import {
 } from "react-router-redux";
 import { createEpicMiddleware, combineEpics } from "redux-observable";
 import createHistory from "history/createBrowserHistory";
-import { MuiThemeProvider, createMuiTheme } from "material-ui/styles";
 
 import registerServiceWorker from "./registerServiceWorker";
 import "./index.css";
 
-import Initial from "./Initial";
-import KnockoutList from "./KnockoutList";
-import Messages from "./Messages";
+import App from "./App";
 
 import IOEpic from "./IO/epic";
 import IOReducer from "./IO/reducer";
-
+import GeneViewerReducer from "./GeneViewer/reducer";
 import MessagesReducer from "./Messages/reducer";
-
-const theme = createMuiTheme();
 
 // Create a history of your choosing (we're using a browser history in this case)
 const history = createHistory();
@@ -35,7 +29,8 @@ const history = createHistory();
 const reducers = combineReducers({
   router: routerReducer,
   io: IOReducer,
-  messages: MessagesReducer
+  messages: MessagesReducer,
+  geneViewer: GeneViewerReducer
 });
 
 const epics = combineEpics(IOEpic);
@@ -56,12 +51,7 @@ ReactDOM.render(
   <Provider store={store}>
     {/* ConnectedRouter will use the store from Provider automatically */}
     <ConnectedRouter history={history}>
-      <MuiThemeProvider theme={theme}>
-        <Route exact={true} path="/" component={Initial} />
-        <Route path="/knockout" component={KnockoutList} />
-        {/* <Route path="/topics" component={App}/> */}
-        <Messages />
-      </MuiThemeProvider>
+      <App/>
     </ConnectedRouter>
   </Provider>,
   document.getElementById("root") as HTMLElement
