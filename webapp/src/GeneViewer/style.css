@@ -8,22 +8,25 @@
   padding: 20px;
   display: flex;
   justify-content: center;
+  align-content: center;
   flex-direction: row;
-  flex: 1;
+  height: 100px;
 }
 
 .backButton {
+  margin: 30px;
   flex: 1;
 }
 
 .heading {
-  flex: 2
+  flex: 3
 }
 
 .topControls {
   flex: 2;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
 }
 
 .containerCenter {
@@ -34,4 +37,5 @@
 
 .containerBottom {
   flex: 2;
+  padding: 20px;
 }

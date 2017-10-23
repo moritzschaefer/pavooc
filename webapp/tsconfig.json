@@ -36,7 +36,9 @@
     "sourceMap": true
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "types/**/*"
+
   ],
   "exclude": [
     "node_modules",

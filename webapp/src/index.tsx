@@ -1,3 +1,4 @@
+/// <reference path='../types/index.d.ts'/>
 import "rxjs"; // import all operators. though: slow
 import * as React from "react";
 import * as ReactDOM from "react-dom";

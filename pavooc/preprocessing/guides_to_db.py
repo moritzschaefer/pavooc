@@ -38,7 +38,11 @@ def build_gene_document(gene):
     # TODO add scores here and stuff
     # delete 16 due to padding in exon_files
     logging.info('calculating azimuth score for {}'.format(gene_id))
-    guides['score'] = azimuth.score(guides)
+    try:
+        guides['score'] = azimuth.score(guides)
+    except Exception as e:
+        import ipdb
+        ipdb.set_trace()
     # TODO add amino acid cut position and percent peptides
     logging.info(
             'Insert gene {} with its data into mongodb'.format(gene_id))

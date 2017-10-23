@@ -2,19 +2,16 @@ import * as React from "react";
 // import * as NGL from "ngl";
 
 interface State {
-  viewport: any;
 }
 
 interface Props {
 
 }
+let viewport = undefined;
 
 export default class ProteinViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {
-      viewport: undefined
-    };
   }
   componentDidMount() {
     // set up ngl
@@ -24,8 +21,8 @@ export default class ProteinViewer extends React.Component<Props, State> {
   }
   render() {
     return (
-      <div>
-        <div ref={(viewport: any) => {this.setState({ viewport })}} style={{height: 500}}/>
+      <div style={{flex: 1, display: "flex"}}>
+        <div ref={(v: any) => {viewport = v}} style={{flex: 1}}/>
       </div>
     );
   }

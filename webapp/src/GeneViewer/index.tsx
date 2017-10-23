@@ -55,7 +55,7 @@ class GeneViewer extends React.Component<Props, State> {
                 ))}
               </Select>
             </FormControl>
-            {/* <Button>&darr; CSV</Button> */}
+            <Button>&darr; CSV</Button>
           </div>
         </div>
         <div className="containerCenter">
