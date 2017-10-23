@@ -3,6 +3,9 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { createStore, combineReducers, applyMiddleware } from "redux";
 import { Provider } from "react-redux";
+import { persistStore, persistReducer } from "redux-persist";
+import storage from "redux-persist/es/storage";
+import { PersistGate } from "redux-persist/es/integration/react";
 import {
   ConnectedRouter,
   routerReducer,
@@ -15,6 +18,7 @@ import registerServiceWorker from "./registerServiceWorker";
 import "./index.css";
 
 import App from "./App";
+import Loading from "./util/Loading";
 
 import IOEpic from "./IO/epic";
 import IOReducer from "./IO/reducer";
@@ -26,7 +30,7 @@ const history = createHistory();
 
 // Build the middleware for intercepting and dispatching navigation actions
 
-const reducers = combineReducers({
+const rootReducer = combineReducers({
   router: routerReducer,
   io: IOReducer,
   messages: MessagesReducer,
@@ -39,9 +43,18 @@ const middleware = applyMiddleware(
   createEpicMiddleware(epics)
 );
 
+const config = {
+  key: "root", // key is required
+  storage // storage is now required
+};
+
+const reducer = persistReducer(config, rootReducer);
+
 // Add the reducer to your store on the `router` key
 // Also apply our middleware for navigating
-const store = createStore(reducers, middleware);
+const store = createStore(reducer, middleware);
+
+let persistor = persistStore(store);
 
 // Now you can dispatch navigation actions from anywhere!
 // store.dispatch(push('/foo'))
@@ -49,10 +62,12 @@ const store = createStore(reducers, middleware);
 // Create an enhanced history that syncs navigation events with the store
 ReactDOM.render(
   <Provider store={store}>
-    {/* ConnectedRouter will use the store from Provider automatically */}
-    <ConnectedRouter history={history}>
-      <App/>
-    </ConnectedRouter>
+    <PersistGate persistor={persistor} loading={<Loading />}>
+      {/* ConnectedRouter will use the store from Provider automatically */}
+      <ConnectedRouter history={history}>
+        <App />
+      </ConnectedRouter>
+    </PersistGate>
   </Provider>,
   document.getElementById("root") as HTMLElement
 );
