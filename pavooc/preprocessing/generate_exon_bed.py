@@ -17,8 +17,8 @@ def main():
 
         for gene_id, exons in gencode_exons_gene_grouped():
             sorted_exons = exons.sort_values('start')
-            gene_start = sorted_exons.start.iloc[0]
-            gene_end = sorted_exons.end.iloc[-1]
+            gene_start = min(exons.start)
+            gene_end = max(exons.end)
 
             data = [[exons.iloc[0]['seqname']][0],
                     gene_start,
@@ -26,8 +26,8 @@ def main():
                     gene_id,
                     0,
                     exons.iloc[0]['strand'],
-                    min(exons.start),
-                    max(exons.end),
+                    gene_start,
+                    gene_end,
                     ','.join([str(v) for v in [255, 0, 0]]),
                     len(exons),
                     ','.join((sorted_exons.end-sorted_exons.start).map(str)),
