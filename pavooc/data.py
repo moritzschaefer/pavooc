@@ -23,15 +23,16 @@ def read_gencode():
     return read_gtf_as_dataframe(GENCODE_FILE)
 
 
-# TODO annotation to buffer output automatically
 @buffer_return_value
 def gencode_exons():
     '''
-    Return the exons from gencode, indexed by exon_id
+    Return the protein-coding exons from gencode, indexed by exon_id
     '''
     gencode = read_gencode()
 
-    return gencode.loc[gencode['feature'] == 'exon'].set_index('exon_id')
+    return gencode.loc[
+            (gencode['feature'] == 'exon') &
+            (gencode['gene_type'] == 'protein_coding')].set_index('exon_id')
 
 
 def gencode_exons_gene_grouped():

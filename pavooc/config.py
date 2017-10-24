@@ -13,10 +13,11 @@ CHROMOSOME_RAW_FILE = os.path.join(DATADIR, '{}.raw')
 EXON_DIR = os.path.join(DATADIR, 'exons/')
 GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
 GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
+EXON_BED_FILE = os.path.join(DATADIR, 'exome.bed')
 EXON_PADDING = 18
 
-
-DEBUG = os.environ.get('DEBUG', 'True') in ['True', 'true', '1', 'y', 'yes', 't']
+DEBUG = os.environ.get('DEBUG', 'True') in \
+        ['True', 'true', '1', 'y', 'yes', 't']
 JAVA_RAM = os.environ.get('JAVA_RAM', '4')
 COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')

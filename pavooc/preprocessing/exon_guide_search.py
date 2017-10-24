@@ -3,12 +3,15 @@ import logging
 import os
 import pickle
 import re
+from tqdm import tqdm
+from multiprocessing import Pool
 
 import numpy as np
 
 from pavooc.util import read_guides
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-        EXON_INTERVAL_TREES_FILE, CHROMOSOMES, GUIDES_FILE
+        EXON_INTERVAL_TREES_FILE, CHROMOSOMES, GUIDES_FILE, \
+        COMPUTATION_CORES
 from pavooc.data import read_gencode
 
 logging.basicConfig(level=logging.INFO,
@@ -20,6 +23,7 @@ PATTERN = re.compile(
         # r'<(chr[\d\w]{1,2}):(\d+)\\\^(.)(\\\|(chr[\d\w]{1,2}):(\d+)\\\^(.))*>'
         )
 
+# TODO move to data.py
 with open(EXON_INTERVAL_TREES_FILE, 'rb') as f:
     exon_interval_trees = pickle.load(f)
 
@@ -33,6 +37,9 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
     '''
     in_exons_summary = False
     result = PATTERN.match(off_targets)
+    if not result:  # TODO delete
+        import ipdb
+        ipdb.set_trace()
     assert bool(result), off_targets  # check that pattern is valid
     for off_locus in result.group('off_loci').split('\\|'):
         # in flashfry, the position is always the left-handside
@@ -98,7 +105,15 @@ def flashfry_guides(gene_id):
     return target_file
 
 
-def generate_exon_guides(gene_id, mismatches):
+def generate_exon_guides(gene_iterator):
+    '''
+    :gene_iterator: tuple (index, row) returned form df.iterrows
+    :returns: tuple (overflow count, mismatches)
+    '''
+    gene_id = gene_iterator[1]['gene_id']
+
+    logging.info('Generate guides for {}.'.format(gene_id))
+    mismatches = {}
     overflow_count = 0
 
     target_file = flashfry_guides(gene_id)
@@ -134,7 +149,7 @@ def generate_exon_guides(gene_id, mismatches):
 
     data[~data['delete']].to_csv(target_file, sep='\t')
 
-    return overflow_count
+    return overflow_count, mismatches
 
 
 def main():
@@ -143,17 +158,32 @@ def main():
             (read_gencode()['gene_type'] == 'protein_coding') &
             (read_gencode()['seqname'].isin(CHROMOSOMES))
     ]
-    i = 0
     mismatches = {}
     overflow_count = 0
-    for _, row in relevant_genes.iterrows():
-        logging.info('{}/{} Generate guides for {}.'.format(
-            i,
-            len(relevant_genes),
-            row['gene_id'])
-        )
-        overflow_count += generate_exon_guides(row['gene_id'], mismatches)
-        i += 1
+    if COMPUTATION_CORES > 1:
+        with Pool(COMPUTATION_CORES) as pool:
+            for partial_overflow_count, partial_mismatches in tqdm(
+                    pool.imap_unordered(
+                        generate_exon_guides,
+                        relevant_genes.iterrows()),
+                    total=len(relevant_genes)):
+                overflow_count += partial_overflow_count
+                for key in partial_mismatches:
+                    try:
+                        mismatches[key] += partial_mismatches[key]
+                    except KeyError:
+                        mismatches[key] = partial_mismatches[key]
+    else:
+        # debuggable
+        for row in tqdm(relevant_genes.iterrows(), total=len(relevant_genes)):
+            partial_overflow_count, partial_mismatches = \
+                    generate_exon_guides(row)
+            overflow_count += partial_overflow_count
+            for key in partial_mismatches:
+                try:
+                    mismatches[key] += partial_mismatches[key]
+                except KeyError:
+                    mismatches[key] = partial_mismatches[key]
 
     # save anaysis data
     print('Overflow count: {}'.format(overflow_count))
