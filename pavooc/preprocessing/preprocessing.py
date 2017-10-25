@@ -9,7 +9,7 @@ from intervaltree import IntervalTree
 
 from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREES_FILE, \
         GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
-from pavooc.data import read_gencode, gencode_exons_gene_grouped, chromosomes
+from pavooc.data import gencode_exons, chromosomes
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,11 +40,8 @@ def exon_interval_trees():
     '''
     logging.info('Building exon tree')
     trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
-    relevant_exons = read_gencode()[
-            (read_gencode()['feature'] == 'exon') &
-            (read_gencode()['gene_type'] == 'protein_coding') &
-            (read_gencode()['seqname'].isin(CHROMOSOMES))
-    ]
+    relevant_exons = gencode_exons()
+
     for _, row in relevant_exons.iterrows():
         if row['end'] > row['start']:
             # end is included, start count at 0 instead of 1
@@ -96,7 +93,7 @@ def generate_gene_files():
     '''
     logging.info('Generate gene files containing all exons')
     # for each exon create one file
-    for gene_id, exons in gencode_exons_gene_grouped():
+    for gene_id, exons in gencode_exons.groupby('gene_id'):
         try:
             # TODO delete try/except
             # check existence of chromosome to speed up tests

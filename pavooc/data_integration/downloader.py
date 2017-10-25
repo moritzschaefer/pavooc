@@ -40,7 +40,7 @@ def download_unzip(url):
     if download_filename[-3:] == '.gz':
         with gzip.open(os.path.join(DATADIR, download_filename), 'rb') as gz_file:
             file_content = gz_file.read()
-        with open(os.ptah.join(DATADIR, download_filename[:-3]), 'wb') as datafile:
+        with open(os.path.join(DATADIR, download_filename[:-3]), 'wb') as datafile:
             datafile.write(file_content)
 
 

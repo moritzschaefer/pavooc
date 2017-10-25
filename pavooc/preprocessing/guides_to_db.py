@@ -8,7 +8,7 @@ from multiprocessing import Pool
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
 from pavooc.util import read_guides
 from pavooc.db import guide_collection
-from pavooc.data import gencode_exons_gene_grouped, domain_interval_trees
+from pavooc.data import gencode_exons, domain_interval_trees
 from pavooc.scoring import azimuth
 
 logging.basicConfig(level=logging.INFO,
@@ -75,11 +75,11 @@ def integrate():
         with Pool(COMPUTATION_CORES) as pool:
             for doc in pool.imap_unordered(
                     build_gene_document,
-                    gencode_exons_gene_grouped()):
+                    gencode_exons.groupby('gene_id')):
                 if doc:
                     guide_collection.insert_one(doc)
     else:
-        for gene in gencode_exons_gene_grouped():
+        for gene in gencode_exons.groupby('gene_id'):
             doc = build_gene_document(gene)
             if doc:
                 guide_collection.insert_one(doc)

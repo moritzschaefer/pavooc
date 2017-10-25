@@ -109,9 +109,9 @@ class KnockoutGuides(Resource):
                 'guides': {'$push': '$guides'}
                 }},
             # only show first 6 guides
-            {'$project': {
-                'gene_id': 1,
-                'guides': {'$slice': ['$guides', 6]}}}
+            # {'$project': {
+            #     'gene_id': 1,
+            #     'guides': {'$slice': ['$guides', 6]}}}
             ]
         result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)

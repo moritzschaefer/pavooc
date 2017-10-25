@@ -2,7 +2,7 @@
 Create a bed file for the exome
 '''
 from pavooc.config import EXON_BED_FILE
-from pavooc.data import gencode_exons_gene_grouped
+from pavooc.data import gencode_exons
 
 
 def main():
@@ -11,11 +11,10 @@ def main():
     https://genome.ucsc.edu/goldenpath/help/customTrack.html
     """
     with open(EXON_BED_FILE, 'w') as f:
-
-        f.write('track name="ItemRGBDemo" description="Item RGB demonstration"'
-                'visibility=2 itemRgb="On"\n')
-
-        for gene_id, exons in gencode_exons_gene_grouped():
+        # f.write('track name="ItemRGBDemo" description="Item RGB demonstration"'
+        #         'visibility=2 itemRgb="On"\n')
+        #
+        for gene_id, exons in gencode_exons().groupby('gene_id'):
             sorted_exons = exons.sort_values('start')
             gene_start = min(exons.start)
             gene_end = max(exons.end)

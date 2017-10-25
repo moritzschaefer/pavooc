@@ -10,18 +10,18 @@ import numpy as np
 
 from pavooc.util import read_guides
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-        EXON_INTERVAL_TREES_FILE, CHROMOSOMES, GUIDES_FILE, \
-        COMPUTATION_CORES
-from pavooc.data import read_gencode
+    EXON_INTERVAL_TREES_FILE, GUIDES_FILE, \
+    COMPUTATION_CORES
+from pavooc.data import gencode_gene_ids
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
 
 PATTERN = re.compile(
-        r'(?P<protospacer>\w{23})_(?P<occurences>\d+)_(?P<mismatch_count>\d+)'
-        r'<(?P<off_loci>.*)>'
-        # r'<(chr[\d\w]{1,2}):(\d+)\\\^(.)(\\\|(chr[\d\w]{1,2}):(\d+)\\\^(.))*>'
-        )
+    r'(?P<protospacer>\w{23})_(?P<occurences>\d+)_(?P<mismatch_count>\d+)'
+    r'<(?P<off_loci>.*)>'
+    # r'<(chr[\d\w]{1,2}):(\d+)\\\^(.)(\\\|(chr[\d\w]{1,2}):(\d+)\\\^(.))*>'
+)
 
 # TODO move to data.py
 with open(EXON_INTERVAL_TREES_FILE, 'rb') as f:
@@ -63,12 +63,12 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
             mismatches[(
                 bool(in_exons),
                 int(result.group('mismatch_count'))
-                )] += int(result.group('occurences'))
+            )] += int(result.group('occurences'))
         except KeyError:
             mismatches[(
                 bool(in_exons),
                 int(result.group('mismatch_count'))
-                )] = int(result.group('occurences'))
+            )] = int(result.group('occurences'))
         # either, we sort out guides, that cut the same gene while
         # cutting another gene which might sort out many good guides
         # (depends on the design of FF). Right now:
@@ -91,17 +91,17 @@ def flashfry_guides(gene_id):
 
     target_file = GUIDES_FILE.format(gene_id)
     subprocess.Popen([
-            'java',
-            '-Xmx{}g'.format(JAVA_RAM),
-            '-jar', 'FlashFry-assembly-1.6.jar',
-            '--analysis', 'discover',
-            '--fasta', gene_file,
-            '--output', target_file,
-            '--maxMismatch', '5',
-            '--maximumOffTargets', '1500',
-            '--positionOutput=true',
-            '--database', FLASHFRY_DB_FILE
-            ]).wait()
+        'java',
+        '-Xmx{}g'.format(JAVA_RAM),
+        '-jar', 'FlashFry-assembly-1.6.jar',
+        '--analysis', 'discover',
+        '--fasta', gene_file,
+        '--output', target_file,
+        '--maxMismatch', '5',
+        '--maximumOffTargets', '1500',
+        '--positionOutput=true',
+        '--database', FLASHFRY_DB_FILE
+    ]).wait()
     return target_file
 
 
@@ -153,11 +153,6 @@ def generate_exon_guides(gene_iterator):
 
 
 def main():
-    relevant_genes = read_gencode()[
-            (read_gencode()['feature'] == 'gene') &
-            (read_gencode()['gene_type'] == 'protein_coding') &
-            (read_gencode()['seqname'].isin(CHROMOSOMES))
-    ]
     mismatches = {}
     overflow_count = 0
     if COMPUTATION_CORES > 1:
@@ -165,8 +160,8 @@ def main():
             for partial_overflow_count, partial_mismatches in tqdm(
                     pool.imap_unordered(
                         generate_exon_guides,
-                        relevant_genes.iterrows()),
-                    total=len(relevant_genes)):
+                        gencode_gene_ids()),
+                    total=len(gencode_gene_ids())):
                 overflow_count += partial_overflow_count
                 for key in partial_mismatches:
                     try:
@@ -175,9 +170,9 @@ def main():
                         mismatches[key] = partial_mismatches[key]
     else:
         # debuggable
-        for row in tqdm(relevant_genes.iterrows(), total=len(relevant_genes)):
+        for row in tqdm(gencode_gene_ids(), total=len(gencode_gene_ids())):
             partial_overflow_count, partial_mismatches = \
-                    generate_exon_guides(row)
+                generate_exon_guides(row)
             overflow_count += partial_overflow_count
             for key in partial_mismatches:
                 try:
