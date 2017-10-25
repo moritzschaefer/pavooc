@@ -2,7 +2,7 @@
 import "rxjs"; // import all operators. though: slow
 import * as React from "react";
 import * as ReactDOM from "react-dom";
-import { createStore, combineReducers, applyMiddleware } from "redux";
+import { createStore, combineReducers, applyMiddleware, compose } from "redux";
 import { Provider } from "react-redux";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/es/storage";
@@ -48,12 +48,15 @@ const config = {
   key: "root", // key is required
   storage // storage is now required
 };
+// interface Window { [key: string]: any }
+
+const composeEnhancers: any = window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__'] || compose;
 
 const reducer = persistReducer(config, rootReducer);
 
 // Add the reducer to your store on the `router` key
 // Also apply our middleware for navigating
-const store = createStore(reducer, middleware);
+const store = createStore(reducer, composeEnhancers(middleware));
 
 let persistor = persistStore(store);
 

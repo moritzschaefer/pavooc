@@ -3,7 +3,6 @@ import { withRouter } from "react-router";
 import { Route } from "react-router";
 import { MuiThemeProvider, createMuiTheme } from "material-ui/styles";
 
-
 import Initial from "../Initial";
 import KnockoutList from "../KnockoutList";
 import GeneViewer from "../GeneViewer";

@@ -17,6 +17,7 @@ interface Props {
   geneId: string;
   guideCount: number;
   setGuideCount: (event: any) => {};
+  guides: Array<any>;
 }
 
 interface State {}
@@ -27,11 +28,11 @@ class GeneViewer extends React.Component<Props, State> {
     this.state = {};
   }
   render() {
-    const { guideCount } = this.props;
+    const { guideCount, guides } = this.props;
     return (
       <div className="mainContainer">
         <div className="containerTop">
-          <Button className="backButton">Back</Button>
+          <Button raised={true} className="backButton">Back</Button>
           <h2 className="heading">Gene name</h2>
           <div className="topControls">
             <FormControl>
@@ -55,12 +56,12 @@ class GeneViewer extends React.Component<Props, State> {
                 ))}
               </Select>
             </FormControl>
-            <Button>&darr; CSV</Button>
+            <Button raised={true}>&darr; CSV</Button>
           </div>
         </div>
         <div className="containerCenter">
           <ProteinViewer />
-          <GuideTable />
+          <GuideTable guides={guides} />
         </div>
         <div className="containerBottom">
           <SequenceViewer />
@@ -75,6 +76,7 @@ const mapStateToProps = (
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => ({
   guideCount: state.geneViewer.guideCount,
+  guides: state.io.guides,
   geneId
 });
 

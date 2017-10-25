@@ -13,21 +13,15 @@ import Paper from "material-ui/Paper";
 import "./style.css";
 
 export interface Props {
-  push: any;
-  guides: any;
+  push: (route: string) => {};
+  guides: Array<any>;
 }
 
 class KnockoutList extends React.Component<Props, object> {
-  _handleClick = (geneId: string) => {
-    this.props.push()
-  }
-
   renderTableRow(geneGuides: any) {
     const scores = geneGuides.guides.map((v: any) => v.score);
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
-    // onClick={() => this._handleClick(geneGuides.gene_id)}
-    // hover={true}
     return (
         <TableRow
           key={geneGuides.gene_id}
@@ -75,11 +69,11 @@ class KnockoutList extends React.Component<Props, object> {
 }
 
 const mapStateToProps = (state: any) => ({
-  guides: state.io.guides
+  guides: state.io.guides.slice(0, state.geneViewer.guideCount)
 });
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
-  push: (route: any) => dispatch(push(route))
+  push: (route: string) => dispatch(push(route))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(KnockoutList);

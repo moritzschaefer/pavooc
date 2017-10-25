@@ -5,6 +5,7 @@ import * as dalliance from "dalliance";
 interface State {
   genome: string;
   genes: string;
+  browser: typeof dalliance.Browser | undefined;
 }
 
 interface Props {}
@@ -17,11 +18,13 @@ export default class SequenceViewer extends React.Component<Props, State> {
 
     this.state = {
       genes: "http://www.derkholm.net:8080/das/hsa_54_36p/",
-      genome: "http://www.derkholm.net:8080/das/hg18comp/"
+      genome: "http://www.derkholm.net:8080/das/hg18comp/",
+      browser: undefined
     };
   }
+
   componentDidMount() {
-    new dalliance.Browser({
+    let browser = new dalliance.Browser({
       chr: "22",
       viewStart: 30700000,
       viewEnd: 30900000,
@@ -62,6 +65,7 @@ export default class SequenceViewer extends React.Component<Props, State> {
         }
       ]
     });
+    this.setState({ browser });
   }
   // componentDidMount() {
   //   pileup.create(viewport, {
@@ -89,6 +93,8 @@ export default class SequenceViewer extends React.Component<Props, State> {
   //
   // }
   render() {
-    return <div id="svgHolder" ref={(ref: HTMLDivElement) => (viewport = ref)} />;
+    return (
+      <div id="svgHolder" ref={(ref: HTMLDivElement) => (viewport = ref)} />
+    );
   }
 }
