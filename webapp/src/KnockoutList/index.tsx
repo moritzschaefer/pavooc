@@ -69,7 +69,7 @@ class KnockoutList extends React.Component<Props, object> {
 }
 
 const mapStateToProps = (state: any) => ({
-  guides: state.io.guides.slice(0, state.geneViewer.guideCount)
+  guides: state.io.guides.map((geneGuides: any) => ({...geneGuides, guides: geneGuides.guides.slice(0, state.geneViewer.guideCount)}))
 });
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
