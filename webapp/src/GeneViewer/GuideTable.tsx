@@ -5,42 +5,45 @@ import Table, {
   TableHead,
   TableRow
 } from "material-ui/Table";
+import Checkbox from "material-ui/Checkbox";
 import Paper from "material-ui/Paper";
+import "./style.css";
 
 interface State {}
 
 interface Props {
-  guides: Array<any>;
+  className: string;
+  guides: any;
 }
 
 export default class GuideTable extends React.Component<Props, State> {
-  renderTableRow(geneGuides: any) {
+  renderTableRow(guide: any) {
     return (
-        <TableRow
-          key={geneGuides.gene_id}
-        >
-          <TableCell>
-            {geneGuides.gene_id}
-          </TableCell>
-          <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
-            Helloooo
-          </TableCell>
-        </TableRow>
+      <TableRow key={guide.target}>
+        <TableCell padding="checkbox">
+          <Checkbox checked={false} />
+        </TableCell>
+        <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
+          {guide.target}
+        </TableCell>
+        <TableCell>{guide.score}</TableCell>
+      </TableRow>
     );
   }
   renderTable() {
-    const { guides } = this.props;
+    const { guides, className } = this.props;
     return (
-      <Paper>
+      <Paper className={className}>
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Gene</TableCell>
-              <TableCell>Guides</TableCell>
+              <TableCell>Use</TableCell>
+              <TableCell>Guide</TableCell>
+              <TableCell>Score</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {guides.map((geneGuides: any) => this.renderTableRow(geneGuides))}
+            {guides.map((guide: any) => this.renderTableRow(guide))}
           </TableBody>
         </Table>
       </Paper>
@@ -48,6 +51,5 @@ export default class GuideTable extends React.Component<Props, State> {
   }
   render() {
     return this.renderTable();
-
   }
 }

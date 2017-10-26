@@ -23,20 +23,20 @@ class KnockoutList extends React.Component<Props, object> {
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
-        <TableRow
-          key={geneGuides.gene_id}
-        >
-          <TableCell>
-            <Link className="tableLink" to={geneLink}>
-              {geneGuides.gene_id}
-            </Link>
-          </TableCell>
-          <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
-            <Link className="tableLink" to={geneLink}>
-              {scores.join(", ")}
-            </Link>
-          </TableCell>
-        </TableRow>
+      <TableRow
+        key={geneGuides.gene_id}
+      >
+        <TableCell>
+          <Link className="tableLink" to={geneLink}>
+            {geneGuides.gene_id}
+          </Link>
+        </TableCell>
+        <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
+          <Link className="tableLink" to={geneLink}>
+            {scores.join(", ")}
+          </Link>
+        </TableCell>
+      </TableRow>
     );
   }
   renderTable() {
@@ -59,10 +59,17 @@ class KnockoutList extends React.Component<Props, object> {
   }
   render() {
     return (
-      <div className="container">
-        <h2>Guide recommendations</h2>
-        {this.renderTable()}
-        <Button onClick={() => this.props.push("/")}>Back</Button>
+      <div className="App">
+        <div className="AppHeader">
+          <h1>PAVOOC</h1>
+        </div>
+        <div className="AppBody">
+          <div className="container">
+            <h2>Guide recommendations</h2>
+            {this.renderTable()}
+            <Button onClick={() => this.props.push("/")}>Back</Button>
+          </div>
+        </div>
       </div>
     );
   }

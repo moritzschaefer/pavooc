@@ -28,12 +28,14 @@ class GeneViewer extends React.Component<Props, State> {
     this.state = {};
   }
   render() {
-    const { guideCount, guides } = this.props;
+    const { guideCount, guides, geneId } = this.props;
     return (
       <div className="mainContainer">
         <div className="containerTop">
-          <Button raised={true} className="backButton">Back</Button>
-          <h2 className="heading">Gene name</h2>
+          <div className="geneViewerHeader">
+            <Button raised={true} className="backButton">Back</Button>
+          </div>
+          <h2 className="heading">{geneId}</h2>
           <div className="topControls">
             <FormControl>
               <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
@@ -60,8 +62,8 @@ class GeneViewer extends React.Component<Props, State> {
           </div>
         </div>
         <div className="containerCenter">
-          <ProteinViewer />
-          <GuideTable guides={guides} />
+          <ProteinViewer className="proteinViewer"/>
+          <GuideTable guides={guides} className="guideTable"/>
         </div>
         <div className="containerBottom">
           <SequenceViewer />
@@ -76,7 +78,7 @@ const mapStateToProps = (
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => ({
   guideCount: state.geneViewer.guideCount,
-  guides: state.io.guides,
+  guides: state.io.guides.find((v: any) => v.gene_id === geneId).guides,
   geneId
 });
 

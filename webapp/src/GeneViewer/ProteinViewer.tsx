@@ -5,8 +5,9 @@ interface State {
 }
 
 interface Props {
-
+  className: string;
 }
+
 let viewport: any = undefined;
 
 export default class ProteinViewer extends React.Component<Props, State> {
@@ -21,7 +22,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
   }
   render() {
     return (
-      <div style={{flex: 1, display: "flex", height: 200}}>
+      <div className={this.props.className}>
         <div ref={(v: any) => {viewport = v}} style={{flex: 1}}/>
       </div>
     );
