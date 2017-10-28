@@ -105,12 +105,11 @@ def flashfry_guides(gene_id):
     return target_file
 
 
-def generate_exon_guides(gene_iterator):
+def generate_exon_guides(gene_id):
     '''
-    :gene_iterator: tuple (index, row) returned form df.iterrows
+    :gene_id:
     :returns: tuple (overflow count, mismatches)
     '''
-    gene_id = gene_iterator[1]['gene_id']
 
     logging.info('Generate guides for {}.'.format(gene_id))
     mismatches = {}
@@ -170,9 +169,9 @@ def main():
                         mismatches[key] = partial_mismatches[key]
     else:
         # debuggable
-        for row in tqdm(gencode_gene_ids(), total=len(gencode_gene_ids())):
+        for gene_id in tqdm(gencode_gene_ids(), total=len(gencode_gene_ids())):
             partial_overflow_count, partial_mismatches = \
-                generate_exon_guides(row)
+                generate_exon_guides(gene_id)
             overflow_count += partial_overflow_count
             for key in partial_mismatches:
                 try:

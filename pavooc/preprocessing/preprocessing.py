@@ -93,7 +93,7 @@ def generate_gene_files():
     '''
     logging.info('Generate gene files containing all exons')
     # for each exon create one file
-    for gene_id, exons in gencode_exons.groupby('gene_id'):
+    for gene_id, exons in gencode_exons().groupby('gene_id'):
         try:
             # TODO delete try/except
             # check existence of chromosome to speed up tests

@@ -5,14 +5,39 @@ into mongoDB
 import logging
 from multiprocessing import Pool
 
+from tqdm import tqdm
+import numpy as np
+
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
 from pavooc.util import read_guides
 from pavooc.db import guide_collection
-from pavooc.data import gencode_exons, domain_interval_trees
+from pavooc.data import gencode_exons, domain_interval_trees, pdb_data, \
+    read_gencode
 from pavooc.scoring import azimuth
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
+
+
+def pdbs_for_gene(gene_id):
+    gencode = read_gencode()
+    pdbs = pdb_data()
+    protein_ids = gencode.loc[(gencode['gene_id'] == gene_id)
+                              ]['swissprot_id'].drop_duplicates().dropna()
+    canonical_pids = np.unique([pid[:pid.find('-')]
+                                for pid in protein_ids if pid]).astype('O')
+    if len(canonical_pids) > 1:
+        logging.warn('Gene {} has {} "canonical" protein ids: {}"'.format(
+            gene_id,
+            len(canonical_pids),
+            canonical_pids
+        ))
+
+    try:
+        return list(pdbs.loc[pdbs.SP_PRIMARY.isin(canonical_pids)].T.to_dict().values())
+    except Exception as e:
+        import ipdb
+        ipdb.set_trace()
 
 
 def build_gene_document(gene):
@@ -30,7 +55,7 @@ def build_gene_document(gene):
         return None
     # TODO, we can get transcription-ids here (as in preprocessing.py)
     unique_exons = exons.groupby('exon_id').first().reset_index()[
-            ['start', 'end', 'exon_id']]
+        ['start', 'end', 'exon_id']]
     # revert padding introduced before guide-finding (flashfry)
     guides['start'] -= 16
 
@@ -45,7 +70,7 @@ def build_gene_document(gene):
         ipdb.set_trace()
     # TODO add amino acid cut position and percent peptides
     logging.info(
-            'Insert gene {} with its data into mongodb'.format(gene_id))
+        'Insert gene {} with its data into mongodb'.format(gene_id))
 
     domain_tree = domain_interval_trees()[exons.iloc[0]['seqname']]
 
@@ -55,16 +80,19 @@ def build_gene_document(gene):
                for domain in interval_domains
                if domain[2][1] == strand]
 
+    # TODO need isoform/portein information! (which exon belongs to which isoform)
     return {
         'gene_id': gene_id,
         'strand': strand,
+        'pdbs': pdbs_for_gene(gene_id),
         'chromosome': exons.iloc[0]['seqname'],
+        'canonical_exons': list(),  # TODO simple {start, stop}-object list
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
         'guides':
         list(guides[
             ['exon_id', 'start', 'orientation', 'otCount', 'score', 'target']
-            ].T.to_dict().values()),
+        ].T.to_dict().values()),
     }
 
 
@@ -73,13 +101,13 @@ def integrate():
 
     if COMPUTATION_CORES > 1:
         with Pool(COMPUTATION_CORES) as pool:
-            for doc in pool.imap_unordered(
+            for doc in tqdm(pool.imap_unordered(
                     build_gene_document,
-                    gencode_exons.groupby('gene_id')):
+                    gencode_exons().groupby('gene_id'))):
                 if doc:
                     guide_collection.insert_one(doc)
     else:
-        for gene in gencode_exons.groupby('gene_id'):
+        for gene in tqdm(gencode_exons().groupby('gene_id')):
             doc = build_gene_document(gene)
             if doc:
                 guide_collection.insert_one(doc)
