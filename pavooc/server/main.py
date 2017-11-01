@@ -29,6 +29,7 @@ knockout_output = api.model('KnockoutGuides', {
     'guides': fields.List(
         fields.Nested({
             'exon_id': fields.String,
+            'target': fields.String,
             'start': fields.Integer,
             'otCount': fields.Integer,
             'orientation': fields.String,

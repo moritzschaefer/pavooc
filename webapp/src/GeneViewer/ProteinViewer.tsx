@@ -2,6 +2,7 @@ import * as React from "react";
 import * as NGL from "ngl";
 
 interface State {
+  stage: typeof NGL.Stage | undefined;
 }
 
 interface Props {
@@ -17,13 +18,19 @@ export default class ProteinViewer extends React.Component<Props, State> {
   componentDidMount() {
     // set up ngl
     const stage = new NGL.Stage(viewport);
-    stage.setParameters({backgroundColor: "white"})
-    stage.loadFile("rcsb://1crn", {defaultRepresentation: true});
+    stage.setParameters({ backgroundColor: "white" });
+    stage.loadFile("rcsb://1crn", { defaultRepresentation: true });
+    this.setState({ stage });
   }
   render() {
     return (
       <div className={this.props.className}>
-        <div ref={(v: any) => {viewport = v}} style={{flex: 1}}/>
+        <div
+          ref={(v: any) => {
+            viewport = v;
+          }}
+          style={{ flex: 1 }}
+        />
       </div>
     );
   }

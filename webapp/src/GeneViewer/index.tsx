@@ -1,5 +1,6 @@
 import * as React from "react";
 import { connect } from "react-redux";
+import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
 import Input, { InputLabel } from "material-ui/Input";
@@ -18,6 +19,7 @@ interface Props {
   guideCount: number;
   setGuideCount: (event: any) => {};
   guides: Array<any>;
+  push: (route: string) => {};
 }
 
 interface State {}
@@ -33,7 +35,7 @@ class GeneViewer extends React.Component<Props, State> {
       <div className="mainContainer">
         <div className="containerTop">
           <div className="geneViewerHeader">
-            <Button raised={true} className="backButton">Back</Button>
+            <Button onClick={() => this.props.push("/knockout")} raised={true} className="backButton">Back</Button>
           </div>
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
@@ -83,7 +85,8 @@ const mapStateToProps = (
 });
 
 const mapDispatchToProps = (dispatch: any) => ({
-  setGuideCount: (event: any) => dispatch(setGuideCount(event.target.value))
+  setGuideCount: (event: any) => dispatch(setGuideCount(event.target.value)),
+  push: (route: string) => dispatch(push(route))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(GeneViewer);

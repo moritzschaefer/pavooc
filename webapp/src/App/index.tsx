@@ -14,10 +14,12 @@ class App extends React.Component {
   render() {
     return (
       <MuiThemeProvider theme={theme}>
-        <Route exact={true} path="/" component={Initial} />
-        <Route path="/knockout" component={KnockoutList} />
-        <Route path="/geneviewer/:geneId" component={GeneViewer} />
-      <Messages />
+        <div className="fullContainer">
+          <Route exact={true} path="/" component={Initial} />
+          <Route path="/knockout" component={KnockoutList} />
+          <Route path="/geneviewer/:geneId" component={GeneViewer} />
+          <Messages />
+        </div>
     </MuiThemeProvider>
     );
   }

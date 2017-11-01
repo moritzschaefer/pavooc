@@ -23,9 +23,7 @@ class KnockoutList extends React.Component<Props, object> {
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
-      <TableRow
-        key={geneGuides.gene_id}
-      >
+      <TableRow key={geneGuides.gene_id}>
         <TableCell>
           <Link className="tableLink" to={geneLink}>
             {geneGuides.gene_id}
@@ -76,7 +74,10 @@ class KnockoutList extends React.Component<Props, object> {
 }
 
 const mapStateToProps = (state: any) => ({
-  guides: state.io.guides.map((geneGuides: any) => ({...geneGuides, guides: geneGuides.guides.slice(0, state.geneViewer.guideCount)}))
+  guides: state.io.guides.map((geneGuides: any) => ({
+    ...geneGuides,
+    guides: geneGuides.guides.slice(0, state.geneViewer.guideCount)
+  }))
 });
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({

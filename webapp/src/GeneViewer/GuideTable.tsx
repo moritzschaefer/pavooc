@@ -23,10 +23,10 @@ export default class GuideTable extends React.Component<Props, State> {
         <TableCell padding="checkbox">
           <Checkbox checked={false} />
         </TableCell>
-        <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
-          {guide.target}
+        <TableCell style={{ maxWidth: 60, whiteSpace: "normal", wordWrap: "break-word" }}>
+          {[0,5,10,15,20].map((start: number) => <p style={{ marginTop: 0.2, marginBottom: 0.2 }}>{guide.target.slice(start, start+5)}</p>)}
         </TableCell>
-        <TableCell>{guide.score}</TableCell>
+        <TableCell>{guide.score.toFixed(3)}</TableCell>
       </TableRow>
     );
   }

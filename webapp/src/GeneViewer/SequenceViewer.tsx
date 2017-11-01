@@ -1,5 +1,4 @@
 import * as React from "react";
-// import * as pileup from "pileup";
 import * as dalliance from "dalliance";
 
 interface State {
@@ -22,6 +21,8 @@ export default class SequenceViewer extends React.Component<Props, State> {
       browser: undefined
     };
   }
+
+  // TODO we can use trix to speed up the browser
 
   componentDidMount() {
     let browser = new dalliance.Browser({
@@ -46,52 +47,15 @@ export default class SequenceViewer extends React.Component<Props, State> {
         {
           name: "Genes",
           desc: "Gene structures from GENCODE 19",
-          bwgURI: "//www.biodalliance.org/datasets/gencode.bb",
+          bwgURI: "/exome.bb",
           stylesheet_uri: "//www.biodalliance.org/stylesheets/gencode.xml",
           collapseSuperGroups: true,
-          trixURI: "//www.biodalliance.org/datasets/geneIndex.ix"
         },
-        {
-          name: "Repeats",
-          desc: "Repeat annotation from Ensembl",
-          bwgURI: "//www.biodalliance.org/datasets/repeats.bb",
-          stylesheet_uri: "//www.biodalliance.org/stylesheets/bb-repeats.xml"
-        },
-        {
-          name: "Conservation",
-          desc: "Conservation",
-          bwgURI: "//www.biodalliance.org/datasets/phastCons46way.bw",
-          noDownsample: true
-        }
       ]
     });
     this.setState({ browser });
   }
-  // componentDidMount() {
-  //   pileup.create(viewport, {
-  //     range: { contig: "chr17", start: 7512384, stop: 7512544 },
-  //     tracks: [
-  //       {
-  //         viz: pileup.viz.genome(),
-  //         isReference: true,
-  //         data: pileup.formats.twoBit({
-  //           url: "http://www.biodalliance.org/datasets/hg19.2bit"
-  //         }),
-  //         name: "Reference"
-  //       },
-  //       {
-  //         viz: pileup.viz.pileup(),
-  //         data: pileup.formats.bigBed({
-  //           url: "/exome.bed"
-  //         }),
-  //         cssClass: "normal",
-  //         name: "Exons"
-  //       }
-  //       // ...
-  //     ]
-  //   });
-  //
-  // }
+
   render() {
     return (
       <div id="svgHolder" ref={(ref: HTMLDivElement) => (viewport = ref)} />
