@@ -58,6 +58,8 @@ def score(guides):
     TODO add amino acid cut position and percent peptides
     :returns: a list of scores
     '''
+    if len(guides) == 0:
+        return []
 
     contexts = guides.apply(lambda row: _context_guide(
         row['exon_id'],

@@ -12,11 +12,25 @@ from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
 from pavooc.util import read_guides
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_data, \
-    read_gencode
+    read_gencode, read_appris
 from pavooc.scoring import azimuth
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
+
+
+def canonical_exons(gene_id, exons):
+    try:
+        transcript_id = read_appris().loc[gene_id[:15]].transcript_id
+
+        cexons = exons.loc[
+            exons.transcript_id.map(lambda t: t[:15]) == transcript_id]. \
+            reset_index()[
+            ['start', 'end', 'exon_id']]
+        return list(cexons.T.to_dict().values())
+    except Exception as e:
+        logging.error('Failed finding canonical exons: {}'.format(e))
+    return []
 
 
 def pdbs_for_gene(gene_id):
@@ -68,6 +82,7 @@ def build_gene_document(gene):
     except Exception as e:
         import ipdb
         ipdb.set_trace()
+        print(e)
     # TODO add amino acid cut position and percent peptides
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -80,13 +95,12 @@ def build_gene_document(gene):
                for domain in interval_domains
                if domain[2][1] == strand]
 
-    # TODO need isoform/portein information! (which exon belongs to which isoform)
     return {
         'gene_id': gene_id,
         'strand': strand,
         'pdbs': pdbs_for_gene(gene_id),
         'chromosome': exons.iloc[0]['seqname'],
-        'canonical_exons': list(),  # TODO simple {start, stop}-object list
+        'canonical_exons': canonical_exons(gene_id, exons),
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
         'guides':

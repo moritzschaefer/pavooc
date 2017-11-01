@@ -12,7 +12,7 @@ import azimuth
 from intervaltree import IntervalTree
 
 from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
-    DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE
+    DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
@@ -196,3 +196,13 @@ def domain_interval_trees():
                  .format(sum([len(tree) for tree in trees.values()])))
 
     return trees
+
+
+@buffer_return_value
+def read_appris():
+    return pd.read_csv(
+        APPRIS_FILE,
+        sep='\t',
+        header=None,
+        names=['gene_symbol', 'gene_id', 'transcript_id', 'ccds_id', 'type'],
+        index_col=False).set_index('gene_id')

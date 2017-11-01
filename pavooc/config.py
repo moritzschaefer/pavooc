@@ -8,6 +8,7 @@ EXON_INTERVAL_TREES_FILE = os.path.join(DATADIR, 'interval_trees.pkl')
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 
 GENCODE_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
+APPRIS_FILE = os.path.join(DATADIR, 'appris_data.principal.txt')
 PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, 'HUMAN_9606_idmapping.dat')
 PDB_LIST_FILE = os.path.join(DATADIR, 'pdb_chain_uniprot.csv')
 CHROMOSOME_FILE = os.path.join(DATADIR, '{}.fa')
