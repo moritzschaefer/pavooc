@@ -14,23 +14,32 @@ import GuideTable from "./GuideTable";
 import { setGuideCount } from "./actions";
 import "./style.css";
 
+interface GeneData {
+  gene_id: string;
+  guides: Array<any>;
+  pdbs: Array<any>;
+}
+
 interface Props {
   geneId: string;
   guideCount: number;
   setGuideCount: (event: any) => {};
-  guides: Array<any>;
+  geneData: GeneData;
   push: (route: string) => {};
 }
 
-interface State {}
+interface State {
+  selectedPdb: number;
+}
 
 class GeneViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {};
+    this.state = {selectedPdb: 0};
   }
   render() {
-    const { guideCount, guides, geneId } = this.props;
+    const { guideCount, geneData, geneId } = this.props;
+    const { selectedPdb } = this.state;
     return (
       <div className="mainContainer">
         <div className="containerTop">
@@ -64,8 +73,8 @@ class GeneViewer extends React.Component<Props, State> {
           </div>
         </div>
         <div className="containerCenter">
-          <ProteinViewer className="proteinViewer"/>
-          <GuideTable guides={guides} className="guideTable"/>
+          <ProteinViewer className="proteinViewer" pdb={geneData.pdbs[selectedPdb]}/>
+          <GuideTable guides={geneData.guides} className="guideTable"/>
         </div>
         <div className="containerBottom">
           <SequenceViewer />
@@ -80,7 +89,7 @@ const mapStateToProps = (
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => ({
   guideCount: state.geneViewer.guideCount,
-  guides: state.io.guides.find((v: any) => v.gene_id === geneId).guides,
+  geneData: state.io.guides.find((v: any) => v.gene_id === geneId),
   geneId
 });
 

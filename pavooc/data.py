@@ -25,7 +25,10 @@ def read_gencode():
     Buffered gencode read with HAVANA/ENSEMBL merged
     Returns the gencode dataframe but with havana and ensembl merged
     '''
+
+    # TODO only take lines which contain a basic-tag
     df = read_gtf_as_dataframe(GENCODE_FILE)
+    df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
 
     protein_id_mapping = pd.read_csv(
@@ -36,8 +39,8 @@ def read_gencode():
         dtype={'swissprot_id': str, 'ID_NAME': str, 'protein_id': str},
         index_col=False)
     protein_id_mapping = protein_id_mapping[
-            protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
-                    ['swissprot_id', 'protein_id']]
+        protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
+        ['swissprot_id', 'protein_id']]
 
     df = df.merge(protein_id_mapping, how='left', on='protein_id')
 

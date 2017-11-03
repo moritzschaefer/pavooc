@@ -7,6 +7,7 @@ interface State {
 
 interface Props {
   className: string;
+  pdb: any;
 }
 
 let viewport: any = undefined;
@@ -19,7 +20,10 @@ export default class ProteinViewer extends React.Component<Props, State> {
     // set up ngl
     const stage = new NGL.Stage(viewport);
     stage.setParameters({ backgroundColor: "white" });
-    stage.loadFile("rcsb://1crn", { defaultRepresentation: true });
+    if (this.props.pdb) {
+      stage.loadFile(`rcsb://${this.props.pdb.PDB}`, { defaultRepresentation: true });
+    }
+
     this.setState({ stage });
   }
   render() {

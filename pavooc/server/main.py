@@ -26,6 +26,10 @@ knockout_input = api.model('KnockoutInput', {
     })
 knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
+    'pdbs': fields.List(
+        fields.Nested({
+            'PDB': fields.String
+            }), default=[]),
     'guides': fields.List(
         fields.Nested({
             'exon_id': fields.String,

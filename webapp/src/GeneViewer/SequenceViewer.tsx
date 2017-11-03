@@ -45,12 +45,19 @@ export default class SequenceViewer extends React.Component<Props, State> {
           tier_type: "sequence"
         },
         {
+          name: "PDBs",
+          desc: "PDBs mapped to gene coordinates",
+          bwgURI: "/sorted_pdbs.bb",
+          stylesheet_uri: "//www.biodalliance.org/stylesheets/gencode.xml",
+          collapseSuperGroups: true
+        },
+        {
           name: "Genes",
           desc: "Gene structures from GENCODE 19",
           bwgURI: "/exome.bb",
           stylesheet_uri: "//www.biodalliance.org/stylesheets/gencode.xml",
-          collapseSuperGroups: true,
-        },
+          collapseSuperGroups: true
+        }
       ]
     });
     this.setState({ browser });

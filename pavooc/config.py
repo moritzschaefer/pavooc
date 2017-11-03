@@ -17,6 +17,7 @@ EXON_DIR = os.path.join(DATADIR, 'exons/')
 GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
 GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 EXON_BED_FILE = os.path.join(DATADIR, 'exome.bed')
+PDB_BED_FILE = os.path.join(DATADIR, 'pdbs.bed')
 EXON_PADDING = 18
 
 DEBUG = os.environ.get('DEBUG', 'True') in \
