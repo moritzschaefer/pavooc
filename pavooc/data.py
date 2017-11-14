@@ -7,7 +7,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-from gtfparse import read_gtf_as_dataframe
+import gtfparse
 import azimuth
 from intervaltree import IntervalTree
 
@@ -21,16 +21,29 @@ logging.basicConfig(level=logging.INFO)
 @buffer_return_value
 def read_gencode():
     '''
-    TODO: simple test
     Buffered gencode read with HAVANA/ENSEMBL merged
+    Swissprot IDs are merged and start-end indexing is adjusted
+    Returns relevant columns only
     Returns the gencode dataframe but with havana and ensembl merged
     '''
 
-    # TODO only take lines which contain a basic-tag
-    df = read_gtf_as_dataframe(GENCODE_FILE)
+    df = gtfparse.read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
 
+    # only take exons and transcripts which contain a basic-tag
+    non_basic_transcripts = (df['feature'].isin(['transcript', 'exon'])) & \
+        ~(df['tag'].str.contains('basic'))
+    df.drop(df.index[non_basic_transcripts], inplace=True)
+
+    # drop all genes which have no transcripts
+    valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
+    # double check, there are no orphan-exons or so
+    assert set(valid_genes) == \
+        set(df[df['feature'] == 'exon'].gene_id.drop_duplicates())
+    df = df[df.gene_id.isin(valid_genes)]
+
+    # add swissprot id mappings
     protein_id_mapping = pd.read_csv(
         PROTEIN_ID_MAPPING_FILE,
         sep='\t',
@@ -38,19 +51,32 @@ def read_gencode():
         names=['swissprot_id', 'ID_NAME', 'protein_id'],
         dtype={'swissprot_id': str, 'ID_NAME': str, 'protein_id': str},
         index_col=False)
+    # TODO  "P63104-1        Ensembl_PRO     ENSP00000309503"
+    # is not recognized for example (due to the '-1')
     protein_id_mapping = protein_id_mapping[
         protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
         ['swissprot_id', 'protein_id']]
 
     df = df.merge(protein_id_mapping, how='left', on='protein_id')
 
+    # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
     mixed_ids = df[['gene_id', 'source']].drop_duplicates()
 
     counts = mixed_ids.gene_id.value_counts()
     duplicate_ids = counts.index[counts == 2]
-    return df.drop(df.index[
+    df.drop(df.index[
         df.gene_id.isin(duplicate_ids) &
-        (df.source == 'ENSEMBL')])
+        (df.source == 'ENSEMBL')], inplace=True)
+
+    # fix indexing
+    df.start -= 1
+
+    return df[[
+        'feature', 'gene_id', 'transcript_id',
+        'start', 'end', 'exon_id', 'exon_number',
+        'gene_name', 'transcript_type', 'strand',
+        'gene_type', 'tag', 'protein_id', 'swissprot_id',
+        'score', 'seqname', 'source']]
 
 
 def gencode_gene_ids():
@@ -59,15 +85,19 @@ def gencode_gene_ids():
     '''
     gencode = read_gencode()
 
-    # TODO adjust filter!
-    # 1. check that it contains a tag==basic transcript!
-    # 2.
+    # we filtered for 'basic' transcripts in read_gencode
+    # now we are only interested in genes that have remaining basic transcripts
 
+    # TODO 'ENSG00000101464.6' for example has a CDS-feature with a protein_id
+    # but its exon-feature has no protein_id assigned. Is it good to filter it
+    # out though?
     relevant_genes = gencode[
-        (gencode['feature'] == 'gene') &
+        (gencode['feature'] == 'transcript') &
         (gencode['gene_type'] == 'protein_coding') &
+        (gencode['protein_id']) &
         (gencode['seqname'].isin(CHROMOSOMES))
     ]
+
     return relevant_genes.gene_id.drop_duplicates()
 
 
@@ -83,7 +113,6 @@ def gencode_exons():
 
     prepared = gencode.loc[
         (gencode['feature'] == 'exon') &
-        #  (gencode['tag'].isin(['CCDS', 'basic'])) &  # TODO is this correct?
         (gencode['protein_id']) &
         (gencode['seqname'].isin(CHROMOSOMES)) &
         (gencode['gene_type'] == 'protein_coding')][[
@@ -134,6 +163,8 @@ def gencode_exons():
 @buffer_return_value
 def pdb_data():
     df = pd.read_csv(PDB_LIST_FILE, sep=',', skiprows=1, index_col=False)
+    df['SP_BEG'] -= 1
+    df['SP_END'] -= 1
 
     return df[[
         'PDB', 'CHAIN', 'SP_PRIMARY', 'PDB_BEG',
@@ -192,8 +223,7 @@ def domain_interval_trees():
                 # TODO, DELETE, strand is for verification only
                 trees[row['chrom']][
                     row['chromStart'] + int(local_start):
-                    row['chromStart'] + int(local_start) + int(block_size)] = \
-                    (row['name'], row['strand'])
+                    row['chromStart'] + int(local_start) + int(block_size)] = (row['name'], row['strand'])
 
     logging.info('Built domain tree with {} nodes'
                  .format(sum([len(tree) for tree in trees.values()])))
