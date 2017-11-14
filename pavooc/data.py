@@ -17,6 +17,10 @@ from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
 
+# TODO 'ENSG00000101464.6' for example has a CDS-feature with a protein_id
+# but its exon-feature has no protein_id assigned. Is it good to filter it
+# out though?
+
 
 @buffer_return_value
 def read_gencode():
@@ -30,6 +34,17 @@ def read_gencode():
     df = gtfparse.read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
+
+    # only take protein_coding genes/transcripts/exons
+    df = df[
+        (df['gene_type'] == 'protein_coding') &
+        (df['seqname'].isin(CHROMOSOMES))]
+
+    print(df)
+
+    # drop all transcripts and exons that have no protein_id
+    df.drop(df.index[(df.protein_id == '') & (
+        df.feature.isin(['exon', 'transcript']))], inplace=True)
 
     # only take exons and transcripts which contain a basic-tag
     non_basic_transcripts = (df['feature'].isin(['transcript', 'exon'])) & \
@@ -79,28 +94,6 @@ def read_gencode():
         'score', 'seqname', 'source']]
 
 
-def gencode_gene_ids():
-    '''
-    Returns a pandas Series of valid protein coding gene ids
-    '''
-    gencode = read_gencode()
-
-    # we filtered for 'basic' transcripts in read_gencode
-    # now we are only interested in genes that have remaining basic transcripts
-
-    # TODO 'ENSG00000101464.6' for example has a CDS-feature with a protein_id
-    # but its exon-feature has no protein_id assigned. Is it good to filter it
-    # out though?
-    relevant_genes = gencode[
-        (gencode['feature'] == 'transcript') &
-        (gencode['gene_type'] == 'protein_coding') &
-        (gencode['protein_id']) &
-        (gencode['seqname'].isin(CHROMOSOMES))
-    ]
-
-    return relevant_genes.gene_id.drop_duplicates()
-
-
 @buffer_return_value
 def gencode_exons():
     '''
@@ -111,20 +104,15 @@ def gencode_exons():
     '''
     gencode = read_gencode()
 
-    prepared = gencode.loc[
-        (gencode['feature'] == 'exon') &
-        (gencode['protein_id']) &
-        (gencode['seqname'].isin(CHROMOSOMES)) &
-        (gencode['gene_type'] == 'protein_coding')][[
-            'seqname', 'start', 'end', 'strand', 'transcript_id',
-            'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]\
+    prepared = gencode.loc[gencode['feature'] == 'exon'][[
+        'seqname', 'start', 'end', 'strand', 'transcript_id',
+        'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']] \
         .drop_duplicates() \
         .set_index('exon_id')
     logging.info('Dropped exon duplicates. Now building interval tree')
 
     # alternative: sort by gene_id, start, end, check with next line if overlap
-
-    # remove overlap:
+    # remove overlapping exons
     tree = IntervalTree()
     drop_exons = set()
     for _, exon in prepared.iterrows():
@@ -223,7 +211,8 @@ def domain_interval_trees():
                 # TODO, DELETE, strand is for verification only
                 trees[row['chrom']][
                     row['chromStart'] + int(local_start):
-                    row['chromStart'] + int(local_start) + int(block_size)] = (row['name'], row['strand'])
+                    row['chromStart'] + int(local_start) + int(block_size)] = \
+                            (row['name'], row['strand'])
 
     logging.info('Built domain tree with {} nodes'
                  .format(sum([len(tree) for tree in trees.values()])))

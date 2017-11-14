@@ -5,7 +5,11 @@ import pandas as pd
 
 
 from pavooc.config import PROTEIN_ID_MAPPING_FILE
-from pavooc.data import read_gencode
+from pavooc import data
+
+
+# mock chromosomes
+data.CHROMOSOMES = ['chrA']
 
 
 def mock_read_protein_id_mapping_csv(filename, *args, **kwargs):
@@ -115,7 +119,7 @@ def mock_read_gtf_as_dataframe(filename):
         'feature': 'transcript', 'gene_id': 'GC', 'transcript_id': 'TC1',
         'start': 50, 'end': 70, 'exon_id': '', 'exon_number': '',
         'gene_name': 'NA', 'transcript_type': 'protein_coding', 'strand': '+',
-        'gene_type': 'protein_coding', 'tag': '', 'protein_id': '',
+        'gene_type': 'protein_coding', 'tag': '', 'protein_id': 'PC',
         'score': float('nan'), 'seqname': 'chrA', 'source': 'HAVANA',
     }
 
@@ -123,7 +127,7 @@ def mock_read_gtf_as_dataframe(filename):
         'feature': 'exon', 'gene_id': 'GB', 'transcript_id': 'TC1',
         'start': 50, 'end': 70, 'exon_id': 'EC1', 'exon_number': '1',
         'gene_name': 'NA', 'transcript_type': 'protein_coding', 'strand': '+',
-        'gene_type': 'protein_coding', 'tag': '', 'protein_id': '',
+        'gene_type': 'protein_coding', 'tag': '', 'protein_id': 'PC',
         'score': float('nan'), 'seqname': 'chrA', 'source': 'HAVANA',
     }
 
@@ -155,7 +159,7 @@ def test_read_gencode(mocked_gtf, mocked_csv):
     read_gencode should return only one copy of gene2
     '''
 
-    df = read_gencode()
+    df = data.read_gencode()
 
     # check that the correct columns are returned
     eq_(set(df.columns), {
@@ -186,3 +190,5 @@ def test_read_gencode(mocked_gtf, mocked_csv):
 
     # no swissprot_id for a protein_id shouldn't delete that row
     assert (df.protein_id == 'PA2').any()
+
+    # TODO test that non protein_coding gene_types are ignored
