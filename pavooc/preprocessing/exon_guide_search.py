@@ -12,7 +12,7 @@ from pavooc.util import read_guides
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
     EXON_INTERVAL_TREES_FILE, GUIDES_FILE, \
     COMPUTATION_CORES
-from pavooc.data import gencode_gene_ids
+from pavooc.data import read_gencode
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -37,9 +37,6 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
     '''
     in_exons_summary = False
     result = PATTERN.match(off_targets)
-    if not result:  # TODO delete
-        import ipdb
-        ipdb.set_trace()
     assert bool(result), off_targets  # check that pattern is valid
     for off_locus in result.group('off_loci').split('\\|'):
         # in flashfry, the position is always the left-handside
@@ -90,10 +87,10 @@ def flashfry_guides(gene_id):
     gene_file = os.path.join(EXON_DIR, gene_id)
 
     target_file = GUIDES_FILE.format(gene_id)
-    subprocess.Popen([
+    result = subprocess.run([
         'java',
         '-Xmx{}g'.format(JAVA_RAM),
-        '-jar', 'FlashFry-assembly-1.6.jar',
+        '-jar', 'FlashFry-assembly-1.7.jar',
         '--analysis', 'discover',
         '--fasta', gene_file,
         '--output', target_file,
@@ -101,7 +98,9 @@ def flashfry_guides(gene_id):
         '--maximumOffTargets', '1500',
         '--positionOutput=true',
         '--database', FLASHFRY_DB_FILE
-    ]).wait()
+    ])
+    if result.returncode != 0:
+        raise RuntimeError(result)
     return target_file
 
 
@@ -119,12 +118,12 @@ def generate_exon_guides(gene_id):
 
     # now read the file, analyze and manipulate it
     data = read_guides(target_file)
-    data['delete'] = [False] * len(data)
+    delete_indices = set()
 
     for index, row in data.iterrows():
         if row['overflow'] == 'OVERFLOW':
             overflow_count += 1
-            data.loc[index, 'delete'] = True
+            delete_indices.add(index)
 
         if row['otCount'] == 0:
             continue
@@ -134,19 +133,20 @@ def generate_exon_guides(gene_id):
         # row.start is in padded coordinates
         exon_data = row['contig'].split(';')
         exon_length = int(exon_data[3]) - int(exon_data[2])
+
         if (row['orientation'] == 'FWD' and
                 row['start'] + 16 > exon_length + 16) or \
             (row['orientation'] == 'RVS' and
                 row['start'] < 10):
-            data.loc[index, 'delete'] = True
+            delete_indices.add(index)
             continue
 
         # check for off_target duplicates inside the exome
         for off_targets in row['offTargets'].split(','):
             if off_targets_relevant(off_targets, gene_id, mismatches):
-                data.loc[index, 'delete'] = True
+                delete_indices.add(index)
 
-    data[~data['delete']].to_csv(target_file, sep='\t')
+    data.drop(delete_indices).to_csv(target_file, sep='\t')
 
     return overflow_count, mismatches
 
@@ -154,13 +154,14 @@ def generate_exon_guides(gene_id):
 def main():
     mismatches = {}
     overflow_count = 0
+    gene_ids = read_gencode.gene_id.drop_duplicates()
     if COMPUTATION_CORES > 1:
         with Pool(COMPUTATION_CORES) as pool:
             for partial_overflow_count, partial_mismatches in tqdm(
                     pool.imap_unordered(
                         generate_exon_guides,
-                        gencode_gene_ids()),
-                    total=len(gencode_gene_ids())):
+                        gene_ids),
+                    total=len(gene_ids)):
                 overflow_count += partial_overflow_count
                 for key in partial_mismatches:
                     try:
@@ -169,7 +170,7 @@ def main():
                         mismatches[key] = partial_mismatches[key]
     else:
         # debuggable
-        for gene_id in tqdm(gencode_gene_ids(), total=len(gencode_gene_ids())):
+        for gene_id in tqdm(gene_ids, total=len(gene_ids)):
             partial_overflow_count, partial_mismatches = \
                 generate_exon_guides(gene_id)
             overflow_count += partial_overflow_count

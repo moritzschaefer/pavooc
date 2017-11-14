@@ -2,10 +2,10 @@
 Load azimuth over a python2 interpreter (it's python 2 :/)
 '''
 
-import pandas as pd
 from skbio.sequence import DNA
 
-from pavooc.data import gencode_exons, chromosomes, azimuth_model
+from pavooc.data import chromosomes, azimuth_model
+from pavooc.util import guide_info
 
 from azimuth.model_comparison import predict as azimuth_predict
 
@@ -19,35 +19,24 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
         capital letters
     '''
+    exon, chromosome_start, absolute_reverse, _ = guide_info(
+        exon_id, start_in_exon, guide_direction)
 
-    exon = gencode_exons().loc[exon_id]
-
-    if isinstance(exon, pd.DataFrame):
-        assert len(exon.start.unique()) == 1, \
-                'same exon_id with different starts'
-        exon = exon.iloc[0]
-
-    exon_start = exon['start'] - 1  # gencode starts counting at 1 instead of 0
-    # 20bp protospacer + 5bp padding at each side (or so for azimuth..)
-    if exon['strand'] == '+':
-        # if guide_direction == 'FWD':
-        start = exon_start + start_in_exon - \
-                (4 if guide_direction == 'FWD' else 3)
+    if absolute_reverse:
+        chromosome_start -= 3
     else:
-        start = exon['end'] - start_in_exon - 23 - \
-                (4 if guide_direction == 'RVS' else 3)
+        chromosome_start -= 4
 
-    seq = chromosomes()[exon['seqname']][start:start+30].upper()
+    seq = chromosomes()[exon['seqname']
+                        ][chromosome_start:chromosome_start + 30].upper()
 
     # if the strands don't match, it needs to be reversed
-    if (guide_direction == 'RVS') != (exon['strand'] == '-'):
+    if absolute_reverse:
         seq = str(DNA(seq).reverse_complement())
 
-    try:
-        assert seq[25:27] == 'GG', \
-                'the generated context is invalid (PAM) site'
-    except:
-        print(seq, exon['strand'], guide_direction)
+    assert seq[25:27] == 'GG', \
+        'the generated context is invalid (PAM) site. {}, {}, {}'.format(
+        seq, exon['strand'], guide_direction)
     return seq
 
 

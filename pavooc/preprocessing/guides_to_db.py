@@ -9,7 +9,7 @@ from tqdm import tqdm
 import numpy as np
 
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
-from pavooc.util import read_guides
+from pavooc.util import read_guides, normalize_pid, guide_info
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_data, \
     read_gencode, read_appris
@@ -19,7 +19,28 @@ logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
 
 
-def canonical_exons(gene_id, exons):
+def aa_cut_position(guide, canonical_exons):
+    '''
+    iterate over canonical exons, incrementing AA counter, looking for
+    whether the cut_position is inside one of them or not.
+    :returns: either the AA cut-position ith the canonical exon sequence
+        or -1
+
+    # TODO does this work for REVERSE strand?
+    '''
+    bp_position = 0
+    for canonical_exon in canonical_exons:
+        if guide.cut_position >= canonical_exon['start'] and \
+                guide.cut_position < canonical_exon['end']:
+            return (bp_position +
+                    (guide.cut_position - canonical_exon['start'])) // 3
+
+        exon_length_bp = (canonical_exon['end'] - canonical_exon['start'])
+        bp_position += exon_length_bp
+    return -1
+
+
+def compute_canonical_exons(gene_id, exons):
     try:
         transcript_id = read_appris().loc[gene_id[:15]].transcript_id
 
@@ -38,7 +59,8 @@ def pdbs_for_gene(gene_id):
     pdbs = pdb_data()
     protein_ids = gencode.loc[(gencode['gene_id'] == gene_id)
                               ]['swissprot_id'].drop_duplicates().dropna()
-    canonical_pids = np.unique([pid[:pid.find('-')]
+
+    canonical_pids = np.unique([normalize_pid(pid)
                                 for pid in protein_ids if pid]).astype('O')
     if len(canonical_pids) > 1:
         logging.warn('Gene {} has {} "canonical" protein ids: {}"'.format(
@@ -48,7 +70,8 @@ def pdbs_for_gene(gene_id):
         ))
 
     try:
-        return list(pdbs.loc[pdbs.SP_PRIMARY.isin(canonical_pids)].T.to_dict().values())
+        return list(pdbs.loc[pdbs.SP_PRIMARY.isin(canonical_pids)].T.
+                    to_dict().values())
     except Exception as e:
         import ipdb
         ipdb.set_trace()
@@ -74,15 +97,20 @@ def build_gene_document(gene):
     guides['start'] -= 16
 
     guides['exon_id'] = guides['contig'].apply(lambda v: v.split(';')[0])
+    # cut-position in exon
+
+    try:
+        guides['cut_position'] = guides.apply(
+            lambda row: guide_info(
+                row['exon_id'],
+                row['start'],
+                row['orientation'])[3], axis=1)
+    except ValueError:  # guides is empty and apply returned a DataFrame
+        guides['cut_position'] = []
     # TODO add scores here and stuff
     # delete 16 due to padding in exon_files
     logging.info('calculating azimuth score for {}'.format(gene_id))
-    try:
-        guides['score'] = azimuth.score(guides)
-    except Exception as e:
-        import ipdb
-        ipdb.set_trace()
-        print(e)
+    guides['score'] = azimuth.score(guides)
     # TODO add amino acid cut position and percent peptides
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -95,17 +123,26 @@ def build_gene_document(gene):
                for domain in interval_domains
                if domain[2][1] == strand]
 
+    canonical_exons = compute_canonical_exons(gene_id, exons)
+    # AA number of canonical transcript cut position for each guide
+    try:
+        guides['aa_cut_position'] = guides.apply(
+            lambda row: aa_cut_position(row, canonical_exons), axis=1)
+    except ValueError:  # guides is empty and apply returned a DataFrame
+        guides['aa_cut_position'] = []
+
     return {
         'gene_id': gene_id,
         'strand': strand,
         'pdbs': pdbs_for_gene(gene_id),
         'chromosome': exons.iloc[0]['seqname'],
-        'canonical_exons': canonical_exons(gene_id, exons),
+        'canonical_exons': canonical_exons,
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
         'guides':
         list(guides[
-            ['exon_id', 'start', 'orientation', 'otCount', 'score', 'target']
+            ['exon_id', 'start', 'orientation', 'otCount', 'score', 'target',
+                'cut_position', 'aa_cut_position']
         ].T.to_dict().values()),
     }
 

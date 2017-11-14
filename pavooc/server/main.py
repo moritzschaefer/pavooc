@@ -26,18 +26,29 @@ knockout_input = api.model('KnockoutInput', {
     })
 knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
+    'chromosome': fields.String,
+    'exons': fields.List(
+        fields.Nested({
+            'start': fields.Integer,
+            'end': fields.Integer,
+            'exon_id': fields.String,
+            })),
     'pdbs': fields.List(
         fields.Nested({
-            'PDB': fields.String
+            'PDB': fields.String,
+            'SP_BEG': fields.Integer,
+            'SP_END': fields.Integer
             }), default=[]),
     'guides': fields.List(
         fields.Nested({
             'exon_id': fields.String,
             'target': fields.String,
             'start': fields.Integer,
+            'cut_position': fields.Integer,
+            'aa_cut_position': fields.Integer,
             'otCount': fields.Integer,
             'orientation': fields.String,
-            'score': fields.Float
+            'score': fields.Float,
         }))
 })
 
@@ -111,6 +122,9 @@ class KnockoutGuides(Resource):
             {'$group': {
                 '_id': '$_id',
                 'gene_id': {'$first': '$gene_id'},
+                'chromosome': {'$first': '$chromosome'},
+                'pdbs': {'$first': '$pdbs'},
+                'exons': {'$first': '$exons'},
                 'guides': {'$push': '$guides'}
                 }},
             ]

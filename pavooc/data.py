@@ -40,8 +40,6 @@ def read_gencode():
         (df['gene_type'] == 'protein_coding') &
         (df['seqname'].isin(CHROMOSOMES))]
 
-    print(df)
-
     # drop all transcripts and exons that have no protein_id
     df.drop(df.index[(df.protein_id == '') & (
         df.feature.isin(['exon', 'transcript']))], inplace=True)
@@ -98,7 +96,8 @@ def read_gencode():
 def gencode_exons():
     '''
     Return the protein-coding exons from gencode, indexed by exon_id
-    Delete duplicates
+    Delete duplicates (note that the same exon_id can appear twice with
+    different transcripts) TODO is this good?
     Delete overlapping exons
     :returns: DataFrame with unique exons
     '''
@@ -141,7 +140,10 @@ def gencode_exons():
                 drop_exons.add(e[2][1])
     logging.info('Found {} overlapping exons inside genes. Deleting'
                  .format(len(drop_exons)))
-    return prepared.drop(list(drop_exons))
+    if len(drop_exons) > 0:
+        prepared.drop(list(drop_exons), inplace=True)
+
+    return prepared
 
 # There the start and end coordinates for each mapping are provided in the last 6 columns: RES_BEG/RES_END are for residue numbers matching the SEQRES of the PDB files (from 1 to n), PDB_BEG/PDB_END for the residue numbers as they appear in ATOM lines (i.e. can have insertion codes, can have jumps etc) and SP_BEG/SP_END are the UniProt coordinates (SP is for swissprot the old name of UniProt).
 #

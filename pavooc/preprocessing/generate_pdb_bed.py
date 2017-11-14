@@ -4,6 +4,7 @@ Create a bed file for the exome
 import logging
 import pandas as pd
 from pavooc.config import PDB_BED_FILE
+from pavooc.util import normalize_pid
 from pavooc.data import gencode_exons, read_appris, pdb_data
 
 
@@ -20,21 +21,22 @@ def pdb_coordinates(pdb, pdb_exons):
 
     index = 0
     pdb_ranges = []
-    pdb.SP_BEG -= 1
-    pdb.SP_END -= 1
 
-    # First normalize the exon coordinates of the given gene: First exon should start with index 0
+    # First normalize the exon coordinates of the given gene: First exon
+    # should start with index 0
     if strand == '-':
         zero = pdb_exons.iloc[0].end
         assert zero == max(pdb_exons.end), ''
-        pdb_exons.end, pdb_exons.start = zero - pdb_exons.start, zero - pdb_exons.end
+        pdb_exons.end, pdb_exons.start = zero - pdb_exons.start, \
+            zero - pdb_exons.end
     else:
         zero = pdb_exons.iloc[0].start
         assert zero == min(pdb_exons.start)
         pdb_exons.start -= zero
         pdb_exons.end -= zero
 
-    # Iterate over each exon (in order) and check in which interval the Protein lies
+    # Iterate over each exon (in order) and check in which interval the
+    # Protein lies
     for _, exon in pdb_exons.iterrows():
         exon_length = (exon.end - exon.start)
         pdb_end = None
@@ -67,6 +69,7 @@ def pdb_coordinates(pdb, pdb_exons):
         if pdb_end:
             break
 
+    # TODO. this should NOT happen!!
     if not pdb_end:
         raise ValueError('transcript too small for PDB {}'.format(pdb.PDB))
 
@@ -98,10 +101,17 @@ def main():
         appris = read_appris()
         exons = gencode_exons()
 
+        # filter out exons which dont belong to swissprot-transcripts
+        # (makes dataprocessing easier)
+        # TODO exons doesn't provide swissprot_id any more FIXME
+        exons = exons.loc[exons.swissprot_id.map(
+            lambda spid: type(spid) == str)]
+
         for _, pdb in pdb_data().iterrows():
             # find the transcript, that corresponds to the pdb
-            gene_id = exons.loc[exons.swissprot_id ==
-                                pdb.SP_PRIMARY].gene_id.drop_duplicates()
+            gene_id = exons.loc[
+                exons.swissprot_id.map(normalize_pid)
+                == pdb.SP_PRIMARY].gene_id.drop_duplicates()
             if len(gene_id) == 0:
                 continue
             assert len(
@@ -116,8 +126,9 @@ def main():
                 transcript_id = transcript_id.iloc[0]
 
             # filter the exons for the corresponding transcript
-            pdb_exons = exons.loc[exons.transcript_id.map(lambda v: v[:15]) ==
-                                  transcript_id].copy().sort_values('exon_number')
+            pdb_exons = exons.loc[
+                exons.transcript_id.map(lambda v: v[:15]) ==
+                transcript_id].copy().sort_values('exon_number')
 
             try:
                 data = pdb_coordinates(pdb, pdb_exons)

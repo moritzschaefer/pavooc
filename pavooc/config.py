@@ -1,13 +1,15 @@
 import os
 
 CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
-CHROMOSOMES = ['chr20', 'chr21', 'chr22']
+CHROMOSOMES = ['chr22']
 BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
 DATADIR = os.path.join(BASEDIR, 'data')
 EXON_INTERVAL_TREES_FILE = os.path.join(DATADIR, 'interval_trees.pkl')
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 
 GENCODE_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
+BIG_BED_EXE = os.path.join(DATADIR, 'bedToBigBed')
+CHROM_SIZES_FILE = os.path.join(DATADIR, 'hg19.chrom.sizes')
 APPRIS_FILE = os.path.join(DATADIR, 'appris_data.principal.txt')
 PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, 'HUMAN_9606_idmapping.dat')
 PDB_LIST_FILE = os.path.join(DATADIR, 'pdb_chain_uniprot.csv')
@@ -18,6 +20,7 @@ GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
 GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 EXON_BED_FILE = os.path.join(DATADIR, 'exome.bed')
 PDB_BED_FILE = os.path.join(DATADIR, 'pdbs.bed')
+GUIDE_BED_FILE = os.path.join(DATADIR, 'guides.bed')
 EXON_PADDING = 18
 
 DEBUG = os.environ.get('DEBUG', 'True') in \
