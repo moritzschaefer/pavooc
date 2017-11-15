@@ -67,8 +67,10 @@ def exon_to_fasta(exon_id, exon_data):
     exon_slice = slice(exon['start']-16, exon['end']+16)
     exon_seq = chromosomes()[exon['seqname']][exon_slice].upper()
 
-    if exon.strand == '-':
-        exon_seq = str(DNA(exon_seq).reverse_complement())
+    # TODO why should I revert this
+    # if exon.strand == '-':
+    #     exon_seq = str(DNA(exon_seq).reverse_complement())
+
     assert len(exon_seq) == (exon['end'] - exon['start']) + 32
 
     transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,

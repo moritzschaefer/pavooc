@@ -4,7 +4,7 @@ Load azimuth over a python2 interpreter (it's python 2 :/)
 
 from skbio.sequence import DNA
 
-from pavooc.data import chromosomes, azimuth_model
+from pavooc.data import chromosomes, azimuth_model, gencode_exons
 from pavooc.util import guide_info
 
 from azimuth.model_comparison import predict as azimuth_predict
@@ -19,10 +19,15 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
         capital letters
     '''
-    exon, chromosome_start, absolute_reverse, _ = guide_info(
-        exon_id, start_in_exon, guide_direction)
+    exon = gencode_exons().loc[exon_id]
 
-    if absolute_reverse:
+    if isinstance(exon, pd.DataFrame):
+        assert len(exon.start.unique()) == 1, \
+            'same exon_id with different starts'
+        exon = exon.iloc[0]
+    chromosome_start = exon.start + start_in_exon
+
+    if guide_direction == 'RVS':
         chromosome_start -= 3
     else:
         chromosome_start -= 4
@@ -31,7 +36,7 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
                         ][chromosome_start:chromosome_start + 30].upper()
 
     # if the strands don't match, it needs to be reversed
-    if absolute_reverse:
+    if guide_direction == 'RVS':
         seq = str(DNA(seq).reverse_complement())
 
     assert seq[25:27] == 'GG', \

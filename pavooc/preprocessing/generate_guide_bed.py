@@ -16,13 +16,13 @@ def guide_to_bed(gene, guide):
     # BED is 0-based
     return '\t'.join([str(v) for v in [
         gene['chromosome'],
-        guide['start'] + exon_start - 1,
-        guide['start'] + exon_start - 1 + 23,
+        guide['start'] + exon_start,
+        guide['start'] + exon_start + 23,
         guide['target'],
         min(100,  max(int(guide['score'] * 100), 0)),
         strand,
-        guide['start'] + exon_start - 1,
-        guide['start'] + exon_start - 1 + 23,
+        guide['start'] + exon_start,
+        guide['start'] + exon_start + 23,
         ','.join([str(v) for v in [0, 255, 0]]),
         '1',
         '23',

@@ -21,18 +21,18 @@ def main():
 
             # Gencode GTF holds 1-based index data
             data = [[exons.iloc[0]['seqname']][0],
-                    gene_start - 1,
+                    gene_start,
                     gene_end,
                     gene_id,
                     0,
                     exons.iloc[0]['strand'],
-                    gene_start - 1,
+                    gene_start,
                     gene_end,
                     ','.join([str(v) for v in [255, 0, 0]]),
                     len(exons),
                     ','.join(
                         (sorted_exons.end -
-                            (sorted_exons.start - 1)).map(str)),
+                            (sorted_exons.start)).map(str)),
                     ','.join((sorted_exons.start - gene_start).map(str))]
 
             f.write('\t'.join([str(v) for v in data]))

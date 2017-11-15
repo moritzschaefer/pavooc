@@ -153,8 +153,7 @@ def gencode_exons():
 @buffer_return_value
 def pdb_data():
     df = pd.read_csv(PDB_LIST_FILE, sep=',', skiprows=1, index_col=False)
-    df['SP_BEG'] -= 1
-    df['SP_END'] -= 1
+    df['SP_BEG'] -= 1  # TODO is this actually correct?
 
     return df[[
         'PDB', 'CHAIN', 'SP_PRIMARY', 'PDB_BEG',

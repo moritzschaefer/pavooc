@@ -7,9 +7,10 @@ from multiprocessing import Pool
 
 from tqdm import tqdm
 import numpy as np
+import pandas as pd
 
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
-from pavooc.util import read_guides, normalize_pid, guide_info
+from pavooc.util import read_guides, normalize_pid
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_data, \
     read_gencode, read_appris
@@ -77,6 +78,18 @@ def pdbs_for_gene(gene_id):
         ipdb.set_trace()
 
 
+def _cut_position(row):
+    exon = gencode_exons().loc[row.exon_id]
+
+    if isinstance(exon, pd.DataFrame):
+        assert len(exon.start.unique()) == 1, \
+            'same exon_id with different starts'
+        exon = exon.iloc[0]
+
+    return exon.start + row['start'] + \
+        (7 if row['orientation'] == 'RVS' else 16)
+
+
 def build_gene_document(gene):
     '''
     Compute all necessary data (scores for example) and return a document for
@@ -93,22 +106,18 @@ def build_gene_document(gene):
     # TODO, we can get transcription-ids here (as in preprocessing.py)
     unique_exons = exons.groupby('exon_id').first().reset_index()[
         ['start', 'end', 'exon_id']]
-    # revert padding introduced before guide-finding (flashfry)
+
+    # delete padding introduced before guide-finding (flashfry)
     guides['start'] -= 16
 
     guides['exon_id'] = guides['contig'].apply(lambda v: v.split(';')[0])
-    # cut-position in exon
 
     try:
-        guides['cut_position'] = guides.apply(
-            lambda row: guide_info(
-                row['exon_id'],
-                row['start'],
-                row['orientation'])[3], axis=1)
-    except ValueError:  # guides is empty and apply returned a DataFrame
+        guides['cut_position'] = guides.apply(_cut_position, axis=1)
+    except ValueError as e:  # guides is empty and apply returned a DataFrame
+        print('no guides: {}'.format(e))
         guides['cut_position'] = []
     # TODO add scores here and stuff
-    # delete 16 due to padding in exon_files
     logging.info('calculating azimuth score for {}'.format(gene_id))
     guides['score'] = azimuth.score(guides)
     # TODO add amino acid cut position and percent peptides
