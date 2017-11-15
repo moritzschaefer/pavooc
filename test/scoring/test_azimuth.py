@@ -24,6 +24,8 @@ from nose.tools import eq_
 import pandas as pd
 from pavooc.scoring.azimuth import _context_guide
 
+# TODO fix this test with mocks!
+
 exon_ids = [
         'ENSE00003649242.1',
         'ENSE00003682782.1',
@@ -49,8 +51,8 @@ start_in_exons = [3-16, 10-16, 7-16, 67-16]  # taken from .guides file
 contexts = [
         'GCGCCCTTTCCTCGCAGTACATCGCGGTGC',
         'ATTGGTGAATTCCTGAATGTGCTGTGGACA',  # reverse-complemented as necessary
-        'CTTCAGATACTAAAGAGAAGATAGAGGGGT',  # reverse-complemented as necessary
-        'TTGACCCAAGGTCACAGAGCCTGTAGGAGA'
+        'ACCCCTCTATCTTCTCTTTAGTATCTGAAG',
+        'TCTCCTACAGGCTCTGTGACCTTGGGTCAA'  # reverse-complemented as necessary
         ]
 
 

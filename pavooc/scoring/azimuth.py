@@ -3,9 +3,9 @@ Load azimuth over a python2 interpreter (it's python 2 :/)
 '''
 
 from skbio.sequence import DNA
+import pandas as pd
 
 from pavooc.data import chromosomes, azimuth_model, gencode_exons
-from pavooc.util import guide_info
 
 from azimuth.model_comparison import predict as azimuth_predict
 
@@ -28,9 +28,9 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     chromosome_start = exon.start + start_in_exon
 
     if guide_direction == 'RVS':
-        chromosome_start -= 3
-    else:
         chromosome_start -= 4
+    else:
+        chromosome_start -= 5
 
     seq = chromosomes()[exon['seqname']
                         ][chromosome_start:chromosome_start + 30].upper()

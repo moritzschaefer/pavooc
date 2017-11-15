@@ -37,3 +37,6 @@ AAAAAAAAAAAACCAATTTTTTAAAAAAAAAAAAAAAA''')
     eq_(set(df[df['orientation'] == 'RVS'].target),
         {'TTTTTTTTTTTTTAAAAAATTGG', 'TTTTTTTTTTTTTTTACCAAAGG'})
     eq_(set(df[df['orientation'] == 'RVS'].start), {12, 17})
+
+
+# TODO test_generate_exon_guides test_off_targets_relevant
