@@ -7,7 +7,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import gtfparse
+from gtfparse import read_gtf_as_dataframe
 import azimuth
 from intervaltree import IntervalTree
 
@@ -31,7 +31,7 @@ def read_gencode():
     Returns the gencode dataframe but with havana and ensembl merged
     '''
 
-    df = gtfparse.read_gtf_as_dataframe(GENCODE_FILE)
+    df = read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
 

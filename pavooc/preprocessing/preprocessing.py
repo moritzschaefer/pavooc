@@ -64,16 +64,12 @@ def exon_to_fasta(exon_id, exon_data):
 
     exon = exon_data.iloc[0]
 
-    # 17=16+1, 'end' is included
-    # and we start counting at 0 instead of 1 (gencode)
-    exon_slice = slice(exon['start']-17, exon['end']+16)
+    exon_slice = slice(exon['start']-16, exon['end']+16)
     exon_seq = chromosomes()[exon['seqname']][exon_slice].upper()
 
     if exon.strand == '-':
         exon_seq = str(DNA(exon_seq).reverse_complement())
-    # make sure the exon paddings didn't overflow chromosome ends
-    # end is included so 16+16+1
-    assert len(exon_seq) == (exon['end'] - exon['start']) + 33
+    assert len(exon_seq) == (exon['end'] - exon['start']) + 32
 
     transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
                                               v.exon_number)

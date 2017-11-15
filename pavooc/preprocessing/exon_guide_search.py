@@ -98,7 +98,7 @@ def flashfry_guides(gene_id):
         '--maximumOffTargets', '1500',
         '--positionOutput=true',
         '--database', FLASHFRY_DB_FILE
-    ])
+    ], stdout=subprocess.DEVNULL)
     if result.returncode != 0:
         raise RuntimeError(result)
     return target_file

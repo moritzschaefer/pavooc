@@ -88,6 +88,7 @@ def guide_info(exon_id, start_in_exon, guide_direction):
     is in reverse direction relative to the absolute forward strand and where
     the guide cuts
     '''
+    # TODO hard to test!
     from pavooc.data import gencode_exons  # noqa # bugfix of circular import
     exon = gencode_exons().loc[exon_id]
 

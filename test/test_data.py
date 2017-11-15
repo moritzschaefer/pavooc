@@ -71,13 +71,13 @@ def test_read_gencode(mocked_gtf, mocked_csv):
 
 @mock.patch('pandas.read_csv',
             side_effect=mock_read_protein_id_mapping_csv)
-@mock.patch('gtfparse.read_gtf_as_dataframe',
+@mock.patch('pavooc.data.read_gtf_as_dataframe',
             side_effect=mock_read_gtf_as_dataframe)
 def test_gencode_exons(mocked_gtf, mocked_csv):
     df = data.gencode_exons()
     eq_(set(df.index), {'EA1', 'EA2', 'EB1'})
     eq_(df.index.name, 'exon_id')
     print(df)
-    eq_(len(df), 4)
+    eq_(len(df), 4)  # EA1 does exist twice
 
-# TODO test gencode_exons and domain_interval_trees
+# TODO test domain_interval_trees
