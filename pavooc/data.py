@@ -30,7 +30,6 @@ def read_gencode():
     Returns relevant columns only
     Returns the gencode dataframe but with havana and ensembl merged
     '''
-
     df = read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
@@ -38,6 +37,7 @@ def read_gencode():
     # only take protein_coding genes/transcripts/exons
     df = df[
         (df['gene_type'] == 'protein_coding') &
+        (df['feature'].isin(['gene', 'transcript', 'exon'])) &
         (df['seqname'].isin(CHROMOSOMES))]
 
     # drop all transcripts and exons that have no protein_id
@@ -48,13 +48,6 @@ def read_gencode():
     non_basic_transcripts = (df['feature'].isin(['transcript', 'exon'])) & \
         ~(df['tag'].str.contains('basic'))
     df.drop(df.index[non_basic_transcripts], inplace=True)
-
-    # drop all genes which have no transcripts
-    valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
-    # double check, there are no orphan-exons or so
-    assert set(valid_genes) == \
-        set(df[df['feature'] == 'exon'].gene_id.drop_duplicates())
-    df = df[df.gene_id.isin(valid_genes)]
 
     # add swissprot id mappings
     protein_id_mapping = pd.read_csv(
@@ -83,6 +76,13 @@ def read_gencode():
 
     # fix indexing
     df.start -= 1
+
+    # drop all genes which have no transcripts
+    valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
+    # double check, there are no orphan-exons or so
+    assert set(valid_genes) == \
+        set(df[df['feature'] == 'exon'].gene_id.drop_duplicates())
+    df.drop(df.index[~df.gene_id.isin(valid_genes)], inplace=True)
 
     return df[[
         'feature', 'gene_id', 'transcript_id',

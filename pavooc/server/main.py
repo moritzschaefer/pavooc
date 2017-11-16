@@ -23,7 +23,7 @@ ns = api.namespace('api', description='API')
 knockout_input = api.model('KnockoutInput', {
     'gene_ids': fields.List(fields.String),
     'cellline': fields.String,
-    })
+})
 knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
     'chromosome': fields.String,
@@ -32,13 +32,13 @@ knockout_output = api.model('KnockoutGuides', {
             'start': fields.Integer,
             'end': fields.Integer,
             'exon_id': fields.String,
-            })),
+        })),
     'pdbs': fields.List(
         fields.Nested({
             'PDB': fields.String,
             'SP_BEG': fields.Integer,
             'SP_END': fields.Integer
-            }), default=[]),
+        }), default=[]),
     'guides': fields.List(
         fields.Nested({
             'exon_id': fields.String,
@@ -53,7 +53,10 @@ knockout_output = api.model('KnockoutGuides', {
 })
 
 initial_output = api.model('InitialData', {
-    'gene_ids': fields.List(fields.String),
+    'genes': fields.List(fields.Nested({
+        'gene_id': fields.String,
+        'gene_symbol': fields.String,
+    })),
     'celllines': fields.List(fields.String)
 })
 
@@ -67,9 +70,10 @@ class InitialData(Resource):
     @api.marshal_with(initial_output)
     def get(self):
         # TODO cancer celllines missing
-        gene_ids = [v['gene_id']
-                    for v in guide_collection.find({}, {'gene_id': 1})]
-        return {'gene_ids': list(gene_ids), 'celllines': [
+        genes = [{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
+                 for v in guide_collection.find(
+            {}, {'gene_id': 1, 'gene_symbol': 1})]
+        return {'genes': genes, 'celllines': [
             'UM-UC-3',
             'NBT-II',
             'ECV304',
@@ -92,7 +96,7 @@ class InitialData(Resource):
             'SVCT',
             'MDA-MB-231',
             'MDA-MB-157',
-            ]
+        ]
         }
 
 
@@ -126,8 +130,8 @@ class KnockoutGuides(Resource):
                 'pdbs': {'$first': '$pdbs'},
                 'exons': {'$first': '$exons'},
                 'guides': {'$push': '$guides'}
-                }},
-            ]
+            }},
+        ]
         result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)
 

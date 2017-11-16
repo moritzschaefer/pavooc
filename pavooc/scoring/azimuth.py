@@ -28,9 +28,9 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     chromosome_start = exon.start + start_in_exon
 
     if guide_direction == 'RVS':
-        chromosome_start -= 4
+        chromosome_start -= 3
     else:
-        chromosome_start -= 5
+        chromosome_start -= 4
 
     seq = chromosomes()[exon['seqname']
                         ][chromosome_start:chromosome_start + 30].upper()

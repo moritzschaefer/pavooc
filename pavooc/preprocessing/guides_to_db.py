@@ -97,6 +97,7 @@ def build_gene_document(gene):
     '''
     gene_id, exons = gene
     strand = exons.iloc[0]['strand']
+    gene_symbol = exons.iloc[0]['gene_name']
     try:
         guides = read_guides(GUIDES_FILE.format(gene_id))
     except Exception as e:
@@ -142,6 +143,7 @@ def build_gene_document(gene):
 
     return {
         'gene_id': gene_id,
+        'gene_symbol': gene_symbol,
         'strand': strand,
         'pdbs': pdbs_for_gene(gene_id),
         'chromosome': exons.iloc[0]['seqname'],

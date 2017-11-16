@@ -154,7 +154,7 @@ def generate_exon_guides(gene_id):
 def main():
     mismatches = {}
     overflow_count = 0
-    gene_ids = read_gencode.gene_id.drop_duplicates()
+    gene_ids = read_gencode().gene_id.drop_duplicates()
     if COMPUTATION_CORES > 1:
         with Pool(COMPUTATION_CORES) as pool:
             for partial_overflow_count, partial_mismatches in tqdm(

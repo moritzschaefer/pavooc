@@ -12,24 +12,23 @@ def main():
     """
     with open(EXON_BED_FILE, 'w') as f:
         for gene_id, exons in gencode_exons().groupby('gene_id'):
-            sorted_exons = exons.sort_values('start')
-            gene_start = min(exons.start)
-            gene_end = max(exons.end)
-            if gene_id == 'ENSG00000196476.7':
-                import ipdb
-                ipdb.set_trace()
+            unique_exons = exons.reset_index().groupby('exon_id').first()
+            sorted_exons = unique_exons.sort_values('start')
+
+            gene_start = min(unique_exons.start)
+            gene_end = max(unique_exons.end)
 
             # Gencode GTF holds 1-based index data
-            data = [[exons.iloc[0]['seqname']][0],
+            data = [[unique_exons.iloc[0]['seqname']][0],
                     gene_start,
                     gene_end,
                     gene_id,
                     0,
-                    exons.iloc[0]['strand'],
+                    unique_exons.iloc[0]['strand'],
                     gene_start,
                     gene_end,
                     ','.join([str(v) for v in [255, 0, 0]]),
-                    len(exons),
+                    len(unique_exons),
                     ','.join(
                         (sorted_exons.end -
                             (sorted_exons.start)).map(str)),
