@@ -7,7 +7,8 @@ import "./AutoComplete.css";
 
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
-  dataSource: Array<string>;
+  dataSource: Map<string, string>;
+  dataSourceReverse: Map<string, string> | undefined;
   floatingLabelText: string;
   openOnFocus: boolean;
   deleteOnSelect: boolean;
@@ -32,7 +33,7 @@ export default class AutoComplete extends React.Component<Props, State> {
   }
 
   renderSuggestion(
-    item: string,
+    item: Array<string>,
     selected: boolean,
     highlighted: boolean,
     itemProps: object
@@ -42,16 +43,31 @@ export default class AutoComplete extends React.Component<Props, State> {
         {...itemProps}
         selected={highlighted}
         component="div"
-        key={item}
+        key={item[0]}
       >
-        <div>{item}</div>
+        <div>{item[1]}</div>
       </MenuItem>
     );
   }
 
-  onInputChange = ({ inputValue }: { inputValue: string }) => {
-    const { onSelect, dataSource, deleteOnSelect } = this.props;
+  // Check if a value or key is the input and return the corresponding key or undefined
+  getKeyForInput(upperInput: string) {
+    // TODO speedup!!
+    const { dataSource, dataSourceReverse } = this.props;
+
+    let key = dataSource.get(upperInput);
+    if (!key && dataSourceReverse) {
+      key = dataSourceReverse.get(upperInput);
+    }
+    return key; // key is undefined or the key
+  }
+
+  onInputChange = ({ inputValue, highlightedIndex }: { inputValue: string, highlightedIndex: number | undefined }) => {
+    const { onSelect, deleteOnSelect } = this.props;
     if (typeof inputValue !== "string") {
+      if (typeof highlightedIndex === "undefined") {
+        this.setState({ menuIsOpen: false });
+      }
       return;
     }
     if (!onSelect) {
@@ -65,10 +81,11 @@ export default class AutoComplete extends React.Component<Props, State> {
       results = upperInput.split(",");
     } else if (upperInput.includes(" ")) {
       results = upperInput.split(" ");
-      // results = [for (let v of results) v.trim()]; m
+      // results = [for (let v of results) v.trim()];
     } else {
-      if (dataSource.find(v => v.toUpperCase() === upperInput)) {
-        this.onChange(upperInput, undefined);
+      const key = this.getKeyForInput(upperInput);
+      if (key) {
+        this.onChange(key, undefined);
         if (!deleteOnSelect) {
           this.setState({ inputValue });
         }
@@ -83,8 +100,9 @@ export default class AutoComplete extends React.Component<Props, State> {
       let invalid = 0;
       let duplicate = 0;
       for (let result of results) {
-        if (dataSource.find(v => v.toUpperCase() === result)) {
-          if (onSelect(result)) {
+        const key = this.getKeyForInput(result);
+        if (key) {
+          if (onSelect(key)) {
             added++;
           } else {
             duplicate++;
@@ -107,9 +125,9 @@ export default class AutoComplete extends React.Component<Props, State> {
   };
 
   onChange = (selected: any, stateAndHelpers: object | undefined) => {
-    const { onSelect } = this.props;
+    const { onSelect, deleteOnSelect } = this.props;
     this.setState({ menuIsOpen: false });
-    if (onSelect) {
+    if (onSelect && deleteOnSelect) {
       this.setState({ inputValue: "" });
       onSelect(selected);
     }
@@ -141,18 +159,18 @@ export default class AutoComplete extends React.Component<Props, State> {
                 label={floatingLabelText}
                 value={inputValue || undefined}
                 onFocusCapture={() =>
-                  this.setState({ menuIsOpen: openOnFocus })}
+                  this.setState({ menuIsOpen: openOnFocus || menuIsOpen })}
               />
               {menuIsOpen ? (
                 <Paper className="suggestionContainer">
-                  {dataSource
-                    .filter(i => !inputValue || i.includes(inputValue))
+                  {Array.from(dataSource.entries())
+                    .filter(e => !inputValue || e[0].includes(inputValue) || e[1].includes(inputValue))
                     .map((item, index) =>
                       this.renderSuggestion(
                         item,
-                        selectedItem === item,
+                        selectedItem === item[0],
                         highlightedIndex === index,
-                        getItemProps({ index, item })
+                        getItemProps({ index, item: item[0] })
                       )
                     )}
                 </Paper>

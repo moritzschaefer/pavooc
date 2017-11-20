@@ -6,8 +6,8 @@ import { connect } from 'react-redux';
 
 export function mapStateToProps(state: any) {
   return {
-    geneIds: state.io.geneIds,
-    celllines: state.io.celllines
+    genes: state.io.genes,
+    celllines: new Map(state.io.celllines.map((e: string): [string, string] => [e, e]))
   }
 }
 

@@ -9,14 +9,14 @@ import "./Form.css";
 export interface Props {
   go: (geneSelection: Array<string>, cellline: string) => {};
   initialLoad: () => {};
-  geneIds: Array<string>;
-  celllines: Array<string>;
+  genes: Map<string, string>;
+  celllines: Map<string, string>;
   className: string;
 }
 
 export interface State {
   cellline: string;
-  geneSelection: Array<string>;
+  geneSelection: Map<string, string>;
   experimentType: string;
 }
 
@@ -26,7 +26,7 @@ export default class Form extends React.Component<Props, State> {
     this.state = {
       cellline: "UM-UC-3",
       experimentType: "knockout",
-      geneSelection: ["ENSG00000015475.14", "ENSG00000070010.14"]
+      geneSelection: new Map()
     };
   }
   componentDidMount() {
@@ -37,13 +37,17 @@ export default class Form extends React.Component<Props, State> {
     this.setState({ experimentType: event.target.value });
   };
 
-  addGene = (gene: string) => {
-    if (this.state.geneSelection.find(v => v === gene)) {
+  addGene = (geneId: string) => {
+    const { genes } = this.props;
+    if (this.state.geneSelection.has(geneId)) {
       return false;
     }
-    const geneSelection = [...this.state.geneSelection];
-    geneSelection.push(gene);
-    this.setState({ geneSelection: geneSelection });
+    const geneSelection = new Map(this.state.geneSelection);
+    const value = genes.get(geneId);
+    if (value) {
+      geneSelection.set(geneId, value);
+    }
+    this.setState({ geneSelection });
     return true;
   };
 
@@ -52,18 +56,17 @@ export default class Form extends React.Component<Props, State> {
     return true;
   };
 
-  removeGene = (data: string) => {
-    const geneSelection = [...this.state.geneSelection];
-    const chipToDelete = geneSelection.indexOf(data);
-    geneSelection.splice(chipToDelete, 1);
+  removeGene = (geneId: string) => {
+    const geneSelection = new Map(this.state.geneSelection);
+    geneSelection.delete(geneId);
     this.setState({ geneSelection });
   };
 
-  renderChip(data: string) {
+  renderChip([geneId, geneSymbol]: [string, string]) {
     return (
       <Chip
-        label={data}
-        key={data}
+        label={geneSymbol}
+        key={geneId}
         onRequestDelete={this.removeGene}
         className="geneChip"
       />
@@ -71,11 +74,24 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { geneIds, celllines, className } = this.props;
+    const { genes, celllines, className } = this.props;
     const { geneSelection, cellline } = this.state;
     let classes = "initialForm ";
     if (className) {
       classes += className;
+    }
+
+    let reversedGenes = undefined;
+    try {
+      reversedGenes = genes && new Map(
+        Array.from(genes.entries()).map(([key, value]): [
+          string,
+          string
+        ] => [value, key])
+      )
+
+    } catch (e) {
+
     }
     return (
       <div className={classes}>
@@ -85,6 +101,7 @@ export default class Form extends React.Component<Props, State> {
           floatingLabelText="Cancer cellline"
           openOnFocus={true}
           dataSource={celllines}
+          dataSourceReverse={undefined}
         />
         <br />
         <RadioGroup
@@ -110,18 +127,21 @@ export default class Form extends React.Component<Props, State> {
           floatingLabelText="Genes"
           deleteOnSelect={true}
           openOnFocus={true}
-          dataSource={geneIds}
+          dataSource={genes}
+          dataSourceReverse={reversedGenes}
           onSelect={this.addGene}
         />
         <br />
         <div className="chipWrapper">
-          {this.state.geneSelection.map((data: string) => {
-            return this.renderChip(data);
-          }, this)}
+          {Array.from(this.state.geneSelection.entries()).map(
+            this.renderChip,
+            this
+          )}
         </div>
         <Button
-          onClick={() => this.props.go(geneSelection, cellline)}
-          disabled={!geneSelection.length || !cellline}
+          onClick={() =>
+            this.props.go(Array.from(geneSelection.keys()), cellline)}
+          disabled={!geneSelection.size || !cellline}
           raised={true}
           className="formButton"
         >
