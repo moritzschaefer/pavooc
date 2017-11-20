@@ -30,7 +30,7 @@ def aa_cut_position(guide, canonical_exons):
     # TODO does this work for REVERSE strand?
     '''
     bp_position = 0
-    for canonical_exon in canonical_exons:
+    for index, canonical_exon in canonical_exons.iterrows():
         if guide.cut_position >= canonical_exon['start'] and \
                 guide.cut_position < canonical_exon['end']:
             return (bp_position +
@@ -43,16 +43,10 @@ def aa_cut_position(guide, canonical_exons):
 
 def compute_canonical_exons(gene_id, exons):
     try:
-        transcript_id = read_appris().loc[gene_id[:15]].transcript_id
-
-        cexons = exons.loc[
-            exons.transcript_id.map(lambda t: t[:15]) == transcript_id]. \
-            reset_index()[
-            ['start', 'end', 'exon_id']]
-        return list(cexons.T.to_dict().values())
+        return exons.reset_index()[['start', 'end', 'exon_id']]
     except Exception as e:
         logging.error('Failed finding canonical exons: {}'.format(e))
-    return []
+    return pd.DataFrame()
 
 
 def pdbs_for_gene(gene_id):
@@ -79,7 +73,11 @@ def pdbs_for_gene(gene_id):
 
 
 def _cut_position(row):
-    exon = gencode_exons().loc[row.exon_id]
+    try:
+        exon = gencode_exons().loc[row.exon_id]
+    except KeyError:
+        import ipdb
+        ipdb.set_trace()
 
     if isinstance(exon, pd.DataFrame):
         assert len(exon.start.unique()) == 1, \
@@ -147,7 +145,7 @@ def build_gene_document(gene):
         'strand': strand,
         'pdbs': pdbs_for_gene(gene_id),
         'chromosome': exons.iloc[0]['seqname'],
-        'canonical_exons': canonical_exons,
+        'canonical_exons': list(canonical_exons.T.to_dict().values()),
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
         'guides':

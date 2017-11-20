@@ -2,9 +2,12 @@ from pavooc.db import guide_collection
 from pavooc.config import GUIDE_BED_FILE
 
 
-def guide_to_bed(gene, guide):
+def guide_to_bed(gene, guide, index):
     """
     Serialize one guide into bed format
+    :gene: The gene where the guide is contained in
+    :guide: guide information
+    :index: the index of the guide
     :returns: A string containing one line with the bed-data of the provided
     guide
     """
@@ -18,7 +21,7 @@ def guide_to_bed(gene, guide):
         gene['chromosome'],
         guide['start'] + exon_start,
         guide['start'] + exon_start + 23,
-        guide['target'],
+        '{}:{}'.format(index+1, guide['target']),
         min(100,  max(int(guide['score'] * 100), 0)),
         strand,
         guide['start'] + exon_start,
@@ -33,8 +36,8 @@ def guide_to_bed(gene, guide):
 def main():
     with open(GUIDE_BED_FILE, 'w') as f:
         for gene_guides in guide_collection.find():
-            for guide in gene_guides['guides']:
-                f.write(guide_to_bed(gene_guides, guide))
+            for guide_index, guide in enumerate(gene_guides['guides']):
+                f.write(guide_to_bed(gene_guides, guide, guide_index))
                 f.write('\n')
 
 

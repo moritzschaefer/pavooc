@@ -119,18 +119,18 @@ class KnockoutGuides(Resource):
             # filter our genes
             {'$match': {'gene_id': {'$in': gene_ids}}},
             # unwind guides so we can access their score
-            {'$unwind': '$guides'},
-            # sort by score
-            {'$sort': {'guides.score': -1}},
-            # group guides together again (contrary of unwind)
-            {'$group': {
-                '_id': '$_id',
-                'gene_id': {'$first': '$gene_id'},
-                'chromosome': {'$first': '$chromosome'},
-                'pdbs': {'$first': '$pdbs'},
-                'exons': {'$first': '$exons'},
-                'guides': {'$push': '$guides'}
-            }},
+            # {'$unwind': '$guides'},
+            # # sort by score
+            # {'$sort': {'guides.score': -1}},
+            # # group guides together again (contrary of unwind)
+            # {'$group': {
+            #     '_id': '$_id',
+            #     'gene_id': {'$first': '$gene_id'},
+            #     'chromosome': {'$first': '$chromosome'},
+            #     'pdbs': {'$first': '$pdbs'},
+            #     'exons': {'$first': '$exons'},
+            #     'guides': {'$push': '$guides'}
+            # }},
         ]
         result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)

@@ -39,7 +39,6 @@ def read_gencode():
         (df['gene_type'] == 'protein_coding') &
         (df['feature'].isin(['gene', 'transcript', 'exon'])) &
         (df['seqname'].isin(CHROMOSOMES))]
-
     # drop all transcripts and exons that have no protein_id
     df.drop(df.index[(df.protein_id == '') & (
         df.feature.isin(['exon', 'transcript']))], inplace=True)
@@ -96,8 +95,8 @@ def read_gencode():
 def gencode_exons():
     '''
     Return the protein-coding exons from gencode, indexed by exon_id
-    Delete duplicates (note that the same exon_id can appear twice with
-    different transcripts) TODO is this good?
+    Return only the exons for the longest transcript for each gene
+
     Delete overlapping exons
     :returns: DataFrame with unique exons
     '''
@@ -106,44 +105,27 @@ def gencode_exons():
     prepared = gencode.loc[gencode['feature'] == 'exon'][[
         'seqname', 'start', 'end', 'strand', 'transcript_id',
         'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']] \
-        .drop_duplicates() \
-        .set_index('exon_id')
-    logging.info('Dropped exon duplicates. Now building interval tree')
+        .drop_duplicates().copy()
 
-    # alternative: sort by gene_id, start, end, check with next line if overlap
-    # remove overlapping exons
-    tree = IntervalTree()
-    drop_exons = set()
-    for _, exon in prepared.iterrows():
-        try:
-            tree[exon.start:exon.end] = (exon.gene_id, exon.name)
-        except ValueError as e:
-            drop_exons.add(exon.name)
+    # TODO test: use the first APPRIS
+    first_apprises = read_appris().groupby('gene_id').first()
+    print(len(prepared.gene_id.drop_duplicates()))
+    prepared = prepared[prepared.transcript_id.map(lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
+    print(len(prepared.gene_id.drop_duplicates()))
 
-    logging.info('Built exon tree. {} zero size exons not included'
-                 .format(len(drop_exons)))
+    # # Use longest transcript only
+    # prepared['length'] = prepared['end'] - prepared['start']
+    # transcripts_lengths = prepared.groupby(
+    #     ['gene_id', 'transcript_id']).sum().length
+    # longest_transcripts = transcripts_lengths[
+    #     transcripts_lengths ==
+    #     transcripts_lengths.groupby(level=0).transform('max')]
+    #
+    # prepared = prepared[prepared.transcript_id.isin(
+    #     longest_transcripts.index.get_level_values(1))]
 
-    for _, exon in prepared.iterrows():
-        exon_intervals = list(tree[exon.start:exon.end])
-        relevant_exons = [
-            e for e in exon_intervals if e[2][0] == exon.gene_id
-        ]
-        # only the exon itself was found
-        if len(relevant_exons) == 1:
-            continue
+    return prepared.set_index('exon_id')
 
-        # delete all but the smallest
-        smallest_i = np.argmin([i[1] - i[0] for i in relevant_exons])
-
-        for i, e in enumerate(relevant_exons):
-            if i != smallest_i:
-                drop_exons.add(e[2][1])
-    logging.info('Found {} overlapping exons inside genes. Deleting'
-                 .format(len(drop_exons)))
-    if len(drop_exons) > 0:
-        prepared.drop(list(drop_exons), inplace=True)
-
-    return prepared
 
 # There the start and end coordinates for each mapping are provided in the last 6 columns: RES_BEG/RES_END are for residue numbers matching the SEQRES of the PDB files (from 1 to n), PDB_BEG/PDB_END for the residue numbers as they appear in ATOM lines (i.e. can have insertion codes, can have jumps etc) and SP_BEG/SP_END are the UniProt coordinates (SP is for swissprot the old name of UniProt).
 #
@@ -213,7 +195,7 @@ def domain_interval_trees():
                 trees[row['chrom']][
                     row['chromStart'] + int(local_start):
                     row['chromStart'] + int(local_start) + int(block_size)] = \
-                            (row['name'], row['strand'])
+                    (row['name'], row['strand'])
 
     logging.info('Built domain tree with {} nodes'
                  .format(sum([len(tree) for tree in trees.values()])))

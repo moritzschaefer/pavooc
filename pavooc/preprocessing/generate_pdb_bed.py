@@ -105,30 +105,44 @@ def main():
         # (makes dataprocessing easier)
         # TODO exons doesn't provide swissprot_id any more FIXME
         exons = exons.loc[exons.swissprot_id.map(
-            lambda spid: type(spid) == str)]
+            lambda spid: type(spid) == str)].copy()
+        exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
 
         for _, pdb in pdb_data().iterrows():
             # find the transcript, that corresponds to the pdb
-            gene_id = exons.loc[
-                exons.swissprot_id.map(normalize_pid)
-                == pdb.SP_PRIMARY].gene_id.drop_duplicates()
+            gene_id = exons.loc[exons.swissprot_id
+                                == pdb.SP_PRIMARY].gene_id.drop_duplicates()
             if len(gene_id) == 0:
                 continue
             assert len(
                 gene_id) == 1, 'PDB should correspond to one gene_id only'
-            gene_id = gene_id[0]
+            gene_id = gene_id.iloc[0]
 
-            transcript_id = appris.loc[gene_id[:15]].transcript_id
-            if isinstance(transcript_id, pd.Series):
-                logging.warning('Found {} canonical transcripts for {}. '
-                                'Choosing first one'.format(
-                                    len(transcript_id), gene_id))
-                transcript_id = transcript_id.iloc[0]
+            # TODO might be wrong in some circumstances TOIMPROVE
+            # right now we take the longest transcript anyways
+            # transcript_id = appris.loc[gene_id[:15]].transcript_id
+            # if isinstance(transcript_id, pd.Series):
+            #     logging.warning('Found {} canonical transcripts for {}. '
+            #                     'Choosing first one'.format(
+            #                         len(transcript_id), gene_id))
+            #     transcript_id = transcript_id.iloc[0]
 
             # filter the exons for the corresponding transcript
+            # TODO in  gencode_exons we could just not use the longest
+            # transcript but one from appris...
+            transcript_id = exons.transcript_id.drop_duplicates().iloc[0][:15]
+            appris_ids = appris.loc[gene_id[:15]].transcript_id
+            if isinstance(appris_ids, pd.Series):
+                if (appris_ids != transcript_id).all():
+                    print('transcript_id is not the primary one!')
+                    print(appris_ids, transcript_id)
+            else:
+                if appris_ids != transcript_id:
+                    print('transcript_id is not the primary one!')
+                    print(appris_ids, transcript_id)
+
             pdb_exons = exons.loc[
-                exons.transcript_id.map(lambda v: v[:15]) ==
-                transcript_id].copy().sort_values('exon_number')
+                exons.gene_id == gene_id].copy().sort_values('exon_number')
 
             try:
                 data = pdb_coordinates(pdb, pdb_exons)

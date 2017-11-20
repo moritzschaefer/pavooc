@@ -92,16 +92,6 @@ def generate_gene_files():
     logging.info('Generate gene files containing all exons')
     # for each exon create one file
     for gene_id, exons in gencode_exons().groupby('gene_id'):
-        try:
-            # TODO delete try/except
-            # check existence of chromosome to speed up tests
-            # normally all chromosomes are available
-            chromosomes()[exons.iloc[0]['seqname']]
-        except KeyError as e:
-            logging.error('Failed to get data for chromosome "{}"'
-                          .format(e.args[0]))
-            continue
-
         with open(os.path.join(EXON_DIR, gene_id), 'w') as gene_file:
             # TODO double check if it works the other way round: group by
             # start, end and check if if is the same exon_id always...
@@ -115,7 +105,6 @@ def generate_gene_files():
         # get all transcript_ids and exon_numbers, append them
         # check for duplicates
         # order by exon_id, save ">exonid transcript1:3,transcript2:1"
-        # if both HAVANA AND ENSEMBL exist.. what then..?
 
 
 def combine_genome():
