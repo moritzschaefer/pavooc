@@ -1,10 +1,11 @@
 import * as t from "./actionTypes";
+import { GeneName } from "./actions";
 
 export type State = {
   readonly isFetching: boolean;
   readonly error: string | undefined;
   readonly guides: any | undefined;
-  readonly geneIds: Array<string>;
+  readonly genes: Map<string, string>;
   readonly celllines: Array<string>;
 };
 
@@ -12,7 +13,7 @@ const INITIAL_STATE: State = {
   isFetching: false,
   error: undefined,
   guides: undefined,
-  geneIds: [],
+  genes: new Map<string, string>(),
   celllines: []
 };
 
@@ -36,7 +37,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
         ...state,
         isFetching: false,
         error: undefined,
-        geneIds: action.geneIds,
+        genes: new Map(action.genes.map((g: GeneName) => [g.gene_id, g.gene_symbol])),
         celllines: action.celllines
       };
     default:

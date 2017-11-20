@@ -14,7 +14,7 @@ import GuideTable from "./GuideTable";
 import { setGuideCount } from "./actions";
 import "./style.css";
 
-interface GeneData {
+export interface GeneData {
   gene_id: string;
   guides: Array<any>;
   pdbs: Array<any>;
@@ -30,37 +30,61 @@ interface Props {
 
 interface State {
   selectedPdb: number;
+  hoveredGuide: number | undefined;
 }
 
 class GeneViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {selectedPdb: 0};
+    this.state = { selectedPdb: 0, hoveredGuide: undefined };
   }
+
+  setHoveredGuide = (hoveredGuide: number): void => {
+    this.setState({ hoveredGuide });
+  };
+
+  showPdb = (clickedPdb: string): void => {
+    const { geneData } = this.props;
+    const selectedPdb = geneData.pdbs.findIndex(
+      (pdb: any) => pdb.PDB === clickedPdb
+    );
+    if (selectedPdb >= 0) {
+      this.setState({ selectedPdb });
+    } else {
+      console.log("Error: selected pdb doesnt exist in genedata");
+    }
+  };
+
   render() {
     const { guideCount, geneData, geneId } = this.props;
-    const { selectedPdb } = this.state;
+    const { selectedPdb, hoveredGuide } = this.state;
     return (
       <div className="mainContainer">
         <div className="containerTop">
           <div className="geneViewerHeader">
-            <Button onClick={() => this.props.push("/knockout")} raised={true} className="backButton">Back</Button>
+            <Button
+              onClick={() => this.props.push("/knockout")}
+              raised={true}
+              className="backButton"
+            >
+              Back
+            </Button>
           </div>
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
             <FormControl>
               <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
-               <Select
+              <Select
                 value={guideCount}
                 onChange={this.props.setGuideCount}
                 input={<Input id="guides-count" />}
                 MenuProps={{
-                              PaperProps: {
-                                style: {
-                                  maxHeight: 200
-                                },
-                              },
-                            }}
+                  PaperProps: {
+                    style: {
+                      maxHeight: 200
+                    }
+                  }
+                }}
               >
                 {Array.from(new Array(10), (_: {}, i: number) => (
                   <MenuItem value={i} key={i}>
@@ -73,11 +97,28 @@ class GeneViewer extends React.Component<Props, State> {
           </div>
         </div>
         <div className="containerCenter">
-          <ProteinViewer className="proteinViewer" pdb={geneData.pdbs[selectedPdb]}/>
-          <GuideTable guides={geneData.guides} className="guideTable"/>
+          <ProteinViewer
+            hoveredGuide={hoveredGuide}
+            setHoveredGuide={this.setHoveredGuide}
+            className="proteinViewer"
+            guides={geneData.guides}
+            pdb={geneData.pdbs[selectedPdb]}
+          />
+          <GuideTable
+            hoveredGuide={hoveredGuide}
+            setHoveredGuide={this.setHoveredGuide}
+            guides={geneData.guides}
+            className="guideTable"
+          />
         </div>
         <div className="containerBottom">
-          <SequenceViewer />
+          <SequenceViewer
+            hoveredGuide={hoveredGuide}
+            guides={geneData.guides}
+            onGuideHovered={this.setHoveredGuide}
+            onPdbClicked={this.showPdb}
+            gene={geneData}
+          />
         </div>
       </div>
     );

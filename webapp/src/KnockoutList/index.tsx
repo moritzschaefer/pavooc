@@ -19,7 +19,7 @@ export interface Props {
 
 class KnockoutList extends React.Component<Props, object> {
   renderTableRow(geneGuides: any) {
-    const scores = geneGuides.guides.map((v: any) => v.score);
+    const targets = geneGuides.guides.map((v: any) => v.target);
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
@@ -29,9 +29,9 @@ class KnockoutList extends React.Component<Props, object> {
             {geneGuides.gene_id}
           </Link>
         </TableCell>
-        <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word" }}>
+        <TableCell style={{ whiteSpace: "normal", wordWrap: "break-word", fontFamily: "Courier" }}>
           <Link className="tableLink" to={geneLink}>
-            {scores.join(", ")}
+            {targets.join(", ")}
           </Link>
         </TableCell>
       </TableRow>
