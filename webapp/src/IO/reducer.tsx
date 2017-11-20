@@ -26,7 +26,15 @@ export default (state: State = INITIAL_STATE, action: any) => {
         ...state,
         isFetching: false,
         error: undefined,
-        guides: action.data
+        // just add selected:false to every guide and edited:false to every gene
+        guides: action.data.map((gene: any) => ({
+          ...gene,
+          edited: false,
+          guides: gene.guides.map((guide: any) => ({
+            ...guide,
+            selected: false
+          }))
+        }))
       };
     case t.FETCH_KNOCKOUTS_FAILURE:
       return { ...state, isFetching: false, error: action.error };
@@ -37,8 +45,32 @@ export default (state: State = INITIAL_STATE, action: any) => {
         ...state,
         isFetching: false,
         error: undefined,
-        genes: new Map(action.genes.map((g: GeneName) => [g.gene_id, g.gene_symbol])),
+        genes: new Map(
+          action.genes.map((g: GeneName) => [g.gene_id, g.gene_symbol])
+        ),
         celllines: action.celllines
+      };
+    case t.TOGGLE_GUIDE_SELECTION:
+      // TODO slow?
+      return {
+        ...state,
+        guides: state.guides.map((gene: any) => ({
+          ...gene,
+          guides: gene.guides.map((guide: any, index: number) => ({
+            ...guide,
+            selected:
+              guide.selected !==
+              (gene.gene_id === action.geneId && index === action.guideIndex)
+          }))
+        }))
+      };
+    case t.MARK_GENE_EDIT:
+      return {
+        ...state,
+        guides: state.guides.map((gene: any) => ({
+          ...gene,
+          edited: gene.edited !== (gene.gene_id === action.geneId)
+        }))
       };
     default:
       return state;

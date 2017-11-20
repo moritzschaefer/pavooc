@@ -3,15 +3,11 @@ import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
-import Input, { InputLabel } from "material-ui/Input";
-import { MenuItem } from "material-ui/Menu";
-import { FormControl } from "material-ui/Form";
-import Select from "material-ui/Select";
 
+import { toggleGuideSelection, markGeneEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer from "./SequenceViewer";
 import GuideTable from "./GuideTable";
-import { setGuideCount } from "./actions";
 import "./style.css";
 
 export interface GeneData {
@@ -22,10 +18,10 @@ export interface GeneData {
 
 interface Props {
   geneId: string;
-  guideCount: number;
-  setGuideCount: (event: any) => {};
   geneData: GeneData;
   push: (route: string) => {};
+  markGeneEdit: (geneId: string) => {};
+  toggleGuideSelection: (geneId: string, guideIndex: number) => {};
 }
 
 interface State {
@@ -39,6 +35,11 @@ class GeneViewer extends React.Component<Props, State> {
     this.state = { selectedPdb: 0, hoveredGuide: undefined };
   }
 
+  guideCheckboxClicked = (guideIndex: number) => {
+    const { geneId } = this.props;
+    this.props.toggleGuideSelection(geneId, guideIndex);
+    this.props.markGeneEdit(geneId);
+  }
   setHoveredGuide = (hoveredGuide: number): void => {
     this.setState({ hoveredGuide });
   };
@@ -56,7 +57,7 @@ class GeneViewer extends React.Component<Props, State> {
   };
 
   render() {
-    const { guideCount, geneData, geneId } = this.props;
+    const { geneData, geneId } = this.props;
     const { selectedPdb, hoveredGuide } = this.state;
     return (
       <div className="mainContainer">
@@ -72,27 +73,6 @@ class GeneViewer extends React.Component<Props, State> {
           </div>
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
-            <FormControl>
-              <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
-              <Select
-                value={guideCount}
-                onChange={this.props.setGuideCount}
-                input={<Input id="guides-count" />}
-                MenuProps={{
-                  PaperProps: {
-                    style: {
-                      maxHeight: 200
-                    }
-                  }
-                }}
-              >
-                {Array.from(new Array(10), (_: {}, i: number) => (
-                  <MenuItem value={i} key={i}>
-                    {i}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             <Button raised={true}>&darr; CSV</Button>
           </div>
         </div>
@@ -107,6 +87,7 @@ class GeneViewer extends React.Component<Props, State> {
           <GuideTable
             hoveredGuide={hoveredGuide}
             setHoveredGuide={this.setHoveredGuide}
+            guideClicked={this.guideCheckboxClicked}
             guides={geneData.guides}
             className="guideTable"
           />
@@ -129,14 +110,14 @@ const mapStateToProps = (
   state: any,
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => ({
-  guideCount: state.geneViewer.guideCount,
   geneData: state.io.guides.find((v: any) => v.gene_id === geneId),
   geneId
 });
 
 const mapDispatchToProps = (dispatch: any) => ({
-  setGuideCount: (event: any) => dispatch(setGuideCount(event.target.value)),
-  push: (route: string) => dispatch(push(route))
+  push: (route: string) => dispatch(push(route)),
+  toggleGuideSelection: (geneId: string, guideIndex: number) => dispatch(toggleGuideSelection(geneId, guideIndex)),
+  markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(GeneViewer);

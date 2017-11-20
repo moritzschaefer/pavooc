@@ -23,7 +23,7 @@ import Loading from "./util/Loading";
 
 import IOEpic from "./IO/epic";
 import IOReducer from "./IO/reducer";
-import GeneViewerReducer from "./GeneViewer/reducer";
+import KnockoutListReducer from "./KnockoutList/reducer";
 import MessagesReducer from "./Messages/reducer";
 
 // Create a history of your choosing (we're using a browser history in this case)
@@ -35,7 +35,7 @@ const rootReducer = combineReducers({
   router: routerReducer,
   io: IOReducer,
   messages: MessagesReducer,
-  geneViewer: GeneViewerReducer
+  knockoutList: KnockoutListReducer,
 });
 
 const epics = combineEpics(IOEpic);

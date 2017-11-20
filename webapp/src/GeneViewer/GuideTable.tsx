@@ -16,6 +16,7 @@ interface Props {
   guides: any;
   hoveredGuide: number | undefined;
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
+  guideClicked: (guideIndex: number) => void;
 }
 
 export default class GuideTable extends React.Component<Props, State> {
@@ -29,6 +30,7 @@ export default class GuideTable extends React.Component<Props, State> {
             </p>
           ))
   }
+
   renderTableRow(guide: any, index: number) {
     const { setHoveredGuide, hoveredGuide } = this.props;
     return (
@@ -38,7 +40,7 @@ export default class GuideTable extends React.Component<Props, State> {
         selected={hoveredGuide === index}
         key={guide.target}>
         <TableCell padding="checkbox">
-          <Checkbox checked={false} />
+          <Checkbox checked={guide.selected} onChange={() => this.props.guideClicked(index)} />
         </TableCell>
         <TableCell
           style={{ maxWidth: 60, whiteSpace: "normal", wordWrap: "break-word" }}

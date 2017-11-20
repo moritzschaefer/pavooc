@@ -39,6 +39,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
     // Either show the hoveredGuide, or highlight all guides
     let selection = "not all";
     if (hoveredGuide) {
+      // TODO guides[hovered] is undefined sometimes
       const aa_cut_position = guides[hoveredGuide].aa_cut_position;
       const highlightPosition = aa_cut_position - (pdb.SP_BEG);
       if (aa_cut_position >= 0 && highlightPosition ) {

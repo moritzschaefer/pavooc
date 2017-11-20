@@ -76,3 +76,26 @@ export const initialLoadFailure = (error: string): InitialLoadFailure => ({
   type: t.INITIAL_LOAD_FAILURE,
   error
 });
+
+export interface ToggleGuideSelection {
+  type: typeof t.TOGGLE_GUIDE_SELECTION;
+  geneId: string;
+  guideIndex: number;
+}
+
+export const toggleGuideSelection = (geneId: string, guideIndex: number) : ToggleGuideSelection => ({
+  type: t.TOGGLE_GUIDE_SELECTION,
+  geneId,
+  guideIndex
+});
+
+export interface MarkGeneEdit {
+  type: typeof t.MARK_GENE_EDIT;
+  geneId: string;
+}
+
+export const markGeneEdit = (geneId: string) : MarkGeneEdit => ({
+  type: t.MARK_GENE_EDIT,
+  geneId
+});
+

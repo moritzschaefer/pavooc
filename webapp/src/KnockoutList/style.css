@@ -2,7 +2,6 @@
   padding: 10px;
   width: 100%;
   height: 100%;
-
 }
 
 .tableLink {
@@ -13,4 +12,9 @@
 
 .tableLink:hover {
   text-decoration: underline;
+}
+
+.headControl {
+  display: flex;
+  flex-direction: row;
 }
