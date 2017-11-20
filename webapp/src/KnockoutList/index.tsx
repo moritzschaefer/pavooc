@@ -31,6 +31,55 @@ class KnockoutList extends React.Component<Props, object> {
     this.updateGuideSelection(this.props.guideCount);
   }
 
+  downloadCSV() {
+    const exportFilename = "pavoocExport.csv";
+
+    // TODO orientation->guideOrientation, geneStrand, delete selected, start->startInGene, add exonStart
+    const data = [].concat( // flatten array of arrays
+      ...this.props.guides.map((gene: any) =>
+        gene.guides
+          .filter((guide: any) => guide.selected) // only return selected guides
+          .map((guide: any) => ({ gene_id: gene.gene_id, ...guide }))
+      )
+    );
+
+    const columnDelimiter = ",";
+    const lineDelimiter = "\n";
+
+    let keys = Object.keys(data[0]);
+
+    let result = "";
+    result += keys.join(columnDelimiter);
+    result += lineDelimiter;
+
+    data.forEach(function(item: any) {
+      let ctr = 0;
+      keys.forEach(function(key: string) {
+        if (ctr > 0) {
+          result += columnDelimiter;
+        }
+
+        result += item[key];
+        ctr++;
+      });
+      result += lineDelimiter;
+    });
+    // now generate a link
+    var csvData = new Blob([result], { type: "text/csv;charset=utf-8;" });
+    //IE11 & Edge
+    if (navigator.msSaveBlob) {
+      navigator.msSaveBlob(csvData, exportFilename);
+    } else {
+      // TODO In FF link must be added to DOM to be clicked
+      var link = document.createElement("a");
+      link.href = window.URL.createObjectURL(csvData);
+      link.setAttribute("download", exportFilename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }
+
   updateGuideSelection(guideCount: number) {
     const { guides } = this.props;
     // select all top-guides where no editing has occured before
@@ -39,7 +88,10 @@ class KnockoutList extends React.Component<Props, object> {
       if (gene.edited) {
         continue;
       }
-      const sortedGuides = gene.guides.map((guide: any, index: number) => [guide, index]);
+      const sortedGuides = gene.guides.map((guide: any, index: number) => [
+        guide,
+        index
+      ]);
       sortedGuides.sort(function(a: [any, number], b: [any, number]) {
         return b[0].score - a[0].score;
       });
@@ -63,11 +115,12 @@ class KnockoutList extends React.Component<Props, object> {
   renderGuideCountSelector() {
     const { guideCount } = this.props;
     return (
-      <FormControl style={{ flex: 1 }}>
+      <FormControl style={{ flex: 2 }}>
         <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
         <Select
           value={guideCount}
-          onChange={(event) => this.updateGuideSelection(parseInt(event.target.value, 10))}
+          onChange={event =>
+            this.updateGuideSelection(parseInt(event.target.value, 10))}
           input={<Input id="guides-count" />}
           MenuProps={{
             PaperProps: {
@@ -88,7 +141,9 @@ class KnockoutList extends React.Component<Props, object> {
   }
 
   renderTableRow(geneGuides: any) {
-    const targets = geneGuides.guides.filter((guide: any) => guide.selected).map((v: any) => v.target);
+    const targets = geneGuides.guides
+      .filter((guide: any) => guide.selected)
+      .map((v: any) => v.target);
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
@@ -139,7 +194,10 @@ class KnockoutList extends React.Component<Props, object> {
         <div className="AppBody">
           <div className="container">
             <div className="headControl">
-              <h2 style={{ flex: 3 }}>Guide recommendations</h2>
+              <h2 style={{ flex: 6 }}>Guide recommendations</h2>
+              <Button raised={true} style={{ flex: 1, margin: 10 }} onClick={() => this.downloadCSV()}>
+                &darr; CSV
+              </Button>
               {this.renderGuideCountSelector()}
             </div>
             {this.renderTable()}
@@ -153,13 +211,14 @@ class KnockoutList extends React.Component<Props, object> {
 
 const mapStateToProps = (state: any) => ({
   guideCount: state.knockoutList.guideCount,
-  guides: state.io.guides,
+  guides: state.io.guides
 });
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
   push: (route: string) => dispatch(push(route)),
   setGuideCount: (guideCount: number) => dispatch(setGuideCount(guideCount)),
-  toggleGuideSelection: (geneId: string, guideIndex: number) => dispatch(toggleGuideSelection(geneId, guideIndex)),
+  toggleGuideSelection: (geneId: string, guideIndex: number) =>
+    dispatch(toggleGuideSelection(geneId, guideIndex))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(KnockoutList);
