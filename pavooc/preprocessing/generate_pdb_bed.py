@@ -5,7 +5,8 @@ import logging
 import pandas as pd
 from pavooc.config import PDB_BED_FILE
 from pavooc.util import normalize_pid
-from pavooc.data import gencode_exons, read_appris, pdb_data
+from pavooc.data import gencode_exons, read_appris, pdb_list
+from pavooc.pdb import pdb_mappings
 
 
 def pdb_coordinates(pdb, pdb_exons):
@@ -35,14 +36,18 @@ def pdb_coordinates(pdb, pdb_exons):
         pdb_exons.start -= zero
         pdb_exons.end -= zero
 
+    mappings = pdb_mappings(pdb.PDB, pdb.CHAIN, pdb.SWISSPROT_ID)
+    sp_start = min(mappings.keys())
+    sp_end = max(mappings.keys())
+
     # Iterate over each exon (in order) and check in which interval the
     # Protein lies
     for _, exon in pdb_exons.iterrows():
         exon_length = (exon.end - exon.start)
         pdb_end = None
-        if pdb.SP_BEG * 3 >= index:
-            if pdb.SP_BEG * 3 < index + exon_length:  # first exon
-                in_exon_start = pdb.SP_BEG * 3 - index
+        if sp_start * 3 >= index:
+            if sp_start * 3 < index + exon_length:  # first exon
+                in_exon_start = sp_start * 3 - index
                 pdb_start = exon.start + in_exon_start
             else:  # not in pdb-exons yet, go ahead
                 index += exon_length
@@ -51,8 +56,8 @@ def pdb_coordinates(pdb, pdb_exons):
             in_exon_start = 0
 
         # Inside PDB exons, find end and add to array
-        if pdb.SP_END * 3 <= index + exon_length:
-            in_exon_end = (pdb.SP_END * 3) - index
+        if sp_end * 3 <= index + exon_length:
+            in_exon_end = (sp_end * 3) - index
             pdb_end = exon.start + in_exon_end
         else:
             in_exon_end = exon_length
@@ -108,7 +113,7 @@ def main():
             lambda spid: type(spid) == str)].copy()
         exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
 
-        for _, pdb in pdb_data().iterrows():
+        for _, pdb in pdb_list().iterrows():
             # find the transcript, that corresponds to the pdb
             gene_id = exons.loc[exons.swissprot_id
                                 == pdb.SP_PRIMARY].gene_id.drop_duplicates()

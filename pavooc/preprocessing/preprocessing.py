@@ -7,8 +7,8 @@ import pickle
 from skbio.sequence import DNA
 from intervaltree import IntervalTree
 
-from pavooc.config import CHROMOSOMES, EXON_INTERVAL_TREES_FILE, \
-        GENOME_FILE, CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, EXON_DIR
+from pavooc.config import CHROMOSOMES, GENOME_FILE, CHROMOSOME_FILE, \
+    CHROMOSOME_RAW_FILE, EXON_DIR
 from pavooc.data import gencode_exons, chromosomes
 
 logging.basicConfig(level=logging.INFO)
@@ -31,27 +31,7 @@ def generate_raw_chromosomes():
         raw_chromose_file = CHROMOSOME_RAW_FILE.format(chromosome_number)
         with open(raw_chromose_file, 'w') as chromosome_file:
             chromosome_file.write(
-                    chromosome[2+len(chromosome_number):].replace('\n', ''))
-
-
-def exon_interval_trees():
-    '''
-    Generate an exon interval tree
-    '''
-    logging.info('Building exon tree')
-    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
-    relevant_exons = gencode_exons()
-
-    for _, row in relevant_exons.iterrows():
-        if row['end'] > row['start']:
-            # end is included, start count at 0 instead of 1
-            trees[row['seqname']][row['start']-1:row['end']] = \
-                (row['gene_id'], row['exon_number'])
-
-    logging.info('Built exon tree with {} nodes'
-                 .format(sum([len(tree) for tree in trees.values()])))
-
-    return trees
+                chromosome[2 + len(chromosome_number):].replace('\n', ''))
 
 
 def exon_to_fasta(exon_id, exon_data):
@@ -64,7 +44,7 @@ def exon_to_fasta(exon_id, exon_data):
 
     exon = exon_data.iloc[0]
 
-    exon_slice = slice(exon['start']-16, exon['end']+16)
+    exon_slice = slice(exon['start'] - 16, exon['end'] + 16)
     exon_seq = chromosomes()[exon['seqname']][exon_slice].upper()
 
     # TODO why should I revert this
@@ -75,14 +55,14 @@ def exon_to_fasta(exon_id, exon_data):
 
     transcript_ids = ','.join(['{}:{}'.format(v.transcript_id,
                                               v.exon_number)
-                              for _, v in exon_data.iterrows()])
+                               for _, v in exon_data.iterrows()])
     return '>{};{};{};{};{}\n{}\n'.format(
-            exon_id,
-            exon.strand,
-            exon['start'],
-            exon['end'],
-            transcript_ids,
-            exon_seq)
+        exon_id,
+        exon.strand,
+        exon['start'],
+        exon['end'],
+        transcript_ids,
+        exon_seq)
 
 
 def generate_gene_files():
@@ -127,9 +107,6 @@ def main():
     combine_genome()
 
     generate_gene_files()
-    trees = exon_interval_trees()
-    with open(EXON_INTERVAL_TREES_FILE, 'wb') as f:
-        pickle.dump(trees, f)
 
 
 if __name__ == "__main__":

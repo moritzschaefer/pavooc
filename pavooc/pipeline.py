@@ -42,6 +42,10 @@ def generate_bed_files():
 
 
 if __name__ == "__main__":
+    try:
+        os.mkdir(DATADIR)
+    except FileExistsError:
+        pass
     main_downloader()
     main_preprocessing()
     main_ff()

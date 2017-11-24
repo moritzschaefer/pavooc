@@ -6,8 +6,12 @@ import gzip
 import logging
 import os
 import subprocess
+import ftplib
+import re
+from multiprocessing.dummy import Queue, Process
+import time
 
-from pavooc.config import CHROMOSOMES, DATADIR
+from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE
 
 URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
@@ -49,9 +53,56 @@ def download_unzip(url):
             datafile.write(file_content)
 
 
+def download_ftp(queue):
+    ftp = ftplib.FTP("ftp.ebi.ac.uk")
+    ftp.login()
+    ftp.cwd('/pub/databases/msd/sifts/xml')
+    while not queue.empty():
+        filename = queue.get()
+        if not re.match('[0-9a-z]{4}\.xml\.gz', filename):
+            continue
+        target_filename = SIFTS_FILE.format(filename)
+        if os.path.exists(target_filename):
+            continue
+        with open(target_filename, 'wb') as f:
+            ftp.retrbinary('RETR ' + filename, f.write)
+    ftp.quit()
+
+
+def download_sifts():
+    # also download all sift files
+    try:
+        os.mkdir(SIFTS_FILE.format(''))
+    except FileExistsError:
+        pass
+    ftp = ftplib.FTP("ftp.ebi.ac.uk")
+    ftp.login()
+    ftp.cwd('/pub/databases/msd/sifts/xml')
+    filenames = ftp.nlst()  # get filenames within the directory
+    ftp.quit()  # This is the “polite” way to close a connection
+    filename_queue = Queue()
+    for filename in filenames:
+        filename_queue.put(filename)
+
+    ftp_processes = [Process(target=download_ftp, args=(
+        filename_queue,)) for _ in range(10)]
+    for process in ftp_processes:
+        process.start()
+
+    while not filename_queue.empty():
+        print('{}/{} sifts downloaded'.format(len(filenames) -
+                                              filename_queue.qsize(), len(filenames)))
+        time.sleep(1)
+
+    for process in ftp_processes:
+        process.join()
+
+
 def main():
     for url in URLS:
         download_unzip(url)
+
+    download_sifts()
 
 
 if __name__ == "__main__":

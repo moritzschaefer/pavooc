@@ -41,18 +41,18 @@ export default class ProteinViewer extends React.Component<Props, State> {
     if (hoveredGuide) {
       // TODO guides[hovered] is undefined sometimes
       const aa_cut_position = guides[hoveredGuide].aa_cut_position;
-      const highlightPosition = aa_cut_position - pdb.SP_BEG;
+      const highlightPosition = aa_cut_position - pdb.start;
       if (aa_cut_position >= 0 && highlightPosition) {
         selection = `${highlightPosition - 1}-${highlightPosition + 2}`; // bugfix extending indices
       }
     } else {
       const cuts = [];
       for (let guide of guides) {
-        const inPdbPosition = guide.aa_cut_position - pdb.SP_BEG;
+        const inPdbPosition = guide.aa_cut_position - pdb.start;
         if (
           guide.aa_cut_position >= 0 &&
           inPdbPosition >= 0 &&
-          inPdbPosition < pdb.SP_END - pdb.SP_BEG
+          inPdbPosition < pdb.end - pdb.start
         ) {
           cuts.push(`${inPdbPosition - 1}-${inPdbPosition + 2}`); // bugfix extending indices
         }
@@ -77,7 +77,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
         // TODO cache atom.residue.index (because it is slow!) Map<atom, atom.residue.index>
         let res = atom.residue.index;
         if (hoveredGuide) {
-          if (guides[hoveredGuide].aa_cut_position - pdb.SP_BEG === res) {
+          if (guides[hoveredGuide].aa_cut_position - pdb.start === res) {
             if (guides[hoveredGuide].selected) {
               return 0xffff00;
             } else {
@@ -87,9 +87,9 @@ export default class ProteinViewer extends React.Component<Props, State> {
             return 0x777777;
           }
         }
-        // TODO Map<aa_cut_position-pdb.SP_BEG, guide> for fast lookup
+        // TODO Map<aa_cut_position-pdb.start, guide> for fast lookup
         const guide = guides.find(
-          (g: any) => g.aa_cut_position - pdb.SP_BEG === res
+          (g: any) => g.aa_cut_position - pdb.start === res
         );
         if (guide) {
           if (guide.selected) {
@@ -139,7 +139,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
       ) {
         this.state.representation.setColor(this.generateScheme());
 
-        //this.state.representation.update({color: true})
+        // this.state.representation.update({color: true})
       }
     } else {
       console.log("Error: Stage is not loaded...");
@@ -155,8 +155,12 @@ export default class ProteinViewer extends React.Component<Props, State> {
     stage.signals.hovered.add((pickingProxy: any) => {
       if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
         const res = pickingProxy.atom.residue.index;
+        // TODO TODO TODO check pickingProxy.atom.residue.index
+        if (res < 33) {
+          console.log(res);
+        }
         const guideIndex = guides.findIndex(
-          (guide: any) => res === guide.aa_cut_position - pdb.SP_BEG
+          (guide: any) => res === guide.aa_cut_position - pdb.start
         );
         if (guideIndex >= 0) {
           setHoveredGuide(guideIndex);

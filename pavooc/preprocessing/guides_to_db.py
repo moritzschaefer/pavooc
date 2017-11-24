@@ -4,15 +4,17 @@ into mongoDB
 '''
 import logging
 from multiprocessing import Pool
+import json
 
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
+from pavooc.pdb import pdb_mappings
 from pavooc.util import read_guides, normalize_pid
 from pavooc.db import guide_collection
-from pavooc.data import gencode_exons, domain_interval_trees, pdb_data, \
+from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
     read_gencode, read_appris
 from pavooc.scoring import azimuth
 
@@ -51,7 +53,7 @@ def compute_canonical_exons(gene_id, exons):
 
 def pdbs_for_gene(gene_id):
     gencode = read_gencode()
-    pdbs = pdb_data()
+    pdbs = pdb_list()
     protein_ids = gencode.loc[(gencode['gene_id'] == gene_id)
                               ]['swissprot_id'].drop_duplicates().dropna()
 
@@ -64,12 +66,21 @@ def pdbs_for_gene(gene_id):
             canonical_pids
         ))
 
-    try:
-        return list(pdbs.loc[pdbs.SP_PRIMARY.isin(canonical_pids)].T.
-                    to_dict().values())
-    except Exception as e:
-        import ipdb
-        ipdb.set_trace()
+    gene_pdbs = pdbs.loc[pdbs.SP_PRIMARY.isin(
+        canonical_pids)][['PDB', 'SP_PRIMARY', 'CHAIN']].copy()
+    gene_pdbs.columns = ['pdb', 'swissprot_id', 'chain']
+
+    # mappings from swissprot-coordinate to pdb-index
+    gene_pdbs['mappings'] = gene_pdbs.apply(
+        lambda row: pdb_mappings(row.pdb, row.chain, row.swissprot_id),
+        axis=1)
+
+    gene_pdbs['start'] = gene_pdbs['mappings'].apply(
+        lambda mappings: min(mappings.keys()))
+    gene_pdbs['end'] = gene_pdbs['mappings'].apply(
+        lambda mappings: max(mappings.keys()))
+
+    return gene_pdbs
 
 
 def _cut_position(row):

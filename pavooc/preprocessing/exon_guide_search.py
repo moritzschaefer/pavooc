@@ -10,9 +10,8 @@ import numpy as np
 
 from pavooc.util import read_guides
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-    EXON_INTERVAL_TREES_FILE, GUIDES_FILE, \
-    COMPUTATION_CORES
-from pavooc.data import read_gencode
+    GUIDES_FILE, COMPUTATION_CORES
+from pavooc.data import read_gencode, exon_interval_trees
 
 logging.basicConfig(level=logging.INFO,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -22,10 +21,6 @@ PATTERN = re.compile(
     r'<(?P<off_loci>.*)>'
     # r'<(chr[\d\w]{1,2}):(\d+)\\\^(.)(\\\|(chr[\d\w]{1,2}):(\d+)\\\^(.))*>'
 )
-
-# TODO move to data.py
-with open(EXON_INTERVAL_TREES_FILE, 'rb') as f:
-    exon_interval_trees = pickle.load(f)
 
 
 def off_targets_relevant(off_targets, gene_id, mismatches):
@@ -54,7 +49,7 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
         else:
             raise ValueError('strand must be either R or F but is {}'
                              .format(strand))
-        in_exons = exon_interval_trees[chromosome][position]
+        in_exons = exon_interval_trees()[chromosome][position]
 
         try:
             mismatches[(

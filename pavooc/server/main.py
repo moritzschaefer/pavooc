@@ -36,9 +36,12 @@ knockout_output = api.model('KnockoutGuides', {
         })),
     'pdbs': fields.List(
         fields.Nested({
-            'PDB': fields.String,
-            'SP_BEG': fields.Integer,
-            'SP_END': fields.Integer
+            'pdb': fields.String,
+            'start': fields.Integer,
+            'end': fields.Integer,
+            'chain': fields.Integer,
+            'swissprot_id': fields.Integer,
+            'mappings': fields.Raw,
         }), default=[]),
     'guides': fields.List(
         fields.Nested({

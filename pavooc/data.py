@@ -127,19 +127,30 @@ def gencode_exons():
     return prepared.set_index('exon_id')
 
 
-# There the start and end coordinates for each mapping are provided in the last 6 columns: RES_BEG/RES_END are for residue numbers matching the SEQRES of the PDB files (from 1 to n), PDB_BEG/PDB_END for the residue numbers as they appear in ATOM lines (i.e. can have insertion codes, can have jumps etc) and SP_BEG/SP_END are the UniProt coordinates (SP is for swissprot the old name of UniProt).
-#
-# Regarding mappings of ATOM lines residue number to SEQRES numbers it is easy to find them in the mmCIF or XML files provided by the PDB. The pdbx_poly_seq_scheme section contains the mapping. See for instance the corresponding file for 2zhq: ftp://ftp.wwpdb.org/pub/pdb/data/structures/divided/mmCIF/zh/2zhq.cif.gz
+@buffer_return_value
+def exon_interval_trees():
+    '''
+    Generate an exon interval tree
+    '''
+    logging.info('Building exon tree')
+    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
+    relevant_exons = gencode_exons()
+    for _, row in relevant_exons.iterrows():
+        if row['end'] > row['start']:
+            # end is included, start count at 0 instead of 1
+            trees[row['seqname']][row['start']-1:row['end']] = \
+                (row['gene_id'], row['exon_number'])
+
+    logging.info('Built exon tree with {} nodes'
+                 .format(sum([len(tree) for tree in trees.values()])))
+
+    return trees
 
 
 @buffer_return_value
-def pdb_data():
+def pdb_list():
     df = pd.read_csv(PDB_LIST_FILE, sep=',', skiprows=1, index_col=False)
-    df['SP_BEG'] -= 1  # TODO is this actually correct?
-
-    return df[[
-        'PDB', 'CHAIN', 'SP_PRIMARY', 'PDB_BEG',
-        'PDB_END', 'SP_BEG', 'SP_END']]
+    return df[['PDB', 'CHAIN', 'SP_PRIMARY']]
 
 
 @buffer_return_value
