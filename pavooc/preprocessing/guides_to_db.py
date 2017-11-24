@@ -70,15 +70,25 @@ def pdbs_for_gene(gene_id):
         canonical_pids)][['PDB', 'SP_PRIMARY', 'CHAIN']].copy()
     gene_pdbs.columns = ['pdb', 'swissprot_id', 'chain']
 
-    # mappings from swissprot-coordinate to pdb-index
-    gene_pdbs['mappings'] = gene_pdbs.apply(
-        lambda row: pdb_mappings(row.pdb, row.chain, row.swissprot_id),
-        axis=1)
+    if len(gene_pdbs) > 0:
+        # mappings from swissprot-coordinate to pdb-index
+        gene_pdbs['mappings'] = gene_pdbs.apply(
+            lambda row: pdb_mappings(row.pdb, row.chain, row.swissprot_id),
+            axis=1)
 
-    gene_pdbs['start'] = gene_pdbs['mappings'].apply(
-        lambda mappings: min(mappings.keys()))
-    gene_pdbs['end'] = gene_pdbs['mappings'].apply(
-        lambda mappings: max(mappings.keys()))
+        empty_mappings = gene_pdbs['mappings'].apply(len) == 0
+        if empty_mappings.any():
+            logging.warning('No PDB mapping for {}'.format(
+                gene_pdbs[empty_mappings].pdb))
+            gene_pdbs.drop(gene_pdbs.index[empty_mappings], inplace=True)
+
+        gene_pdbs['start'] = gene_pdbs['mappings'].apply(
+            lambda mappings: min(mappings.keys()))
+        gene_pdbs['end'] = gene_pdbs['mappings'].apply(
+            lambda mappings: max(mappings.keys()))
+        gene_pdbs['mappings'] = gene_pdbs['mappings'].apply(
+            lambda mappings: {str(key): value
+                              for key, value in mappings.items()})
 
     return gene_pdbs
 
@@ -154,7 +164,7 @@ def build_gene_document(gene):
         'gene_id': gene_id,
         'gene_symbol': gene_symbol,
         'strand': strand,
-        'pdbs': pdbs_for_gene(gene_id),
+        'pdbs': list(pdbs_for_gene(gene_id).T.to_dict().values()),
         'chromosome': exons.iloc[0]['seqname'],
         'canonical_exons': list(canonical_exons.T.to_dict().values()),
         'exons': list(unique_exons.T.to_dict().values()),

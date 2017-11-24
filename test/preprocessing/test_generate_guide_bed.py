@@ -12,9 +12,9 @@ def test_guide_to_bed():
     guide = pd.Series({'start': 5, 'target': 'ABC', 'exon_id': 'exonid1',
                        'orientation': 'FWD', 'score': 0.55})
 
-    result = guide_to_bed(gene, guide)
+    result = guide_to_bed(gene, guide, 2)
     eq_(result,
         '\t'.join([
             'chrA', str(99 + 5), str(99 + 5 + 23),
-            'ABC', '55', '+', str(99 + 5), str(99 + 23 + 5 ),
+            '3:ABC', '55', '+', str(99 + 5), str(99 + 23 + 5 ),
             '0,255,0', '1', '23', '0']))

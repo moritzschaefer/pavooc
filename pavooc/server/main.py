@@ -39,8 +39,8 @@ knockout_output = api.model('KnockoutGuides', {
             'pdb': fields.String,
             'start': fields.Integer,
             'end': fields.Integer,
-            'chain': fields.Integer,
-            'swissprot_id': fields.Integer,
+            'chain': fields.String,
+            'swissprot_id': fields.String,
             'mappings': fields.Raw,
         }), default=[]),
     'guides': fields.List(

@@ -13,7 +13,17 @@ from test.helpers import mock_read_gtf_as_dataframe
 data.CHROMOSOMES = ['chrA']
 
 
+def mock_read_appris():
+    return pd.DataFrame({
+        'gene_symbol': ['NA', 'NA', 'NA', 'NA'],
+        'transcript_id': ['TA1', 'TA2', 'TB1', 'TC1'],
+        'ccds_id': ['CCDS1', 'CCDS1', 'CCDS2', 'CCDS3'],
+        'type': ['PRINCIPAL:1', 'PRINCIPAL:1', 'PRINCIPAL:1', 'PRINCIPAL:1']
+    }, index=pd.Index(name='gene_id', data=['GA', 'GA', 'GB', 'GC']))
+
+
 def mock_read_protein_id_mapping_csv(filename, *args, **kwargs):
+    print('im here')
     assert filename == PROTEIN_ID_MAPPING_FILE, \
         'this mock only fits for {}'.format(PROTEIN_ID_MAPPING_FILE)
 
@@ -23,12 +33,12 @@ def mock_read_protein_id_mapping_csv(filename, *args, **kwargs):
         'protein_id': ['PA', 'PB', 'ABC']})
 
 
-
-@mock.patch('pandas.read_csv',
+# why does the upper patch not work???
+@mock.patch('pavooc.data.load_protein_mapping',
             side_effect=mock_read_protein_id_mapping_csv)
 @mock.patch('gtfparse.read_gtf_as_dataframe',
             side_effect=mock_read_gtf_as_dataframe)
-def test_read_gencode(mocked_gtf, mocked_csv):
+def test_read_gencode(mocked_gtf, mocked_protein_mapping):
     '''only
     Mocking read_gtf_as_dataframe to return a simplified dataframe,
     read_gencode should return only one copy of gene2
@@ -69,15 +79,16 @@ def test_read_gencode(mocked_gtf, mocked_csv):
     # TODO test that non protein_coding gene_types are ignored
 
 
-@mock.patch('pandas.read_csv',
-            side_effect=mock_read_protein_id_mapping_csv)
+@mock.patch('pavooc.data.read_appris',
+            side_effect=mock_read_appris)
 @mock.patch('pavooc.data.read_gtf_as_dataframe',
             side_effect=mock_read_gtf_as_dataframe)
-def test_gencode_exons(mocked_gtf, mocked_csv):
+def test_gencode_exons(mocked_gtf, mocked_appris):
     df = data.gencode_exons()
     eq_(set(df.index), {'EA1', 'EA2', 'EB1'})
     eq_(df.index.name, 'exon_id')
-    print(df)
-    eq_(len(df), 4)  # EA1 does exist twice
+    # EA1 does only exist once because we only took the first
+    # principal transcript
+    eq_(len(df), 3)
 
 # TODO test domain_interval_trees

@@ -18,6 +18,7 @@ interface Props {
 
 let viewport: HTMLDivElement | undefined = undefined; // TODO try with state again..
 
+// TODO check for chain...
 export default class ProteinViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -74,10 +75,10 @@ export default class ProteinViewer extends React.Component<Props, State> {
     ) {
       this.atomColor = function(atom: any) {
         // the residue index is zero-based, same order as in the loaded file
-        // TODO cache atom.residue.index (because it is slow!) Map<atom, atom.residue.index>
-        let res = atom.residue.index;
+        let { resno } = atom;
         if (hoveredGuide) {
-          if (guides[hoveredGuide].aa_cut_position - pdb.start === res) {
+
+          if (guides[hoveredGuide].aa_cut_position === pdb.mappings[resno]) {
             if (guides[hoveredGuide].selected) {
               return 0xffff00;
             } else {
@@ -89,7 +90,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
         }
         // TODO Map<aa_cut_position-pdb.start, guide> for fast lookup
         const guide = guides.find(
-          (g: any) => g.aa_cut_position - pdb.start === res
+          (g: any) => g.aa_cut_position === pdb.mappings[resno]
         );
         if (guide) {
           if (guide.selected) {
@@ -114,7 +115,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
     let scheme = this.generateScheme();
 
     stage
-      .loadFile(`rcsb://${pdb.PDB}`)
+      .loadFile(`rcsb://${pdb.pdb}`)
       .then((structureRepresentation: typeof StructureRepresentation) => {
         let representation: typeof RepresentationComponent = structureRepresentation.addRepresentation(
           "cartoon",
@@ -129,7 +130,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
     if (this.state.stage) {
       const selectionChanged = false; // TODO implement
       if (
-        prevProps.pdb.PDB !== this.props.pdb.PDB ||
+        prevProps.pdb.pdb !== this.props.pdb.pdb ||
         (prevState.stage !== this.state.stage && this.state.stage)
       ) {
         this.loadPdb();
@@ -138,7 +139,6 @@ export default class ProteinViewer extends React.Component<Props, State> {
         (prevProps.hoveredGuide !== this.props.hoveredGuide || selectionChanged)
       ) {
         this.state.representation.setColor(this.generateScheme());
-
         // this.state.representation.update({color: true})
       }
     } else {
@@ -154,13 +154,9 @@ export default class ProteinViewer extends React.Component<Props, State> {
     // listen to `hovered` signal to move tooltip around and change its text
     stage.signals.hovered.add((pickingProxy: any) => {
       if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
-        const res = pickingProxy.atom.residue.index;
-        // TODO TODO TODO check pickingProxy.atom.residue.index
-        if (res < 33) {
-          console.log(res);
-        }
+        let { resno } = pickingProxy.atom;
         const guideIndex = guides.findIndex(
-          (guide: any) => res === guide.aa_cut_position - pdb.start
+          (guide: any) => pdb.mappings[resno] === guide.aa_cut_position
         );
         if (guideIndex >= 0) {
           setHoveredGuide(guideIndex);

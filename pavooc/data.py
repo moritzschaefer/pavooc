@@ -49,20 +49,13 @@ def read_gencode():
     df.drop(df.index[non_basic_transcripts], inplace=True)
 
     # add swissprot id mappings
-    protein_id_mapping = pd.read_csv(
-        PROTEIN_ID_MAPPING_FILE,
-        sep='\t',
-        header=None,
-        names=['swissprot_id', 'ID_NAME', 'protein_id'],
-        dtype={'swissprot_id': str, 'ID_NAME': str, 'protein_id': str},
-        index_col=False)
-    # TODO  "P63104-1        Ensembl_PRO     ENSP00000309503"
-    # is not recognized for example (due to the '-1')
+    protein_id_mapping = load_protein_mapping()
     protein_id_mapping = protein_id_mapping[
         protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
         ['swissprot_id', 'protein_id']]
 
     df = df.merge(protein_id_mapping, how='left', on='protein_id')
+    print(protein_id_mapping)
 
     # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
     mixed_ids = df[['gene_id', 'source']].drop_duplicates()
@@ -89,6 +82,18 @@ def read_gencode():
         'gene_name', 'transcript_type', 'strand',
         'gene_type', 'tag', 'protein_id', 'swissprot_id',
         'score', 'seqname', 'source']]
+
+
+def load_protein_mapping():
+    # TODO  "P63104-1        Ensembl_PRO     ENSP00000309503"
+    # is not recognized for example (due to the '-1')
+    return pd.read_csv(
+        PROTEIN_ID_MAPPING_FILE,
+        sep='\t',
+        header=None,
+        names=['swissprot_id', 'ID_NAME', 'protein_id'],
+        dtype={'swissprot_id': str, 'ID_NAME': str, 'protein_id': str},
+        index_col=False)
 
 
 @buffer_return_value

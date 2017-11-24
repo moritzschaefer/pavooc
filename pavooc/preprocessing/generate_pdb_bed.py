@@ -36,7 +36,7 @@ def pdb_coordinates(pdb, pdb_exons):
         pdb_exons.start -= zero
         pdb_exons.end -= zero
 
-    mappings = pdb_mappings(pdb.PDB, pdb.CHAIN, pdb.SWISSPROT_ID)
+    mappings = pdb_mappings(pdb.PDB, pdb.CHAIN, pdb.SP_PRIMARY)
     sp_start = min(mappings.keys())
     sp_end = max(mappings.keys())
 
