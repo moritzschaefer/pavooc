@@ -3,7 +3,6 @@ import { connect } from "react-redux";
 
 import { dismissMessage } from "./actions";
 
-import Button from "material-ui/Button";
 import Snackbar from "material-ui/Snackbar";
 import IconButton from "material-ui/IconButton";
 import CloseIcon from "material-ui-icons/Close";
@@ -27,10 +26,7 @@ class Messages extends React.Component<Props> {
         autoHideDuration={3000}
         message={<span id="message-id">{messages[0] || ""}</span>}
         action={[
-          <Button key="undo" color="accent" dense={true}>
-            UNDO
-          </Button>,
-          <IconButton key="close" color="inherit">
+          <IconButton key="close" color="inherit" onClick={this.props.dismissMessage}>
             <CloseIcon />
           </IconButton>
         ]}

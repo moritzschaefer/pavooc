@@ -12,6 +12,7 @@ export interface Props {
   genes: Map<string, string>;
   celllines: Map<string, string>;
   className: string;
+  onMessage: (message: string) => {};
 }
 
 export interface State {
@@ -74,7 +75,7 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { genes, celllines, className } = this.props;
+    const { genes, celllines, className, onMessage } = this.props;
     const { geneSelection, cellline } = this.state;
     let classes = "initialForm ";
     if (className) {
@@ -102,6 +103,7 @@ export default class Form extends React.Component<Props, State> {
           openOnFocus={true}
           dataSource={celllines}
           dataSourceReverse={undefined}
+          onMessage={null}
         />
         <br />
         <RadioGroup
@@ -130,6 +132,7 @@ export default class Form extends React.Component<Props, State> {
           dataSource={genes}
           dataSourceReverse={reversedGenes}
           onSelect={this.addGene}
+          onMessage={onMessage}
         />
         <br />
         <div className="chipWrapper">

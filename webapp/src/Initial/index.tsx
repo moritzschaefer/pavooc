@@ -3,7 +3,7 @@ import "./style.css";
 import InitialForm from "./FormContainer";
 
 export interface Props {
-  geneIds: Array<string>;
+  genes: Map<string, string>;
   celllines: Array<string>;
 }
 

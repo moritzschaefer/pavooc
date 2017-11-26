@@ -1,3 +1,4 @@
+// this class, unfortunately, is not very generic...
 import * as React from "react";
 import Downshift from "downshift";
 import Paper from "material-ui/Paper";
@@ -12,6 +13,7 @@ interface Props {
   floatingLabelText: string;
   openOnFocus: boolean;
   deleteOnSelect: boolean;
+  onMessage: ((message: string) => {}) | null;
 }
 
 interface State {
@@ -63,7 +65,7 @@ export default class AutoComplete extends React.Component<Props, State> {
   }
 
   onInputChange = ({ inputValue, highlightedIndex }: { inputValue: string, highlightedIndex: number | undefined }) => {
-    const { onSelect, deleteOnSelect } = this.props;
+    const { onSelect, deleteOnSelect, onMessage } = this.props;
     if (typeof inputValue !== "string") {
       if (typeof highlightedIndex === "undefined") {
         this.setState({ menuIsOpen: false });
@@ -112,9 +114,11 @@ export default class AutoComplete extends React.Component<Props, State> {
         }
       }
 
-      console.log(
-        `Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`
-      );
+      if (onMessage) {
+        onMessage(
+          `Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`
+        );
+      }
       if (added > 0 && deleteOnSelect) {
         // TODO use Toast
         this.setState({ inputValue: "" });
