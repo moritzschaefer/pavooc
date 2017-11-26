@@ -10,8 +10,10 @@ import ftplib
 import re
 from multiprocessing.dummy import Queue, Process
 import time
+import tarfile
 
-from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE
+from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
+        BASEDIR
 
 URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
@@ -70,7 +72,21 @@ def download_ftp(queue):
 
 
 def download_sifts():
-    # also download all sift files
+    # ownload all sift files
+
+    # first try to download a tarball containing all the sift xmls
+
+    if not os.path.exists(SIFTS_TARBALL):
+        try:
+            urlretrieve(
+                'https://www.dropbox.com/s/1nsmd45af7vd9hq/sifts.tar?dl=1',
+                SIFTS_TARBALL)
+        except HTTPError:
+            logging.warning('failed downloading sifts tarball')
+        else:
+            tf = tarfile.TarFile(SIFTS_TARBALL)
+            tf.extractall(BASEDIR)  # the tarball contains directory data/sifts
+
     try:
         os.mkdir(SIFTS_FILE.format(''))
     except FileExistsError:

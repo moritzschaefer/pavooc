@@ -14,18 +14,18 @@ export interface Props {
 }
 
 class Messages extends React.Component<Props> {
-  renderSnackBar(message: string) {
+  render() {
+    const { messages } = this.props;
     return (
       <Snackbar
         anchorOrigin={{
           vertical: "bottom",
           horizontal: "left"
         }}
-        open={!!this.props.messages.length}
+        open={!!messages.length}
         onRequestClose={this.props.dismissMessage}
         autoHideDuration={3000}
-
-        message={<span id="message-id">{message}</span>}
+        message={<span id="message-id">{messages[0] || ""}</span>}
         action={[
           <Button key="undo" color="accent" dense={true}>
             UNDO
@@ -36,15 +36,6 @@ class Messages extends React.Component<Props> {
         ]}
       />
     );
-  }
-
-  render() {
-    const { messages } = this.props;
-    if (!!messages.length) {
-      return this.renderSnackBar(messages[0]);
-    } else {
-      return null;
-    }
   }
 }
 

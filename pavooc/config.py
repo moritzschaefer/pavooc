@@ -6,6 +6,7 @@ BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
 DATADIR = os.path.join(BASEDIR, 'data')
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 SIFTS_FILE = os.path.join(DATADIR, 'sifts', '{}')
+SIFTS_TARBALL = os.path.join(DATADIR, 'sifts.tar')
 
 GENCODE_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
 BIG_BED_EXE = os.path.join(DATADIR, 'bedToBigBed')
