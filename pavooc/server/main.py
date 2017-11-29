@@ -141,7 +141,7 @@ class KnockoutGuides(Resource):
 
 
 def main():
-    app.run(debug=DEBUG)
+    app.run(debug=DEBUG, host='0.0.0.0')
 
 
 if __name__ == '__main__':

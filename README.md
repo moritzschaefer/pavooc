@@ -42,3 +42,17 @@ http://www.uniprot.org/downloads
 ## Cancer cell line per-gene expression data
 
 https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_byGene_2013-12-03.txt.gz
+
+
+# Deployment
+
+docker build -t pavooc .
+docker tag pavooc moritzs/pavooc:20171129
+docker push moritzs/pavooc:20171129
+docker-compose up
+
+Connect to the swarm with
+
+    docker run --rm -ti -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST dockercloud/client moritzs/swarm1
+
+then just run swarm commands
