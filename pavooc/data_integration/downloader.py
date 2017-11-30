@@ -40,7 +40,7 @@ def file_download(url, target):
     try:
         urlretrieve(url, target)
     except HTTPError:
-        result = subprocess.run(['curl', '-o',
+        result = subprocess.run(['curl', '-f', '-o',
                                  target,
                                  url])
         if result.returncode != 0:
@@ -61,7 +61,7 @@ def download_unzip(url):
     try:
         file_download(S3_BUCKET_URL.format(download_filename), download_target)
     except RuntimeError as e:
-        print('download failed with error {}'.format(e))
+        print('S3 download failed with error {}'.format(e))
         file_download(url, download_target)
 
     logging.info('unpacking {}'.format(download_filename))
