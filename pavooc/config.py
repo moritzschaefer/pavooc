@@ -1,7 +1,13 @@
 import os
 
-CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
-CHROMOSOMES = ['chr22']
+
+S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
+DEBUG = os.environ.get('DEBUG', 'True') in \
+        ['True', 'true', '1', 'y', 'yes', 't']
+if DEBUG:
+    CHROMOSOMES = ['chr22']
+else:
+    CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
 BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
 DATADIR = os.path.join(BASEDIR, 'data')
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
@@ -24,8 +30,6 @@ PDB_BED_FILE = os.path.join(DATADIR, 'pdbs.bed')
 GUIDE_BED_FILE = os.path.join(DATADIR, 'guides.bed')
 EXON_PADDING = 18
 
-DEBUG = os.environ.get('DEBUG', 'True') in \
-        ['True', 'true', '1', 'y', 'yes', 't']
 JAVA_RAM = os.environ.get('JAVA_RAM', '3')
 COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')

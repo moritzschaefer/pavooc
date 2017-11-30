@@ -11,7 +11,8 @@ services:
   apiserver:
     environment:
       MONGO_HOST: "mongo:27017"
-    image: moritzs/pavooc:20171129
+    image: moritzs/pavooc:latest
+    # build: .
     volumes:
       - data:/usr/app/data
     command: ["python", "-m", "pavooc.server.main"]
@@ -20,11 +21,11 @@ services:
     networks:
       - main
   nginx:
-    image: nginx:1.11 # this will use the latest version of 1.11.x
+    build:
+      context: ./nginx
     ports:
       - '80:80' # expose 80 on host and sent to 80 in container
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - webapp:/usr/app/webapp/build
     networks:
       - main
@@ -37,16 +38,19 @@ services:
       - main
 
   data-processing:
-    image: moritzs/pavooc:20171129
+    image: moritzs/pavooc:latest
+    # build: .
     environment:
+      COMPUTATION_CORES: '4'
       MONGO_HOST: "mongo:27017"
-    #command: ["python", "-m", "pavooc.pipeline"]
-    command: ["echo", "data processing done"]
+    command: ["python", "-m", "pavooc.pipeline"]
+    #command: ["echo", "data processing done"]
     volumes:
       - data:/usr/app/data
 
   build-website:
-    image: moritzs/pavooc:20171129
+    image: moritzs/pavooc:latest
+    # build: .
     command: ["bash", "-c", "npm install && npm run build"]
     working_dir: /usr/app/webapp
     volumes:

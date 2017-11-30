@@ -13,7 +13,7 @@ import time
 import tarfile
 
 from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
-        BASEDIR
+    BASEDIR, S3_BUCKET_URL
 
 URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
@@ -31,8 +31,25 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
 logging.basicConfig(level=logging.INFO)
 
 
+def file_download(url, target):
+    '''
+    Download a file with either urlretrieve or with curl
+
+    '''
+
+    try:
+        urlretrieve(url, target)
+    except HTTPError:
+        result = subprocess.run(['curl', '-o',
+                                 target,
+                                 url])
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr)
+
+
 def download_unzip(url):
     download_filename = os.path.basename(url)
+    download_target = os.path.join(DATADIR, download_filename)
 
     if os.path.exists(os.path.join(DATADIR, download_filename)):
         logging.warn('{} already exists. Skipping download. Delete files first \
@@ -40,12 +57,12 @@ def download_unzip(url):
         return
     logging.info('downloading {}'.format(url))
 
+    # check if file exists on our S3 bucket first, then download from source
     try:
-        urlretrieve(url, os.path.join(DATADIR, download_filename))
-    except HTTPError:
-        subprocess.Popen(['curl', '-o',
-                          os.path.join(DATADIR, download_filename),
-                          url]).wait()
+        file_download(S3_BUCKET_URL.format(download_filename), download_target)
+    except RuntimeError as e:
+        print('download failed with error {}'.format(e))
+        file_download(url, download_target)
 
     logging.info('unpacking {}'.format(download_filename))
     if download_filename[-3:] == '.gz':
@@ -72,16 +89,16 @@ def download_ftp(queue):
 
 
 def download_sifts():
-    # ownload all sift files
+    # download all sift files
 
     # first try to download a tarball containing all the sift xmls
 
     if not os.path.exists(SIFTS_TARBALL):
         try:
             urlretrieve(
-                'https://www.dropbox.com/s/1nsmd45af7vd9hq/sifts.tar?dl=1',
+                S3_BUCKET_URL.format('sifts.tar'),
                 SIFTS_TARBALL)
-        except HTTPError:
+        except RuntimeError:
             logging.warning('failed downloading sifts tarball')
         else:
             tf = tarfile.TarFile(SIFTS_TARBALL)
