@@ -160,6 +160,10 @@ def build_gene_document(gene):
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['aa_cut_position'] = []
 
+    # delete all guides with scores below 0.5
+    # TODO use something more sophisticated
+    guides.drop(guides.index[guides['score'] < 0.5], inplace=True)
+
     return {
         'gene_id': gene_id,
         'gene_symbol': gene_symbol,

@@ -27,6 +27,7 @@ services:
       - '80:80' # expose 80 on host and sent to 80 in container
     volumes:
       - webapp:/usr/app/webapp/build
+      - data:/usr/app/data
     networks:
       - main
     depends_on:
@@ -43,10 +44,13 @@ services:
     environment:
       COMPUTATION_CORES: '4'
       MONGO_HOST: "mongo:27017"
+      DEBUG: 0
     command: ["python", "-m", "pavooc.pipeline"]
     #command: ["echo", "data processing done"]
     volumes:
       - data:/usr/app/data
+    networks:
+      - main
 
   build-website:
     image: moritzs/pavooc:latest

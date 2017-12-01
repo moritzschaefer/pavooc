@@ -64,7 +64,13 @@ export default class AutoComplete extends React.Component<Props, State> {
     return key; // key is undefined or the key
   }
 
-  onInputChange = ({ inputValue, highlightedIndex }: { inputValue: string, highlightedIndex: number | undefined }) => {
+  onInputChange = ({
+    inputValue,
+    highlightedIndex
+  }: {
+    inputValue: string;
+    highlightedIndex: number | undefined;
+  }) => {
     const { onSelect, deleteOnSelect, onMessage } = this.props;
     if (typeof inputValue !== "string") {
       if (typeof highlightedIndex === "undefined") {
@@ -168,7 +174,12 @@ export default class AutoComplete extends React.Component<Props, State> {
               {menuIsOpen ? (
                 <Paper className="suggestionContainer">
                   {Array.from(dataSource.entries())
-                    .filter(e => !inputValue || e[0].includes(inputValue) || e[1].includes(inputValue))
+                    .filter(
+                      e =>
+                        !inputValue ||
+                        e[0].includes(inputValue.toUpperCase()) ||
+                        e[1].includes(inputValue.toUpperCase())
+                    )
                     .map((item, index) =>
                       this.renderSuggestion(
                         item,
