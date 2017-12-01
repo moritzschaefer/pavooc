@@ -55,7 +55,6 @@ def read_gencode():
         ['swissprot_id', 'protein_id']]
 
     df = df.merge(protein_id_mapping, how='left', on='protein_id')
-    print(protein_id_mapping)
 
     # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
     mixed_ids = df[['gene_id', 'source']].drop_duplicates()
@@ -68,6 +67,16 @@ def read_gencode():
 
     # fix indexing
     df.start -= 1
+
+    # TODO Note that this deletes some genes
+    # use the first APPRIS transcript
+    first_apprises = read_appris().groupby('gene_id').first()
+    logging.debug('# of genes: {}'.format(
+        len(df.gene_id.drop_duplicates())))
+    df = df[df.transcript_id.map(
+        lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
+    logging.debug('# of genes after selecting for appris transcript_id: {}'
+                  .format(len(df.gene_id.drop_duplicates())))
 
     # drop all genes which have no transcripts
     valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
@@ -112,12 +121,6 @@ def gencode_exons():
         'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']] \
         .drop_duplicates().copy()
 
-    # TODO test: use the first APPRIS
-    first_apprises = read_appris().groupby('gene_id').first()
-    print(len(prepared.gene_id.drop_duplicates()))
-    prepared = prepared[prepared.transcript_id.map(lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
-    print(len(prepared.gene_id.drop_duplicates()))
-
     # # Use longest transcript only
     # prepared['length'] = prepared['end'] - prepared['start']
     # transcripts_lengths = prepared.groupby(
@@ -143,7 +146,7 @@ def exon_interval_trees():
     for _, row in relevant_exons.iterrows():
         if row['end'] > row['start']:
             # end is included, start count at 0 instead of 1
-            trees[row['seqname']][row['start']-1:row['end']] = \
+            trees[row['seqname']][row['start'] - 1:row['end']] = \
                 (row['gene_id'], row['exon_number'])
 
     logging.info('Built exon tree with {} nodes'
