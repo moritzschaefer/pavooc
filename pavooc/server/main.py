@@ -34,6 +34,12 @@ knockout_output = api.model('KnockoutGuides', {
             'end': fields.Integer,
             'exon_id': fields.String,
         })),
+    'domains': fields.List(
+        fields.Nested({
+            'name': fields.String,
+            'start': fields.Integer,
+            'end': fields.Integer
+            }), default=[]),
     'pdbs': fields.List(
         fields.Nested({
             'pdb': fields.String,

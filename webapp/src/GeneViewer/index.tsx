@@ -11,9 +11,16 @@ import GuideTable from "./GuideTable";
 import "./style.css";
 
 export interface GeneData {
+  domains: Array<any>;
   gene_id: string;
   guides: Array<any>;
   pdbs: Array<any>;
+}
+
+interface Domain {
+  start: number;
+  end: number;
+  name: string;
 }
 
 interface Props {
@@ -39,7 +46,7 @@ class GeneViewer extends React.Component<Props, State> {
     const { geneId } = this.props;
     this.props.toggleGuideSelection(geneId, guideIndex);
     this.props.markGeneEdit(geneId);
-  }
+  };
   setHoveredGuide = (hoveredGuide: number): void => {
     this.setState({ hoveredGuide });
   };
@@ -55,6 +62,19 @@ class GeneViewer extends React.Component<Props, State> {
       console.log("Error: selected pdb doesnt exist in genedata");
     }
   };
+
+  _guidesWithDomains() {
+    const { geneData } = this.props;
+    return geneData.guides.map((guide: any) => ({
+      ...guide,
+      domains: geneData.domains
+        .filter(
+          (domain: Domain) =>
+            domain.start < guide.cut_position && domain.end > guide.cut_position
+        )
+        .map((domain: Domain) => domain.name)
+    }));
+  }
 
   render() {
     const { geneData, geneId } = this.props;
@@ -88,7 +108,7 @@ class GeneViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             setHoveredGuide={this.setHoveredGuide}
             guideClicked={this.guideCheckboxClicked}
-            guides={geneData.guides}
+            guides={this._guidesWithDomains()}
             className="guideTable"
           />
         </div>
@@ -116,7 +136,8 @@ const mapStateToProps = (
 
 const mapDispatchToProps = (dispatch: any) => ({
   push: (route: string) => dispatch(push(route)),
-  toggleGuideSelection: (geneId: string, guideIndex: number) => dispatch(toggleGuideSelection(geneId, guideIndex)),
+  toggleGuideSelection: (geneId: string, guideIndex: number) =>
+    dispatch(toggleGuideSelection(geneId, guideIndex)),
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId))
 });
 

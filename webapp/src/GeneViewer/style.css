@@ -57,7 +57,7 @@
 }
 
 .guideTable {
-  flex: 1;
+  flex: 2;
   height: 340px;
   overflow-y: scroll;
   margin: 3px;
@@ -66,5 +66,5 @@
 .proteinViewer {
   display: flex;
   border: 1px;
-  flex: 2;
+  flex: 3;
 }

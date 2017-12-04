@@ -9,11 +9,18 @@ import Checkbox from "material-ui/Checkbox";
 import Paper from "material-ui/Paper";
 import "./style.css";
 
+interface Guide {
+  target: string;
+  selected: boolean;
+  score: number;
+  domains: Array<string>;
+}
+
 interface State {}
 
 interface Props {
   className: string;
-  guides: any;
+  guides: Array<Guide>;
   hoveredGuide: number | undefined;
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
   guideClicked: (guideIndex: number) => void;
@@ -31,7 +38,7 @@ export default class GuideTable extends React.Component<Props, State> {
           ))
   }
 
-  renderTableRow(guide: any, index: number) {
+  renderTableRow(guide: Guide, index: number) {
     const { setHoveredGuide, hoveredGuide } = this.props;
     return (
       <TableRow
@@ -47,6 +54,7 @@ export default class GuideTable extends React.Component<Props, State> {
         >
           {this._renderTarget(guide.target)}
         </TableCell>
+        <TableCell>{guide.domains.join()}</TableCell>
         <TableCell>{guide.score.toFixed(3)}</TableCell>
       </TableRow>
     );
@@ -55,8 +63,8 @@ export default class GuideTable extends React.Component<Props, State> {
   renderTable() {
     const { guides, className } = this.props;
     // sort, retaining indices
-    const sortedGuides = guides.map((guide: any, index: number) => [guide, index])
-    sortedGuides.sort(function(a: [any, number], b: [any, number]) {
+    const sortedGuides = guides.map((guide: Guide, index: number) => [guide, index])
+    sortedGuides.sort(function(a: [Guide, number], b: [Guide, number]) {
       return b[0].score - a[0].score;
     });
 
@@ -67,11 +75,12 @@ export default class GuideTable extends React.Component<Props, State> {
             <TableRow>
               <TableCell>Use</TableCell>
               <TableCell>Guide</TableCell>
+              <TableCell>Domains</TableCell>
               <TableCell>Score</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {sortedGuides.map(([guide, index]: [any, number]) => this.renderTableRow(guide, index))}
+            {sortedGuides.map(([guide, index]: [Guide, number]) => this.renderTableRow(guide, index))}
           </TableBody>
         </Table>
       </Paper>
