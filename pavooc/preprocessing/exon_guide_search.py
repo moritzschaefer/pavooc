@@ -84,7 +84,7 @@ def flashfry_guides(gene_id):
     target_file = GUIDES_FILE.format(gene_id)
     result = subprocess.run([
         'java',
-        '-Xmx{}g'.format(JAVA_RAM),
+        '-Xmx{}g'.format(float(JAVA_RAM)/float(COMPUTATION_CORES)),
         '-jar', 'FlashFry-assembly-1.7.jar',
         '--analysis', 'discover',
         '--fasta', gene_file,
@@ -150,8 +150,7 @@ def main():
     mismatches = {}
     overflow_count = 0
     gene_ids = read_gencode().gene_id.drop_duplicates()
-    if False:
-    # if COMPUTATION_CORES > 1:
+    if COMPUTATION_CORES > 1:
         with Pool(COMPUTATION_CORES) as pool:
             for partial_overflow_count, partial_mismatches in tqdm(
                     pool.imap_unordered(
