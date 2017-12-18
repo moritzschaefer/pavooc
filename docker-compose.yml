@@ -42,6 +42,7 @@ services:
     image: moritzs/pavooc:latest
     # build: .
     environment:
+      JAVA_RAM: '11'
       COMPUTATION_CORES: '4'
       MONGO_HOST: "mongo:27017"
       DEBUG: 0

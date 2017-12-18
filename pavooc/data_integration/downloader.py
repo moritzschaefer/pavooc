@@ -15,6 +15,12 @@ import tarfile
 from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
     BASEDIR, S3_BUCKET_URL
 
+# gencode.v27.basic.annotation.gtf
+# gencode.vM16.basic.annotation.gtf
+# http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/
+# filename = 'GRCh38.p10.genome.fa' human
+# filename = 'GRCm38.p5.genome.fa' mouse
+# http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/chr{}.phastCons100way.wigFix.gz
 URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz',  # noqa

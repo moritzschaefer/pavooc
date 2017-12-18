@@ -1,6 +1,7 @@
 # PAVOOC
 
 Prediction and visualization of on- and off-targets for CRISPR
+Most of the code is hg19 related. hg38 is used to be compliant with the azimuth dataset.
 
 # Run it
 
