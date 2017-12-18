@@ -84,7 +84,7 @@ def flashfry_guides(gene_id):
     target_file = GUIDES_FILE.format(gene_id)
     result = subprocess.run([
         'java',
-        '-Xmx{}g'.format(float(JAVA_RAM)/float(COMPUTATION_CORES)),
+        '-Xmx{}M'.format(int((1024*float(JAVA_RAM))//int(COMPUTATION_CORES))),
         '-jar', 'FlashFry-assembly-1.7.jar',
         '--analysis', 'discover',
         '--fasta', gene_file,
