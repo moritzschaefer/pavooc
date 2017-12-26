@@ -37,3 +37,9 @@ FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')
 FLASHFRY_DB_FILE = os.path.join(DATADIR, 'flashfry_genome_db')
 
 MONGO_HOST = os.getenv('MONGO_HOST', 'localhost:27017')
+
+
+# ML
+
+MAX_EPOCHS = 2000
+BATCH_SIZE = 100
