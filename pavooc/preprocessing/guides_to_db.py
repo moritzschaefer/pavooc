@@ -101,8 +101,8 @@ def _cut_position(row):
         ipdb.set_trace()
 
     if isinstance(exon, pd.DataFrame):
-        assert len(exon.start.unique()) == 1, \
-            'same exon_id with different starts'
+        if len(exon.start.unique()) != 1:
+            logging.error(f'same exon_id with different starts {exon}')
         exon = exon.iloc[0]
 
     return exon.start + row['start'] + \

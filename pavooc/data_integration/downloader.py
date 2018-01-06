@@ -15,8 +15,6 @@ import tarfile
 from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
     BASEDIR, S3_BUCKET_URL
 
-# gencode.v27.basic.annotation.gtf
-# gencode.vM16.basic.annotation.gtf
 # http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/
 # filename = 'GRCh38.p10.genome.fa' human
 # filename = 'GRCm38.p5.genome.fa' mouse
@@ -25,13 +23,17 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz',  # noqa
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/gencode.v27.basic.annotation.gtf.gz',  # noqa
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/gencode.vM16.basic.annotation.gtf.gz', # noqa
     'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
     'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/ucscGenePfam.txt.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot_varsplic.fasta.gz',  # noqa
     'http://apprisws.bioinfo.cnio.es/pub/current_release/datafiles/homo_sapiens/GRCh37/appris_data.principal.txt',  # noqa
     'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed',
-    'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes'
+    'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes',
+    'http://portals.broadinstitute.org/achilles/datasets/19/download/guide_activity_scores.tsv',
+    'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv'
 ]
 
 logging.basicConfig(level=logging.INFO)

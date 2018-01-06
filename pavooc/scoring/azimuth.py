@@ -4,6 +4,7 @@ Load azimuth over a python2 interpreter (it's python 2 :/)
 
 from skbio.sequence import DNA
 import pandas as pd
+import logging
 
 from pavooc.data import chromosomes, azimuth_model, gencode_exons
 
@@ -22,8 +23,8 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
     exon = gencode_exons().loc[exon_id]
 
     if isinstance(exon, pd.DataFrame):
-        assert len(exon.start.unique()) == 1, \
-            'same exon_id with different starts'
+        if len(exon.start.unique()) != 1:
+            logging.error(f'same exon_id with different starts {exon}')
         exon = exon.iloc[0]
     chromosome_start = exon.start + start_in_exon
 

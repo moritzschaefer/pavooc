@@ -12,7 +12,10 @@ def pdb_mappings(pdb, chain, swissprot_id):
         '{}.xml.gz'.format(pdb.lower()), 'r'))
     # parse xml
     ret = {}
-    tree = ET.fromstring(fi.read())
+    try:
+        tree = ET.fromstring(fi.read())
+    except EOFError:
+        return {}
     for i in range(len(tree)):
         if tree[i].tag.split('}')[-1] != 'entity':
             continue
