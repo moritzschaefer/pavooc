@@ -109,12 +109,16 @@ def _cut_position(row):
         (7 if row['orientation'] == 'RVS' else 16)
 
 
-def build_gene_document(gene):
+def build_gene_document(gene, check_exists=True):
     '''
     Compute all necessary data (scores for example) and return a document for
     the gene
     '''
     gene_id, exons = gene
+    if check_exists and \
+            guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
+        # item exists
+        return None
     strand = exons.iloc[0]['strand']
     gene_symbol = exons.iloc[0]['gene_name']
     try:
@@ -135,11 +139,17 @@ def build_gene_document(gene):
     try:
         guides['cut_position'] = guides.apply(_cut_position, axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
-        print('no guides: {}'.format(e))
+        logging.warn('no guides: {}'.format(e))
         guides['cut_position'] = []
     # TODO add scores here and stuff
     logging.info('calculating azimuth score for {}'.format(gene_id))
-    guides['score'] = azimuth.score(guides)
+    try:
+        guides['score'] = azimuth.score(guides)
+    except ValueError as e:
+        guides.to_csv(f'{gene_id}.csv')
+        logging.error(
+            f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
+        guides['score'] = 0
     # TODO add amino acid cut position and percent peptides
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -182,17 +192,18 @@ def build_gene_document(gene):
 
 
 def integrate():
-    guide_collection.drop()
+    # guide_collection.drop()
+    gencode_genes = gencode_exons().groupby('gene_id')
 
     if COMPUTATION_CORES > 1:
         with Pool(COMPUTATION_CORES) as pool:
             for doc in tqdm(pool.imap_unordered(
                     build_gene_document,
-                    gencode_exons().groupby('gene_id'))):
+                    gencode_genes), total=len(gencode_genes)):
                 if doc:
                     guide_collection.insert_one(doc)
     else:
-        for gene in tqdm(gencode_exons().groupby('gene_id')):
+        for gene in tqdm(gencode_genes, total=len(gencode_genes)):
             doc = build_gene_document(gene)
             if doc:
                 guide_collection.insert_one(doc)
