@@ -46,20 +46,6 @@ def read_guides(guides_file):
     :guides_file: Filename of the guides file
     :returns: Pandas dataframe
     '''
-    return pd.read_csv(
-        guides_file,
-        sep='\t',
-        dtype={
-            'contig': str,
-            'start': int,
-            'stop': int,
-            'target': str,
-            'context': str,
-            'overflow': str,
-            'orientation': str,
-            'otCount': int, 'offTargets': str
-        }
-    )
 
 
 def normalize_pid(pid):

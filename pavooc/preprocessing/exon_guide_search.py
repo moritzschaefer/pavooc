@@ -6,14 +6,15 @@ import re
 from tqdm import tqdm
 from multiprocessing import Pool
 
+import pandas as pd
 import numpy as np
 
-from pavooc.util import read_guides
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-    GUIDES_FILE, COMPUTATION_CORES
+    GUIDES_FILE, SCORES_FILE, COMPUTATION_CORES
 from pavooc.data import read_gencode, exon_interval_trees
+from pavooc.scoring import flashfry
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
 
 PATTERN = re.compile(
@@ -84,7 +85,8 @@ def flashfry_guides(gene_id):
     target_file = GUIDES_FILE.format(gene_id)
     result = subprocess.run([
         'java',
-        '-Xmx{}M'.format(int((1024*float(JAVA_RAM))//int(COMPUTATION_CORES))),
+        '-Xmx{}M'.format(int((1024 * float(JAVA_RAM)) //
+                             int(COMPUTATION_CORES))),
         '-jar', 'FlashFry-assembly-1.7.jar',
         '--analysis', 'discover',
         '--fasta', gene_file,
@@ -111,8 +113,23 @@ def generate_exon_guides(gene_id):
 
     target_file = flashfry_guides(gene_id)
 
-    # now read the file, analyze and manipulate it
-    data = read_guides(target_file)
+    # now read the file, analyze and delete unnecessary guides
+    data = pd.read_csv(
+        target_file,
+        index_col=False,
+        sep='\t',
+        dtype={
+            'contig': str,
+            'start': int,
+            'stop': int,
+            'target': str,
+            'context': str,
+            'overflow': str,
+            'orientation': str,
+            'otCount': int, 'offTargets': str
+        }
+    )
+
     delete_indices = set()
 
     for index, row in data.iterrows():
@@ -141,7 +158,13 @@ def generate_exon_guides(gene_id):
             if off_targets_relevant(off_targets, gene_id, mismatches):
                 delete_indices.add(index)
 
-    data.drop(delete_indices).to_csv(target_file, sep='\t')
+    data.drop(delete_indices, inplace=True)
+    data.reset_index(inplace=True, drop=True)
+
+    # delete position_markers (they are incompatible with the scoring)
+    data['offTargets'] = data['offTargets'].map(
+        lambda ot: re.sub('<.*?>', '', ot))
+    data.to_csv(target_file, sep='\t', index=False)
 
     return overflow_count, mismatches
 

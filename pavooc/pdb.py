@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import logging
 import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import ParseError
 import re
 from gzip import GzipFile
 
@@ -16,7 +17,7 @@ def pdb_mappings(pdb, chain, swissprot_id):
             '{}.xml.gz'.format(pdb.lower()), 'r'))
         # parse xml
         tree = ET.fromstring(fi.read())
-    except EOFError as e:
+    except (EOFError, ParseError) as e:
         logging.error(f'File {fi}.xml.gz corrupt: {e}')
         return {}
     except FileNotFoundError as e:

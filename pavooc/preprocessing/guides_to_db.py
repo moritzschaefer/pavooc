@@ -10,15 +10,15 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-from pavooc.config import GUIDES_FILE, COMPUTATION_CORES
+from pavooc.config import GUIDES_FILE, COMPUTATION_CORES, DEBUG
 from pavooc.pdb import pdb_mappings
-from pavooc.util import read_guides, normalize_pid
+from pavooc.util import normalize_pid
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
     read_gencode, read_appris
-from pavooc.scoring import azimuth
+from pavooc.scoring import azimuth, flashfry
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
 
 
@@ -122,7 +122,8 @@ def build_gene_document(gene, check_exists=True):
     strand = exons.iloc[0]['strand']
     gene_symbol = exons.iloc[0]['gene_name']
     try:
-        guides = read_guides(GUIDES_FILE.format(gene_id))
+        guides = pd.read_csv(GUIDES_FILE.format(
+            gene_id), sep='\t', index_col=False)
     except Exception as e:
         logging.fatal('Couldn\'t load guides file for {}: {}'
                       .format(gene_id, e))
@@ -142,14 +143,15 @@ def build_gene_document(gene, check_exists=True):
         logging.warn('no guides: {}'.format(e))
         guides['cut_position'] = []
     # TODO add scores here and stuff
+
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:
-        guides['score'] = azimuth.score(guides)
+        guides['azimuth_score'] = azimuth.score(guides)
     except ValueError as e:
         guides.to_csv(f'{gene_id}.csv')
         logging.error(
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
-        guides['score'] = 0
+        guides['azimuth_score'] = 0
     # TODO add amino acid cut position and percent peptides
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -172,7 +174,28 @@ def build_gene_document(gene, check_exists=True):
 
     # delete all guides with scores below 0.5
     # TODO use something more sophisticated
-    guides.drop(guides.index[guides['score'] < 0.5], inplace=True)
+    guides.drop(guides.index[guides['azimuth_score'] < 0.5], inplace=True)
+
+    # guides_list = \
+    #     list(guides[
+    #         ['exon_id', 'start', 'orientation', 'otCount', 'target',
+    #             'cut_position', 'aa_cut_position']
+    #     ].T.to_dict().values()),
+
+    flashfry_scores = flashfry.score(gene_id)
+
+    # transform dataframe to list of dicts and extract scores into
+    # a nested format
+    guides_list = [{
+        **row[
+            ['exon_id', 'start', 'orientation', 'otCount', 'target',
+                'cut_position', 'aa_cut_position']].to_dict(),
+        'scores': {**flashfry_scores.loc[index][
+            ['Doench2014OnTarget', 'Doench2016CDFScore',
+             'dangerous_GC', 'dangerous_polyT',
+             'dangerous_in_genome', 'Hsu2013']].to_dict(),
+            'azimuth': row['azimuth_score']}
+    } for index, row in guides.iterrows()]
 
     return {
         'gene_id': gene_id,
@@ -183,16 +206,14 @@ def build_gene_document(gene, check_exists=True):
         'canonical_exons': list(canonical_exons.T.to_dict().values()),
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
-        'guides':
-        list(guides[
-            ['exon_id', 'start', 'orientation', 'otCount', 'score', 'target',
-                'cut_position', 'aa_cut_position']
-        ].T.to_dict().values()),
+        'guides': guides_list
     }
 
 
 def integrate():
-    # guide_collection.drop()
+    # TODO make a CLI switch or so to drop or not drop..
+    if DEBUG:
+        guide_collection.drop()
     gencode_genes = gencode_exons().groupby('gene_id')
 
     if COMPUTATION_CORES > 1:
