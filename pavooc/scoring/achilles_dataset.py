@@ -42,7 +42,7 @@ def _find_context(guide, chromosome, position):
         return ret, 'sense' if index == -1 else 'antisense'
 
 
-def load_dataset():
+def load_dataset(drop_locus=True):
     '''
     Load and prepare the achilles dataset to be processed be azimuth feature
     extraction
@@ -95,7 +95,9 @@ def load_dataset():
     # too lazy to calculate the real value
     aacp = (pp / 100.0) * ((df_positions.end - df_positions.start) / 100)
 
-    df.drop(['Locus', 'Activity'], axis=1, inplace=True)
+    df.drop(['Activity'], axis=1, inplace=True)
+    if drop_locus:
+        df.drop(['Locus'], axis=1, inplace=True)
     gene_position = pd.DataFrame(
         {'Percent Peptide': pp, 'Amino Acid Cut position': aacp})
     gene_position.set_index(df.index, inplace=True)

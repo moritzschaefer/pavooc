@@ -4,6 +4,7 @@ from torch import nn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import MultiStepLR
 from pycrayon import CrayonClient
+import json
 
 import scipy.stats as st
 import numpy as np
@@ -95,7 +96,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
                     Tracer()()
 
             # (2) Log values and gradients of the parameters (histogram)
-            # TODO do we have named parameters?
+            network_weights = {}
             for tag, value in model.named_parameters():
                 tag = tag.replace('.', '/')
 
@@ -107,7 +108,15 @@ def train_predict(combined_features, y, validation_fold, model_class,
                     tobuild=True,
                     step=epoch_idx + 1)
 
-    # print(spearmans)
+                network_weights[tag] = to_np(value).tolist()
+
+            # only save weights if there was no better experiment before
+            if spearman == max(spearmans):
+                # save as json
+                with open(f'{tensorboard_experiment.xp_name}_weights.json',
+                          'w') as f:
+                    json.dump(network_weights, f)
+
     return losses, spearmans
 
 

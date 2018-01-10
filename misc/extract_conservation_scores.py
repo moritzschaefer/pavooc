@@ -254,8 +254,9 @@ def get_conservation_score_features(trees, species, chromosome, position):
     with open(os.path.join(DATADIR, filename)) as f:
         for offset in range(-3, 4, 1):
             lookup = trees[species][chromosome][position + offset]
-            assert len(lookup) == 1, \
-                f'found {len(trees[chromosome][position+offset])} positions for offset {offset}'
+            if len(lookup) != 1:
+                print(f'found {len(trees[species][chromosome][position+offset])} positions for offset {chromosome}_{position}_{offset}')
+                return None
             start, end, start_file_pos = lookup.pop()
 
             # multiply offset by 6 because every line has 6 characters (0.123\n)
@@ -267,12 +268,10 @@ def get_conservation_score_features(trees, species, chromosome, position):
     return features + [np.median(features[1:-1]), np.min(features[1:-1]), np.max(features[1:-1])]
 
 
-def process_dataframe(Xdf, trees):
+def process_dataframe(Xdf, cut_positions, trees):
     '''
     Calculate conservation scores for a given dataset
     '''
-    cut_positions = Xdf.apply(lambda row: find_guide_context(
-        row['Target'], row['30mer'], row['Strand'] == 'sense'), axis=1)
 
     scores = cut_positions.apply(lambda chromosome_cut_position:
                                  get_conservation_score_features(
@@ -292,14 +291,10 @@ def process_dataframe(Xdf, trees):
                          'conservationmin',
                          'conservationmax'
                          ]
-    return score_df
+    return scores_df
 
 
-if __name__ == "__main__":
-    trees = {
-        'hg38': index_phast_hg38(),
-        'mm10': index_phast_mm10()
-    }
+def azimuth_scores(trees):
     # first azimuth data
     Xdf, Y, gene_position, target_genes = azimuth_dataset()
 
@@ -321,18 +316,38 @@ if __name__ == "__main__":
     Xdf.loc[Xdf.Target == 'CD43', 'Target'] = 'Spn'
     Xdf.loc[Xdf.Target == 'H2-K', 'Target'] = 'H2-K1'
 
-    scores_df = process_dataframe(Xdf, trees)
+    cut_positions = Xdf.apply(lambda row: find_guide_context(
+        row['Target'], row['30mer'], row['Strand'] == 'sense'), axis=1)
+
+    scores_df = process_dataframe(Xdf, cut_positions, trees)
     scores_df.to_csv(CONSERVATION_FEATURES_FILE)
 
+
+def achilles_scores(trees):
     # now achilles dataset
-    Xdf, Y, gene_position, target_genes = achilles_dataset()
+    Xdf, Y, gene_position, target_genes = achilles_dataset(drop_locus=False)
 
     del Y, gene_position, target_genes  # don't use them without manipulation
     Xdf = Xdf.reset_index()
 
-    scores_df = process_dataframe(Xdf)
+    cut_positions = Xdf.apply(lambda row: (
+        'hg38',
+        row['Locus'].split('_')[0],
+        int(row['Locus'].split('_')[1])), axis=1)
+
+    scores_df = process_dataframe(Xdf, cut_positions, trees)
     scores_df.to_csv(ACHILLES_CONSERVATION_FEATURES_FILE)
 
+
+if __name__ == "__main__":
+    trees = {
+        'hg38': index_phast_hg38(),
+        'mm10': index_phast_mm10()
+    }
+    azimuth_scores(trees)
+    achilles_scores(trees)
+
+    # TODO: what is this??
     # chromosome, cut_position = find_guide_context(
     #     'MED12', 'GAATGCGCTTTATGCGCTGCCGCTGGGGGT', False)
     # print(get_conservation_score_features(trees, chromosome, cut_position))

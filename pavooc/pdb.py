@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import logging
 import xml.etree.ElementTree as ET
 import re
 from gzip import GzipFile
@@ -8,13 +9,18 @@ from pavooc.config import SIFTS_FILE
 
 def pdb_mappings(pdb, chain, swissprot_id):
     intre = re.compile('-?\d+')
-    fi = GzipFile(SIFTS_FILE.format(
-        '{}.xml.gz'.format(pdb.lower()), 'r'))
-    # parse xml
     ret = {}
     try:
+        # read xml
+        fi = GzipFile(SIFTS_FILE.format(
+            '{}.xml.gz'.format(pdb.lower()), 'r'))
+        # parse xml
         tree = ET.fromstring(fi.read())
-    except EOFError:
+    except EOFError as e:
+        logging.error(f'File {fi}.xml.gz corrupt: {e}')
+        return {}
+    except FileNotFoundError as e:
+        logging.error(f'File {fi}.xml.gz not found: {e}')
         return {}
     for i in range(len(tree)):
         if tree[i].tag.split('}')[-1] != 'entity':
