@@ -33,6 +33,7 @@ EXON_DIR = os.path.join(DATADIR, 'exons/')
 GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
 GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 SCORES_FILE = os.path.join(EXON_DIR, '{}.guides.scores')
+MUTATIONS_FILE = os.path.join(DATADIR, 'ccle2maf_081117.txt')
 EXON_BED_FILE = os.path.join(DATADIR, 'exome.bed')
 PDB_BED_FILE = os.path.join(DATADIR, 'pdbs.bed')
 GUIDE_BED_FILE = os.path.join(DATADIR, 'guides.bed')
@@ -40,6 +41,7 @@ EXON_PADDING = 18
 ACHILLES_GUIDE_ACTIVITY_SCORES_FILE = os.path.join(
     DATADIR, 'guide_activity_scores.tsv')
 ACHILLES_GUIDE_MAPPING = os.path.join(DATADIR, 'sgRNA_mapping.tsv')
+WEIGHTS_DIR = os.path.join(DATADIR, 'weights')
 
 JAVA_RAM = os.environ.get('JAVA_RAM', '3')
 COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))

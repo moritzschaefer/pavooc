@@ -1,18 +1,25 @@
+import json
+import os
+import logging
+
 import torch
 from torch.utils.data import DataLoader
 from torch import nn
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import MultiStepLR
 from pycrayon import CrayonClient
-import json
 
 import scipy.stats as st
 import numpy as np
 
-from pavooc.config import BATCH_SIZE
+from pavooc.config import BATCH_SIZE, WEIGHTS_DIR
 
 crayon = CrayonClient(hostname="localhost", port=8889)
-from IPython.core.debugger import Tracer
+
+try:
+    os.mkdir(WEIGHTS_DIR)
+except FileExistsError:
+    pass
 
 
 def to_np(x):
@@ -92,8 +99,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 try:
                     tensorboard_experiment.add_scalar_value(
                         tag, value, step=epoch_idx + 1)
-                except:
-                    Tracer()()
+                except Exception as e:
+                    logging.fatal(
+                        f'caught exception adding scalar value to crayon: {e}')
 
             # (2) Log values and gradients of the parameters (histogram)
             network_weights = {}
@@ -113,7 +121,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # only save weights if there was no better experiment before
             if spearman == max(spearmans):
                 # save as json
-                with open(f'{tensorboard_experiment.xp_name}_weights.json',
+                with open(f'{WEIGHTS_DIR}/{tensorboard_experiment.xp_name}_weights.json',
                           'w') as f:
                     json.dump(network_weights, f)
 

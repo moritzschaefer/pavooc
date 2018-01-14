@@ -12,7 +12,8 @@ import azimuth
 from intervaltree import IntervalTree
 
 from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
-    DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE
+    DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE, \
+    MUTATIONS_FILE
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
@@ -136,6 +137,21 @@ def gencode_exons():
 
 
 @buffer_return_value
+def cellline_mutation_trees():
+    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
+    df = pd.read_csv(MUTATIONS_FILE, sep='\t')
+    df.Chromosome = df.Chromosome.map(lambda c: f'chr{c}')
+    for _, mutation in df.iterrows():
+        try:
+            trees[mutation.Chromosome][mutation.Start_position:
+                                       mutation.End_position + 1] = \
+                                               mutation.Variant_Type
+        except KeyError:
+            pass
+    return trees
+
+
+@buffer_return_value
 def exon_interval_trees():
     '''
     Generate an exon interval tree
@@ -146,8 +162,8 @@ def exon_interval_trees():
     for _, row in relevant_exons.iterrows():
         if row['end'] > row['start']:
             # end is included, start count at 0 instead of 1
-            trees[row['seqname']][row['start'] - 1:row['end']] = \
-                (row['gene_id'], row['exon_number'])
+            trees[row['seqname']][row['start'] - 1:row['end']
+                                  ] = (row['gene_id'], row['exon_number'])
 
     logging.info('Built exon tree with {} nodes'
                  .format(sum([len(tree) for tree in trees.values()])))
@@ -213,8 +229,7 @@ def domain_interval_trees():
                 # TODO, DELETE, strand is for verification only
                 trees[row['chrom']][
                     row['chromStart'] + int(local_start):
-                    row['chromStart'] + int(local_start) + int(block_size)] = \
-                    (row['name'], row['strand'])
+                    row['chromStart'] + int(local_start) + int(block_size)] = (row['name'], row['strand'])
 
     logging.info('Built domain tree with {} nodes'
                  .format(sum([len(tree) for tree in trees.values()])))

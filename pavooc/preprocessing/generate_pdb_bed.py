@@ -119,8 +119,11 @@ def main():
                                 == pdb.SP_PRIMARY].gene_id.drop_duplicates()
             if len(gene_id) == 0:
                 continue
-            assert len(
-                gene_id) == 1, 'PDB should correspond to one gene_id only'
+
+            if len(gene_id) != 1:
+                logging.warn(f'PDB should corresponds to multiple geneids: '
+                             f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
+
             gene_id = gene_id.iloc[0]
 
             # TODO might be wrong in some circumstances TOIMPROVE

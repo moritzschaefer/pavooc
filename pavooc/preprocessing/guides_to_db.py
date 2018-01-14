@@ -4,7 +4,6 @@ into mongoDB
 '''
 import logging
 from multiprocessing import Pool
-import json
 
 from tqdm import tqdm
 import numpy as np
@@ -15,11 +14,21 @@ from pavooc.pdb import pdb_mappings
 from pavooc.util import normalize_pid
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
-    read_gencode, read_appris
+    read_gencode, cellline_mutation_trees
 from pavooc.scoring import azimuth, flashfry
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
+
+
+def guide_mutations(chromosome, position):
+    '''
+    :returns: an array of mutations. each mutation is presented as
+    a dict with fields start, end and type
+    '''
+    return [{'start': mut[0], 'end': mut[1], 'type': mut[2]}
+            for mut in
+            cellline_mutation_trees[chromosome][position:position + 23]]
 
 
 def aa_cut_position(guide, canonical_exons):
@@ -115,6 +124,7 @@ def build_gene_document(gene, check_exists=True):
     the gene
     '''
     gene_id, exons = gene
+    chromosome = exons.iloc[0]['seqname']
     if check_exists and \
             guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
         # item exists
@@ -156,9 +166,11 @@ def build_gene_document(gene, check_exists=True):
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
 
-    domain_tree = domain_interval_trees()[exons.iloc[0]['seqname']]
+    domain_tree = domain_interval_trees()[chromosome]
+    gene_start = exons['start'].min()
+    gene_end = exons['end'].max()
 
-    interval_domains = domain_tree[exons['start'].min():exons['end'].max()]
+    interval_domains = domain_tree[gene_start:gene_end]
     # filter for domains in the correct direction
     domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
                for domain in interval_domains
@@ -176,12 +188,6 @@ def build_gene_document(gene, check_exists=True):
     # TODO use something more sophisticated
     guides.drop(guides.index[guides['azimuth_score'] < 0.5], inplace=True)
 
-    # guides_list = \
-    #     list(guides[
-    #         ['exon_id', 'start', 'orientation', 'otCount', 'target',
-    #             'cut_position', 'aa_cut_position']
-    #     ].T.to_dict().values()),
-
     flashfry_scores = flashfry.score(gene_id)
 
     # transform dataframe to list of dicts and extract scores into
@@ -190,6 +196,7 @@ def build_gene_document(gene, check_exists=True):
         **row[
             ['exon_id', 'start', 'orientation', 'otCount', 'target',
                 'cut_position', 'aa_cut_position']].to_dict(),
+        'mutations': guide_mutations(chromosome, gene_start + row['start']),
         'scores': {**flashfry_scores.loc[index][
             ['Doench2014OnTarget', 'Doench2016CDFScore',
              'dangerous_GC', 'dangerous_polyT',
