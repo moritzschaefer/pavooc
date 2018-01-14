@@ -26,7 +26,7 @@ def guide_mutations(chromosome, position):
     :returns: an array of mutations. each mutation is presented as
     a dict with fields start, end and type
     '''
-    return [{'start': mut[0], 'end': mut[1], 'type': mut[2]}
+    return [{'start': mut[0], 'end': mut[1], **mut[2]}
             for mut in
             cellline_mutation_trees[chromosome][position:position + 23]]
 

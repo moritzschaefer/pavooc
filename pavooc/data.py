@@ -145,7 +145,8 @@ def cellline_mutation_trees():
         try:
             trees[mutation.Chromosome][mutation.Start_position:
                                        mutation.End_position + 1] = \
-                                               mutation.Variant_Type
+                               {'type': mutation.Variant_Type,
+                                'cellline': mutation.Tumor_Sample_Barcode}
         except KeyError:
             pass
     return trees
