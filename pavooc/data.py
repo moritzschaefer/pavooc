@@ -13,7 +13,7 @@ from intervaltree import IntervalTree
 
 from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
     DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE, \
-    MUTATIONS_FILE
+    MUTATIONS_FILE, BASEDIR
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
@@ -92,6 +92,12 @@ def read_gencode():
         'gene_name', 'transcript_type', 'strand',
         'gene_type', 'tag', 'protein_id', 'swissprot_id',
         'score', 'seqname', 'source']]
+
+
+@buffer_return_value
+def celllines():
+    with open(os.path.join(BASEDIR, 'pavooc/server/celllines.txt')) as f:
+        return [line.strip() for line in f.readlines()]
 
 
 def load_protein_mapping():

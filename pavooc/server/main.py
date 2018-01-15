@@ -14,6 +14,7 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
 from pavooc.config import DEBUG  # noqa
 from pavooc.db import guide_collection  # noqa
+from pavooc.data import celllines
 
 
 app = Flask(__name__)
@@ -87,36 +88,11 @@ class InitialData(Resource):
 
     @api.marshal_with(initial_output)
     def get(self):
-        # TODO cancer celllines missing
         genes = [{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
                  for v in guide_collection.find(
             {}, {'gene_id': 1, 'gene_symbol': 1})]
         # TODO return from txt file
-        return {'genes': genes, 'celllines': [
-            'UM-UC-3',
-            'NBT-II',
-            'ECV304',
-            'RT4',
-            'HT 1197',
-            'HT 1376',
-            'RT4/31',
-            'EJ138',
-            'T24/83',
-            'RT112/84',
-            'UM-UC-16',
-            'UM-UC-11',
-            'UM-UC-10',
-            'UM-UC-9',
-            'UM-UC-7',
-            'UM-UC-6',
-            'UM-UC-5',
-            'UM-UC-1',
-            'U-BLC1',
-            'SVCT',
-            'MDA-MB-231',
-            'MDA-MB-157',
-        ]
-        }
+        return {'genes': genes, 'celllines': celllines()}
 
 
 # TODO make sure only JSON gets accepted
