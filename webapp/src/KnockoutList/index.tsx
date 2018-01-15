@@ -26,6 +26,7 @@ export interface Props {
   guides: Array<any>;
 }
 
+
 class KnockoutList extends React.Component<Props, object> {
   componentDidMount() {
     this.updateGuideSelection(this.props.guideCount);
@@ -209,10 +210,16 @@ class KnockoutList extends React.Component<Props, object> {
   }
 }
 
-const mapStateToProps = (state: any) => ({
-  guideCount: state.knockoutList.guideCount,
-  guides: state.io.guides
-});
+const mapStateToProps = (state: any) => {
+  // Filter guides for mutations within the selected cellline
+  return {
+    guideCount: state.knockoutList.guideCount,
+    guides: state.io.guides.map((gene: any) => {
+      let filteredGuides = gene.guides.filter((guide: any) => guide.mutations.includes(state.knockoutList.cellline));
+      return {...gene, guides: filteredGuides, filterCount: gene.guides.length - filteredGuides.length};
+    })
+  };
+}
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
   push: (route: string) => dispatch(push(route)),

@@ -17,7 +17,7 @@ import { fetchKnockoutsApi, fetchInitialApi } from "./api";
 
 const fetchKnockoutsEpic = (action$: any) =>
   action$.ofType(FETCH_KNOCKOUTS).mergeMap((action: FetchKnockouts) =>
-    fetchKnockoutsApi(action.geneIds, action.cellline)
+    fetchKnockoutsApi(action.geneIds)
       .map(fetchKnockoutsSuccess)
       .catch((error: string) => Observable.of(fetchKnockoutsFailure(error)))
   );

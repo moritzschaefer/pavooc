@@ -3,16 +3,13 @@ import * as t from "./actionTypes";
 export interface FetchKnockouts {
   type: typeof t.FETCH_KNOCKOUTS;
   geneIds: Array<string>;
-  cellline: string;
 }
 
 export const fetchKnockouts = (
-  geneIds: Array<string>,
-  cellline: string
+  geneIds: Array<string>
 ): FetchKnockouts => ({
   type: t.FETCH_KNOCKOUTS,
-  geneIds,
-  cellline
+  geneIds
 });
 
 export interface FetchKnockoutsFailure {

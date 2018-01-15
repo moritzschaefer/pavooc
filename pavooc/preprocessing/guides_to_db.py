@@ -26,9 +26,12 @@ def guide_mutations(chromosome, position):
     :returns: an array of mutations. each mutation is presented as
     a dict with fields start, end and type
     '''
-    return [{'start': mut[0], 'end': mut[1], **mut[2]}
-            for mut in
-            cellline_mutation_trees[chromosome][position:position + 23]]
+    # return [{'start': mut[0], 'end': mut[1], **mut[2]}
+    #         for mut in
+    #         cellline_mutation_trees[chromosome][position:position + 23]]
+    # as long as other datais not necessary, we just return the cellline
+    return [mut[2]['cellline'] for mut in
+            cellline_mutation_trees()[chromosome][position:position + 23]]
 
 
 def aa_cut_position(guide, canonical_exons):

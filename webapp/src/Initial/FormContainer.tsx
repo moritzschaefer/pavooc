@@ -1,5 +1,6 @@
 import InitialForm from './Form';
 import { fetchKnockouts, initialLoad } from '../IO/actions';
+import { setCellline } from '../KnockoutList/actions';
 import { showMessage } from '../Messages/actions';
 //import * as actions from '../actions/';
 import { connect } from 'react-redux';
@@ -14,7 +15,10 @@ export function mapStateToProps(state: any) {
 
 export function mapDispatchToProps(dispatch: any, ownProps: any) {
   return {
-    go: (geneIds: Array<string>, cellline: string) => dispatch(fetchKnockouts(geneIds, cellline)),
+    go: (geneIds: Array<string>, cellline: string) => {
+      dispatch(fetchKnockouts(geneIds));
+      dispatch(setCellline(cellline));
+    },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message))
   }

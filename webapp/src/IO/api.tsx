@@ -7,7 +7,7 @@ function handleFetchErrors(response: Response) {
     return response;
 }
 
-export const fetchKnockoutsApi = (geneIds: any, cellline: string) => {
+export const fetchKnockoutsApi = (geneIds: any) => {
   const request = fetch(`/api/knockout`, {
     method: "POST",
     body: JSON.stringify({ gene_ids: geneIds })

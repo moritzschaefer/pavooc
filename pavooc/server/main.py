@@ -58,7 +58,15 @@ knockout_output = api.model('KnockoutGuides', {
             'aa_cut_position': fields.Integer,
             'otCount': fields.Integer,
             'orientation': fields.String,
-            'score': fields.Float,
+            'mutations': fields.List(fields.String),
+            'scores': fields.Nested({
+                'Doench2014OnTarget': fields.Float,
+                'Doench2016CDFScore': fields.Float,
+                'dangerous_GC': fields.String,
+                'dangerous_polyT': fields.String,
+                'dangerous_in_genome': fields.String,
+                'Hsu2013': fields.Float
+            }),
         }))
 })
 
@@ -83,6 +91,7 @@ class InitialData(Resource):
         genes = [{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
                  for v in guide_collection.find(
             {}, {'gene_id': 1, 'gene_symbol': 1})]
+        # TODO return from txt file
         return {'genes': genes, 'celllines': [
             'UM-UC-3',
             'NBT-II',
