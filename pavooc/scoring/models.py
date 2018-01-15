@@ -1,4 +1,14 @@
 from torch import nn
+from torch.nn.init import kaiming_normal, normal
+
+
+def weights_init(m):
+    if isinstance(m, nn.Linear):
+        kaiming_normal(m.weight.data)
+        try:
+            kaiming_normal(m.bias.data)
+        except ValueError:
+            normal(m.bias.data)
 
 
 # TODO as seen here
@@ -123,6 +133,7 @@ class Net4(nn.Module):
         self.fc5 = nn.Linear(self.hidden4, self.hidden5)
         self.relu5 = nn.ReLU()
         self.fc6 = nn.Linear(self.hidden5, 1)  # output
+        self.apply(weights_init)
 
     def forward(self, x):
         out = self.fc1(x)
@@ -160,16 +171,17 @@ class Net5(nn.Module):
         self.relu1 = nn.ReLU()  # TODO try TANH
         self.fc2 = nn.Linear(self.hidden1, self.hidden2)
         self.relu2 = nn.ReLU()  # TODO try TANH
-        self.drop1 = nn.Dropout()
+        self.drop1 = nn.Dropout(0.20)
         self.fc3 = nn.Linear(self.hidden2, self.hidden3)
         self.relu3 = nn.ReLU()  # TODO try TANH
-        self.drop2 = nn.Dropout()
+        self.drop2 = nn.Dropout(0.15)
         self.fc4 = nn.Linear(self.hidden3, self.hidden4)
         self.relu4 = nn.ReLU()
-        self.drop3 = nn.Dropout()
+        self.drop3 = nn.Dropout(0.15)
         self.fc5 = nn.Linear(self.hidden4, self.hidden5)
         self.relu5 = nn.ReLU()
         self.fc6 = nn.Linear(self.hidden5, 1)  # output
+        self.apply(weights_init)
 
     def forward(self, x):
         out = self.fc1(x)
