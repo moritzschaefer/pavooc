@@ -4,7 +4,7 @@ import logging
 
 import torch
 from torch.utils.data import DataLoader
-from torch import nn
+from torch import nn, cuda
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import MultiStepLR
 from pycrayon import CrayonClient
@@ -45,27 +45,34 @@ def train_predict(combined_features, y, validation_fold, model_class,
     # first converge with normal features
 
     model = model_class(combined_features.shape[1])
+    if cuda.is_available():
+        model.cuda()
+    optimizer_class = torch.optim.Adam
 
     # Loss and Optimizer
-    # TOOD add weight_decay to Adam
     criterion = loss
     if isinstance(learning_rate, dict):
-        optimizer = torch.optim.Adam(model.parameters(),
-                                     lr=learning_rate['initial'])
+        optimizer = optimizer_class(model.parameters(),
+                                    lr=learning_rate['initial'])
         scheduler = MultiStepLR(
             optimizer, milestones=learning_rate['milestones'],
             gamma=learning_rate['gamma'])
     else:
-        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+        optimizer = optimizer_class(model.parameters(), lr=learning_rate)
 
     spearmans = []
     losses = []
     for epoch_idx in range(epochs):
         for batch_features, batch_targets in loader:
+            if cuda.is_available():
+                batch_features = batch_features.cuda()
+                batch_targets = batch_targets.float().cuda()
+            else:
+                batch_targets = batch_targets.float()
             optimizer.zero_grad()
             outputs = model(Variable(batch_features))
 
-            loss = criterion(outputs, Variable(batch_targets.float()))
+            loss = criterion(outputs, Variable(batch_targets))
             loss.backward()
             optimizer.step()
         try:
@@ -75,8 +82,11 @@ def train_predict(combined_features, y, validation_fold, model_class,
         # Set to evaluation mode (to disable dropout layers)
         model.eval()
 
-        predicted_labels = model(Variable(torch.from_numpy(
-            combined_validation_features))).data.numpy()
+        validation_tensor = torch.from_numpy(combined_validation_features)
+        if cuda.is_available():
+            predicted_labels = model(Variable(validation_tensor.cuda())).cpu().data.numpy()
+        else:
+            predicted_labels = model(Variable(validation_tensor)).data.numpy()
         spearman = st.spearmanr(validation_labels, predicted_labels)[0]
         losses.append(loss.data[0])
         spearmans.append(spearman)
@@ -101,7 +111,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
                         tag, value, step=epoch_idx + 1)
                 except Exception as e:
                     logging.fatal(
-                        f'caught exception adding scalar value to crayon: {e}')
+                        'caught exception adding scalar value to crayon: {}'.format(e))
 
             # (2) Log values and gradients of the parameters (histogram)
             network_weights = {}
@@ -112,7 +122,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
                     tag, to_np(value).flatten().tolist(), tobuild=True,
                     step=epoch_idx + 1)
                 tensorboard_experiment.add_histogram_value(
-                    f'{tag}/grad', to_np(value.grad).flatten().tolist(),
+                    '{}/grad'.format(tag), to_np(value.grad).flatten().tolist(),
                     tobuild=True,
                     step=epoch_idx + 1)
 
@@ -121,8 +131,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # only save weights if there was no better experiment before
             if spearman == max(spearmans):
                 # save as json
-                with open(f'{WEIGHTS_DIR}/{tensorboard_experiment.xp_name}_weights.json',
-                          'w') as f:
+                with open('{}/{}_weights.json'.format(
+                        WEIGHTS_DIR, tensorboard_experiment.xp_name),
+                        'w') as f:
                     json.dump(network_weights, f)
 
     return losses, spearmans
@@ -136,14 +147,14 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
     '''
     distinct_genes = genes.drop_duplicates()
     results = []
-    experiment_name = f'{model_class.__name__}_{learning_rate}_' \
-        f'{epochs}_{loss.__class__.__name__}'
+    experiment_name = '{}_{}_{}_{}'.format(
+        model_class.__name__, learning_rate, epochs, loss.__class__.__name__)
     for i, gene in enumerate(distinct_genes):
-        experiment_name_i = f'{experiment_name}_{i}|{gene}'
+        experiment_name_i = '{}_{}|{}'.format(experiment_name, i, gene)
         try:
             # TODO back it up instead of deleting
             crayon.remove_experiment(experiment_name_i)
-            print(f'Experiment {experiment_name_i} already existed. Deleting.')
+            print('Experiment {} already existed. Deleting.'.format(experiment_name_i))
         except ValueError:
             pass
 

@@ -1,6 +1,13 @@
 import os
 
 
+BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
+DATADIR = os.path.join(BASEDIR, 'data')
+try:
+    os.mkdir(DATADIR)
+except FileExistsError:
+    pass
+
 S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
@@ -8,8 +15,6 @@ if DEBUG:
     CHROMOSOMES = ['chr22']
 else:
     CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
-BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
-DATADIR = os.path.join(BASEDIR, 'data')
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 SIFTS_FILE = os.path.join(DATADIR, 'sifts', '{}')
 SIFTS_TARBALL = os.path.join(DATADIR, 'sifts.tar')

@@ -16,3 +16,4 @@ biopython==1.70
 tensorflow==1.4.0
 pycrayon==0.5
 netgraph==2.0.7
+xlrd==1.1.0
