@@ -1,7 +1,10 @@
+import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+
 from azimuth.features.featurization import featurize_data
 from azimuth.util import concatenate_feature_sets
-
 
 # TODO refactor!
 
@@ -45,6 +48,46 @@ def extract_features(Xdf, Y, gene_position, conservation_scores, order=2):
 
     return combined_features, y, genes, feature_names
 
+
+def normalize_features(X_train, X_test=None):
+    '''
+    '''
+    # minmixscaler is fine, except, it only sees Gs in position 24,25
+    # we need to add an artifical sequence which does not have GGs!
+    # actually it doesnt matter as we transform the test set also anyways...
+    scaler = MinMaxScaler()
+    tmp = X_train[-2:, :120].copy()
+    X_train[-2, :120] = 1.0
+    X_train[-1, :120] = 0.0
+    scaler.fit(X_train)
+    X_train[-2:, :120] = tmp
+    X_train = scaler.transform(X_train)
+    # transform test based on training fit only!
+    X_test = scaler.transform(X_test)
+    return X_train, X_test
+
+
+def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42):
+    '''
+    :returns: training and test set and validation fold of training test
+    '''
+    # normalize based on training set1
+
+    # now split features in training/validation and test set
+    X_train, X_test, y_train, y_test = train_test_split(
+        combined_features, y, test_size=test_size, random_state=random_state)
+
+    X_train, X_test = normalize_features(X_train, X_test)
+
+    # 25% of 80% are 20% of 100%
+    np.random.seed(42)
+    validation_indices = np.random.choice(
+        X_train.shape[0], int(X_train.shape[0] * 0.25), replace=False)
+
+    validation_fold = np.zeros(X_train.shape[0], dtype=bool)
+    validation_fold[validation_indices] = True
+
+    return X_train, X_test, y_train, y_test, validation_fold
 
 # def combine_and_normalize_features(features, select_features=None,
 #                                    normalize_features=True):

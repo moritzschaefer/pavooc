@@ -1,9 +1,11 @@
 from torch import nn
+import torch
 from torch.nn.init import kaiming_normal, normal
+import torch.nn.functional as F
 
 
 def weights_init(m):
-    if isinstance(m, nn.Linear):
+    if isinstance(m, (nn.Conv1d, nn.Linear)):
         kaiming_normal(m.weight.data)
         try:
             kaiming_normal(m.bias.data)
@@ -29,6 +31,7 @@ class Net1(nn.Module):
     '''
     Net1 is a simple network consisting of one hidden layer with variable size
     '''
+
     def __init__(self, input_size):
         super(Net1, self).__init__()
         self.fc1 = nn.Linear(input_size, 300)
@@ -202,6 +205,8 @@ class Net5(nn.Module):
 
 # TODO check for dead units!!
 # TODO regularization?
+
+
 class DynamicNet(nn.Module):
     '''
     DynamicNet is a nonworking network which can easily adapted by changing the
@@ -231,3 +236,113 @@ class DynamicNet(nn.Module):
                 out = activation(out)
 
         return out
+
+
+class CNN(nn.Module):
+    kernel_size = 4
+
+    def __init__(self, input_size):
+        super(CNN, self).__init__()
+
+        self.conv1 = nn.Conv1d(
+            in_channels=4, out_channels=32, kernel_size=self.kernel_size)
+        self.conv2 = nn.Conv1d(
+            in_channels=32, out_channels=64, kernel_size=self.kernel_size)
+
+        # 128 kernels, 30-3 => 27/2 => 13-3 => 10/2 => 5
+        self._conv_output_dimension = 64*5
+
+        # hidden layers, additional_features, conv output
+        self.fc1 = nn.Linear((input_size - 120) + self._conv_output_dimension, 64)
+        self.fc2 = nn.Linear(64, 1)
+
+        self.apply(weights_init)
+
+    def _forward_convolution(self, nuc_features):
+
+        conv_input = nuc_features.view(-1, 30, 4).permute(0, 2, 1)
+        conv1_output = F.relu(self.conv1(conv_input))
+        conv1_output = F.max_pool1d(conv1_output, 2)
+
+        conv2_output = F.relu(self.conv2(conv1_output))
+        conv2_output = F.max_pool1d(conv2_output, 2)
+
+        return conv2_output.view(-1, self._conv_output_dimension)
+
+    def forward(self, x):
+        nuc_features, additional_features = x.split(120, dim=1)
+        nuc_features.contiguous()
+
+        convolution_output = self._forward_convolution(nuc_features)
+
+        # two fully connected hidden layers
+        out = F.relu(self.fc1(torch.cat(
+            [additional_features, convolution_output], 1)))
+
+        return self.fc2(out)
+
+class Deep1(nn.Module):
+    '''
+    A combination of an LSTM and Conv layers
+    4 is the nucleotide encoding (4 bit per nucleotide)
+    30 is the length of our input sequence
+    120 is 4*30 the number of sequence features
+    input_size is the number of total input_features.
+    The first 120 have to be the sequence 1-hot-encodings
+    '''
+    lstm_hidden = 32
+    kernel_size = 4
+
+    def __init__(self, input_size):
+        super(Deep1, self).__init__()
+
+        self.lstm = nn.LSTM(input_size=4, hidden_size=self.lstm_hidden, num_layers=2,
+                            dropout=0.18, bidirectional=False)  # TODO enable?
+
+        self.conv1 = nn.Conv1d(
+            in_channels=4, out_channels=32, kernel_size=self.kernel_size)
+        self.conv2 = nn.Conv1d(
+            in_channels=32, out_channels=64, kernel_size=self.kernel_size)
+
+        # 128 kernels, 30-3 => 27/2 => 13-3 => 10/2 => 5
+        self._conv_output_dimension = 64*5
+
+        # hidden layers, additional_features, conv output
+        self.fc1 = nn.Linear(
+            self.lstm_hidden + (input_size - 120) + self._conv_output_dimension, 64)
+        self.fc2 = nn.Linear(64, 1)
+
+        self.apply(weights_init)
+
+    def _forward_convolution(self, nuc_features):
+
+        conv_input = nuc_features.view(-1, 30, 4).permute(0, 2, 1)
+        conv1_output = F.relu(self.conv1(conv_input))
+        conv1_output = F.max_pool1d(conv1_output, 2)
+
+        conv2_output = F.relu(self.conv2(conv1_output))
+        conv2_output = F.max_pool1d(conv2_output, 2)
+        # TODO add dropout here
+
+        return conv2_output.view(-1, self._conv_output_dimension)
+
+    def _forward_lstm(self, nuc_features):
+        # lstm needs form (seq_len, batch, input_size)
+        lstm_input = nuc_features.view(-1, 30, 4).permute(1, 0, 2)
+
+        # return only last seq-output. Form: (batch_size x lstm_hidden)
+        lstm_output = self.lstm(lstm_input)[0][-1, :, :]
+        return lstm_output
+
+    def forward(self, x):
+        nuc_features, additional_features = x.split(120, dim=1)
+        nuc_features.contiguous()
+
+        lstm_output = self._forward_lstm(nuc_features)
+        convolution_output = self._forward_convolution(nuc_features)
+
+        # two fully connected hidden layers
+        out = F.relu(self.fc1(torch.cat(
+            [lstm_output, additional_features, convolution_output], 1)))
+
+        return self.fc2(out)
