@@ -45,7 +45,11 @@ def train_predict(combined_features, y, validation_fold, model_class,
     validation_labels = y[validation_fold]
     train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(
         combined_train_features), torch.from_numpy(train_labels))
-    loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)  #, num_workers=8, pin_memory=True)
+    if cuda.is_available():
+        loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
+                            num_workers=8, pin_memory=True)
+    else:
+        loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # first converge with normal features
 
@@ -65,7 +69,6 @@ def train_predict(combined_features, y, validation_fold, model_class,
             gamma=learning_rate['gamma'])
     else:
         optimizer = optimizer_class(model.parameters(), lr=learning_rate)
-
 
     spearmans = []
     losses = []
@@ -87,15 +90,17 @@ def train_predict(combined_features, y, validation_fold, model_class,
         except NameError:
             pass
 
-        if ((epoch_idx+1) % 10) == 0:
+        if ((epoch_idx + 1) % 10) == 0:
             # Set to evaluation mode (to disable dropout layers)
             model.eval()
 
             validation_tensor = torch.from_numpy(combined_validation_features)
             if cuda.is_available():
-                predicted_labels = model(Variable(validation_tensor.cuda(async=True))).cpu().data.numpy()
+                predicted_labels = model(
+                    Variable(validation_tensor.cuda(async=True))).cpu().data.numpy()
             else:
-                predicted_labels = model(Variable(validation_tensor)).data.numpy()
+                predicted_labels = model(
+                    Variable(validation_tensor)).data.numpy()
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
             losses.append(loss.data[0])
             spearmans.append(spearman)
@@ -163,7 +168,8 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
         try:
             # TODO back it up instead of deleting
             crayon.remove_experiment(experiment_name_i)
-            print('Experiment {} already existed. Deleting.'.format(experiment_name_i))
+            print('Experiment {} already existed. Deleting.'.format(
+                experiment_name_i))
         except ValueError:
             pass
 
