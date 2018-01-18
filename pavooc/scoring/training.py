@@ -104,16 +104,26 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # Set to evaluation mode (to disable dropout layers)
             model.eval()
 
+            # predict validation and training scores
             predicted_labels = model(validation_variable).cpu().data.numpy()
             predicted_training_labels = model(
                 training_variable).cpu().data.numpy()
+
+            # validation scores
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
+            l1 = np.abs(predicted_labels - validation_labels).mean()
+            l2 = ((predicted_labels - validation_labels)**2).mean()
+
+            # training scores
             training_spearman = st.spearmanr(
-                validation_labels, predicted_training_labels)[0]
-            losses.append(loss.data[0])
+                train_labels, predicted_training_labels)[0]
+
+            training_loss = criterion(Variable(torch.from_numpy(predicted_training_labels), requires_grad=False), Variable(torch.from_numpy(train_labels), requires_grad=False)).data[0]
+            training_l1 = np.abs(predicted_training_labels - train_labels).mean()
+            training_l2 = ((predicted_training_labels - train_labels)**2).mean()
+
+            losses.append(training_loss)
             spearmans.append(spearman)
-            l1 = np.abs(predicted_labels - validation_labels).sum()
-            l2 = ((predicted_labels - validation_labels)**2).sum()
 
             # Set to training mode (to enable dropout layers)
             model.train()
@@ -122,7 +132,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 # (1) Log the scalar values
                 info = {
                     'training-spearman': training_spearman,
-                    'trainingloss': loss.data[0],
+                    'trainingloss': training_loss,
+                    'training-l1': training_l1.item(),
+                    'training-l2': training_l2.item(),
                     'validation-spearman': spearman,
                     'validation-l1':  l1.item(),
                     'validation-l2': l2.item()
@@ -150,7 +162,6 @@ def train_predict(combined_features, y, validation_fold, model_class,
                             tobuild=True,
                             step=epoch_idx + 1)
                     except AttributeError:
-                        print(tag)
                         pass
 
                     network_weights[tag] = to_np(value).tolist()
