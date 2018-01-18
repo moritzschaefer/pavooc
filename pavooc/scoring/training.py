@@ -38,9 +38,19 @@ def train_predict(combined_features, y, validation_fold, model_class,
     Train with the provided model and parameters. Validate with the
     validation set
     '''
-
-    combined_validation_features = combined_features[validation_fold, :]
     combined_train_features = combined_features[(~validation_fold), :]
+
+    validation_tensor = torch.from_numpy(combined_features[validation_fold, :])
+    training_tensor = torch.from_numpy(combined_train_features)
+    if cuda.is_available():
+        validation_variable = Variable(
+            validation_tensor.cuda(async=True), requires_grad=False)
+        training_variable = Variable(
+            training_tensor.cuda(async=True), requires_grad=False)
+    else:
+        validation_variable = Variable(validation_tensor, requires_grad=False)
+        training_variable = Variable(training_tensor, requires_grad=False)
+
     train_labels = y[~validation_fold]
     validation_labels = y[validation_fold]
     train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(
@@ -54,7 +64,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
     # first converge with normal features
 
     model = model_class(combined_features.shape[1])
-    optimizer_class = torch.optim.SGD
+    optimizer_class = torch.optim.Adam
 
     # Loss and Optimizer
     criterion = loss
@@ -94,14 +104,12 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # Set to evaluation mode (to disable dropout layers)
             model.eval()
 
-            validation_tensor = torch.from_numpy(combined_validation_features)
-            if cuda.is_available():
-                predicted_labels = model(
-                    Variable(validation_tensor.cuda(async=True))).cpu().data.numpy()
-            else:
-                predicted_labels = model(
-                    Variable(validation_tensor)).data.numpy()
+            predicted_labels = model(validation_variable).cpu().data.numpy()
+            predicted_training_labels = model(
+                training_variable).cpu().data.numpy()
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
+            training_spearman = st.spearmanr(
+                validation_labels, predicted_training_labels)[0]
             losses.append(loss.data[0])
             spearmans.append(spearman)
             l1 = np.abs(predicted_labels - validation_labels).sum()
@@ -113,6 +121,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
             if tensorboard_experiment:
                 # (1) Log the scalar values
                 info = {
+                    'training-spearman': training_spearman,
                     'trainingloss': loss.data[0],
                     'validation-spearman': spearman,
                     'validation-l1':  l1.item(),
@@ -132,13 +141,17 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 for tag, value in model.named_parameters():
                     tag = tag.replace('.', '/')
 
-                    tensorboard_experiment.add_histogram_value(
-                        tag, to_np(value).flatten().tolist(), tobuild=True,
-                        step=epoch_idx + 1)
-                    tensorboard_experiment.add_histogram_value(
-                        '{}/grad'.format(tag), to_np(value.grad).flatten().tolist(),
-                        tobuild=True,
-                        step=epoch_idx + 1)
+                    try:
+                        tensorboard_experiment.add_histogram_value(
+                            tag, to_np(value).flatten().tolist(), tobuild=True,
+                            step=epoch_idx + 1)
+                        tensorboard_experiment.add_histogram_value(
+                            '{}/grad'.format(tag), to_np(value.grad).flatten().tolist(),
+                            tobuild=True,
+                            step=epoch_idx + 1)
+                    except AttributeError:
+                        print(tag)
+                        pass
 
                     network_weights[tag] = to_np(value).tolist()
 

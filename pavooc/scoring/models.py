@@ -239,22 +239,23 @@ class DynamicNet(nn.Module):
 
 
 class CNN(nn.Module):
-    kernel_size = 4
+    kernel_size = 6
 
     def __init__(self, input_size):
         super(CNN, self).__init__()
 
         self.conv1 = nn.Conv1d(
-            in_channels=4, out_channels=32, kernel_size=self.kernel_size)
-        self.conv2 = nn.Conv1d(
-            in_channels=32, out_channels=64, kernel_size=self.kernel_size)
+            in_channels=4, out_channels=128, kernel_size=self.kernel_size)
+        # self.conv2 = nn.Conv1d(
+        #     in_channels=32, out_channels=64, kernel_size=self.kernel_size)
 
         # 128 kernels, 30-3 => 27/2 => 13-3 => 10/2 => 5
-        self._conv_output_dimension = 64*5
+        self._conv_output_dimension = 25*32
 
         # hidden layers, additional_features, conv output
-        self.fc1 = nn.Linear((input_size - 120) + self._conv_output_dimension, 64)
-        self.fc2 = nn.Linear(64, 1)
+        self.fc1 = nn.Linear((input_size - 120) +
+                             self._conv_output_dimension, 32)
+        self.fc2 = nn.Linear(32, 1)
 
         self.apply(weights_init)
 
@@ -262,12 +263,12 @@ class CNN(nn.Module):
 
         conv_input = nuc_features.view(-1, 30, 4).permute(0, 2, 1)
         conv1_output = F.relu(self.conv1(conv_input))
-        conv1_output = F.max_pool1d(conv1_output, 2)
+        conv1_output = F.max_pool1d(conv1_output, 4)
 
-        conv2_output = F.relu(self.conv2(conv1_output))
-        conv2_output = F.max_pool1d(conv2_output, 2)
+        # conv2_output = F.relu(self.conv2(conv1_output))
+        # conv2_output = F.max_pool1d(conv2_output, 2)
 
-        return conv2_output.view(-1, self._conv_output_dimension)
+        return conv1_output.view(-1, self._conv_output_dimension)
 
     def forward(self, x):
         nuc_features, additional_features = x.split(120, dim=1)
@@ -280,6 +281,7 @@ class CNN(nn.Module):
             [additional_features, convolution_output], 1)))
 
         return self.fc2(out)
+
 
 class Deep1(nn.Module):
     '''
@@ -305,7 +307,7 @@ class Deep1(nn.Module):
             in_channels=32, out_channels=64, kernel_size=self.kernel_size)
 
         # 128 kernels, 30-3 => 27/2 => 13-3 => 10/2 => 5
-        self._conv_output_dimension = 64*5
+        self._conv_output_dimension = 64 * 5
 
         # hidden layers, additional_features, conv output
         self.fc1 = nn.Linear(

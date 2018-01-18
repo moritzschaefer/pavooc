@@ -63,8 +63,11 @@ def normalize_features(X_train, X_test=None):
     X_train[-2:, :120] = tmp
     X_train = scaler.transform(X_train)
     # transform test based on training fit only!
-    X_test = scaler.transform(X_test)
-    return X_train, X_test
+    if isinstance(X_test, (np.ndarray, list)):
+        X_test = scaler.transform(X_test)
+        return X_train, X_test
+    else:
+        return X_train
 
 
 def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42):
