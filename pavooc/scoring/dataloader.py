@@ -31,13 +31,18 @@ class DataLoader(object):
            in which examples are provided. Meant to be
            called once an epoch.
         '''
-        self.permutation = np.random.permutation(self._n_examples)
+        permutation = np.random.permutation(self._n_examples)
+        self.permutation = torch.from_numpy(permutation).long()
+        if cuda.is_available():
+            self.permutation = self.permutation.cuda()
 
     def _get_batch(self):
-        example_indices = self.permutation[self.batch_index:
-                                           self.batch_index + self.batch_size]
+        #example_indices = self.permutation[self.batch_index:
+                                           #self.batch_index + self.batch_size]
 
-        example_indices = torch.from_numpy(example_indices).long()
+        # example_indices = torch.from_numpy(example_indices).long()
+        example_indices = self.permutation.narrow(dimension=0, start=self.batch_index, length=self.batch_size)
+
         if cuda.is_available():
             example_indices = example_indices.cuda()
         data_batch = torch.index_select(
