@@ -35,6 +35,7 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes',
     'http://portals.broadinstitute.org/achilles/datasets/19/download/guide_activity_scores.tsv',  # noqa
     'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv',  # noqa
+    'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
 ]
 
 logging.basicConfig(level=logging.INFO)

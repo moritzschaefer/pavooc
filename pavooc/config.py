@@ -46,6 +46,8 @@ EXON_PADDING = 18
 ACHILLES_GUIDE_ACTIVITY_SCORES_FILE = os.path.join(
     DATADIR, 'guide_activity_scores.tsv')
 ACHILLES_GUIDE_MAPPING = os.path.join(DATADIR, 'sgRNA_mapping.tsv')
+HAEUSSLER_SCORES_FILE = os.path.join(DATADIR,
+                                     '13059_2016_1012_MOESM14_ESM.tsv')
 WEIGHTS_DIR = os.path.join(DATADIR, 'weights')
 
 JAVA_RAM = os.environ.get('JAVA_RAM', '3')
@@ -59,4 +61,4 @@ MONGO_HOST = os.getenv('MONGO_HOST', 'localhost:27017')
 # ML
 
 MAX_EPOCHS = 2000
-BATCH_SIZE = 100
+BATCH_SIZE = 128

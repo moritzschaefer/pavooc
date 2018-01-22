@@ -46,6 +46,7 @@ def read_guides(guides_file):
     :guides_file: Filename of the guides file
     :returns: Pandas dataframe
     '''
+    pass
 
 
 def normalize_pid(pid):

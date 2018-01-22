@@ -1,9 +1,10 @@
-import json
+import pickle
 import os
 import logging
+import copy
 
 import torch
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 from torch import nn, cuda
 
 from torch.autograd import Variable
@@ -13,6 +14,7 @@ from pycrayon import CrayonClient
 import scipy.stats as st
 import numpy as np
 
+from pavooc.scoring.dataloader import DataLoader
 from pavooc.config import BATCH_SIZE, WEIGHTS_DIR
 
 if cuda.is_available():
@@ -53,13 +55,19 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
     train_labels = y[~validation_fold]
     validation_labels = y[validation_fold]
-    train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(
-        combined_train_features), torch.from_numpy(train_labels))
     if cuda.is_available():
-        loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
-                            num_workers=8, pin_memory=True)
+        train_dataset = torch.utils.data.TensorDataset(
+                torch.from_numpy(combined_train_features).cuda(),
+                torch.from_numpy(train_labels).cuda())
     else:
-        loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(
+            combined_train_features), torch.from_numpy(train_labels))
+    loader = DataLoader(train_dataset, BATCH_SIZE)
+    # if cuda.is_available():
+    #     loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
+    #                         num_workers=8, pin_memory=True)
+    # else:
+    #     loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # first converge with normal features
 
@@ -118,9 +126,12 @@ def train_predict(combined_features, y, validation_fold, model_class,
             training_spearman = st.spearmanr(
                 train_labels, predicted_training_labels)[0]
 
-            training_loss = criterion(Variable(torch.from_numpy(predicted_training_labels), requires_grad=False), Variable(torch.from_numpy(train_labels), requires_grad=False)).data[0]
-            training_l1 = np.abs(predicted_training_labels - train_labels).mean()
-            training_l2 = ((predicted_training_labels - train_labels)**2).mean()
+            training_loss = criterion(Variable(torch.from_numpy(predicted_training_labels), requires_grad=False), Variable(
+                torch.from_numpy(train_labels), requires_grad=False)).data[0]
+            training_l1 = np.abs(
+                predicted_training_labels - train_labels).mean()
+            training_l2 = (
+                (predicted_training_labels - train_labels)**2).mean()
 
             losses.append(training_loss)
             spearmans.append(spearman)
@@ -145,8 +156,10 @@ def train_predict(combined_features, y, validation_fold, model_class,
                         tensorboard_experiment.add_scalar_value(
                             tag, value, step=epoch_idx + 1)
                     except Exception as e:
-                        logging.fatal(
-                            'caught exception adding scalar value to crayon: {}'.format(e))
+                        logging.fatal('caught exception adding scalar value '
+                                      'to crayon: {}'.format(e))
+                best_model = model_class(combined_features.shape[1])
+                best_model.load_state_dict(copy.deepcopy(model.state_dict()))
 
                 # (2) Log values and gradients of the parameters (histogram)
                 network_weights = {}
@@ -168,13 +181,12 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
                 # only save weights if there was no better experiment before
                 if spearman == max(spearmans):
-                    # save as json
-                    with open('{}/{}_weights.json'.format(
+                    with open('{}/{}_weights.pkl'.format(
                             WEIGHTS_DIR, tensorboard_experiment.xp_name),
-                            'w') as f:
-                        json.dump(network_weights, f)
+                            'wb') as f:
+                        pickle.dump(model.state_dict(), f)
 
-    return losses, spearmans
+    return losses, spearmans, best_model
 
 
 def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
