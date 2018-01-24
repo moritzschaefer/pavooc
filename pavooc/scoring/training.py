@@ -57,11 +57,11 @@ def train_predict(combined_features, y, validation_fold, model_class,
     validation_labels = y[validation_fold]
     if cuda.is_available():
         train_dataset = torch.utils.data.TensorDataset(
-                torch.from_numpy(combined_train_features).cuda(),
-                torch.from_numpy(train_labels).cuda())
+            training_tensor.cuda(),
+            torch.from_numpy(train_labels).cuda())
     else:
-        train_dataset = torch.utils.data.TensorDataset(torch.from_numpy(
-            combined_train_features), torch.from_numpy(train_labels))
+        train_dataset = torch.utils.data.TensorDataset(
+                training_tensor, torch.from_numpy(train_labels))
     loader = DataLoader(train_dataset, BATCH_SIZE)
     # if cuda.is_available():
     #     loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
@@ -186,6 +186,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
                             'wb') as f:
                         pickle.dump(model.state_dict(), f)
 
+    best_model.eval()
     return losses, spearmans, best_model
 
 

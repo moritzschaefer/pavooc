@@ -70,17 +70,24 @@ def normalize_features(X_train, X_test=None):
         return X_train
 
 
-def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42):
+def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42, joint_scaling=False):
     '''
+    :joint_scaling: If True, feature scaling is fitted with the complete set,
+    instead of only the training set
     :returns: training and test set and validation fold of training test
     '''
     # normalize based on training set1
 
     # now split features in training/validation and test set
+    if joint_scaling:
+        copied = normalize_features(combined_features.copy())  # dont apply different scaling on X_test
+    else:
+        copied = combined_features
     X_train, X_test, y_train, y_test = train_test_split(
-        combined_features, y, test_size=test_size, random_state=random_state)
+        copied, y, test_size=test_size, random_state=random_state)
 
-    X_train, X_test = normalize_features(X_train, X_test)
+    if not joint_scaling:
+        X_train, X_test = normalize_features(X_train, X_test)
 
     # 25% of 80% are 20% of 100%
     np.random.seed(42)
