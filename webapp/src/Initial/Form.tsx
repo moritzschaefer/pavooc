@@ -68,7 +68,7 @@ export default class Form extends React.Component<Props, State> {
       <Chip
         label={geneSymbol}
         key={geneId}
-        onRequestDelete={this.removeGene}
+        onRequestDelete={() => this.removeGene(geneId)}
         className="geneChip"
       />
     );

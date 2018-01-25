@@ -145,6 +145,7 @@ class KnockoutList extends React.Component<Props, object> {
     const targets = geneGuides.guides
       .filter((guide: any) => guide.selected)
       .map((v: any) => v.target);
+    const { filterCount } = geneGuides;
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
@@ -165,6 +166,11 @@ class KnockoutList extends React.Component<Props, object> {
             {targets.join(", ")}
           </Link>
         </TableCell>
+        { filterCount > 0 ?
+          <TableCell style={{color: "orange"}}>
+            {filterCount} guides filtered due to cellline mutations
+          </TableCell> : null
+        }
       </TableRow>
     );
   }
@@ -215,7 +221,7 @@ const mapStateToProps = (state: any) => {
   return {
     guideCount: state.knockoutList.guideCount,
     guides: state.io.guides.map((gene: any) => {
-      let filteredGuides = gene.guides.filter((guide: any) => guide.mutations.includes(state.knockoutList.cellline));
+      let filteredGuides = gene.guides.filter((guide: any) => !guide.mutations.includes(state.knockoutList.cellline));
       return {...gene, guides: filteredGuides, filterCount: gene.guides.length - filteredGuides.length};
     })
   };
