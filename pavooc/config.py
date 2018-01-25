@@ -39,9 +39,13 @@ GENOME_FILE = os.path.join(DATADIR, 'genome.fa')
 GUIDES_FILE = os.path.join(EXON_DIR, '{}.guides')
 SCORES_FILE = os.path.join(EXON_DIR, '{}.guides.scores')
 MUTATIONS_FILE = os.path.join(DATADIR, 'ccle2maf_081117.txt')
+CNS_FILE = os.path.join(DATADIR, 'CCLE_copynumber_2013-12-03.seg.txt')
 EXON_BED_FILE = os.path.join(DATADIR, 'exome.bed')
 PDB_BED_FILE = os.path.join(DATADIR, 'pdbs.bed')
 GUIDE_BED_FILE = os.path.join(DATADIR, 'guides.bed')
+CELLLINES_PATH = os.path.join(DATADIR, 'celllines')
+MUTATION_BED_FILE = os.path.join(CELLLINES_PATH, '{}_mutations.bed')
+CNS_BED_FILE = os.path.join(CELLLINES_PATH, '{}_cns.bed')
 EXON_PADDING = 18
 ACHILLES_GUIDE_ACTIVITY_SCORES_FILE = os.path.join(
     DATADIR, 'guide_activity_scores.tsv')

@@ -12,15 +12,15 @@ crayon = CrayonClient(hostname="localhost", port=8889)
 
 
 def run_model(combined_features, y, validation_fold, model_class, loss,
-              learning_rate, epochs, feature_selector):
+              learning_rate, epochs, feature_selector, postfix=''):
     if isinstance(learning_rate, dict):
         learning_rate_str = '|'.join(
             [str(v) for v in learning_rate['milestones']])
     else:
         learning_rate_str = str(learning_rate)
-    experiment_name = '{}_{}_{}_{}_{}'.format(
+    experiment_name = '{}_{}_{}_{}_{}{}'.format(
         model_class.__name__, learning_rate_str, epochs,
-        loss.__class__.__name__, np.sum(feature_selector))
+        loss.__class__.__name__, np.sum(feature_selector), postfix)
     try:
         # TODO back it up instead of deleting
         crayon.remove_experiment(experiment_name)
@@ -69,7 +69,7 @@ def train_predict_n_shuffles(
                 np.array([x in validation for x in range(4000)]),
                 model_class,
                 torch.nn.MSELoss(),
-                0.0003, 6002, feature_selector, str(i))
+                learning_rate, epochs, feature_selector, str(i))
         sps.append(np.max(predictions))
         predicted_labels = model(
                 Variable(
@@ -79,4 +79,4 @@ def train_predict_n_shuffles(
                 ).cpu().data.numpy()
         test_sps.append(spearmanr(predicted_labels, y[test])[0])
         models.append(model)
-    print(sps, test_sps, models)
+    return sps, test_sps, models

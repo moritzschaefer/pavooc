@@ -1,9 +1,11 @@
 import os
 import stat
 import subprocess
+import glob
 
 from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
-    EXON_BED_FILE, GUIDE_BED_FILE, DATADIR
+    EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE
+from pavooc.data import celllines
 from pavooc.data_integration.downloader import main as main_downloader
 from pavooc.preprocessing.preprocessing import main as main_preprocessing
 from pavooc.preprocessing.prepare_flashfry import main as main_ff
@@ -14,16 +16,26 @@ from pavooc.preprocessing.guides_to_db import main as main_guides_to_db
 from pavooc.preprocessing.generate_pdb_bed import main as generate_pdb_bed
 from pavooc.preprocessing.generate_exon_bed import main as generate_exon_bed
 from pavooc.preprocessing.generate_guide_bed import main as generate_guide_bed
+from pavooc.preprocessing.generate_snp_bed import main as generate_snp_bed
+from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
 
 
-def generate_bed_files():
-    generate_pdb_bed()
-    generate_exon_bed()
-    generate_guide_bed()
+def generate_bed_files(skip_generation=False):
+    if not skip_generation:
+        generate_pdb_bed()
+        generate_exon_bed()
+        generate_guide_bed()
+        generate_snp_bed()
+        generate_cns_bed()
 
     SORTED_TMP_FILE = os.path.join(DATADIR, 'sorted.bed')
     os.chmod(BIG_BED_EXE, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-    for bedfile in [EXON_BED_FILE, PDB_BED_FILE, GUIDE_BED_FILE]:
+    bedfiles = [EXON_BED_FILE, PDB_BED_FILE, GUIDE_BED_FILE]
+    mutation_bedfiles = glob.glob(MUTATION_BED_FILE.format('*'))
+    cns_bedfiles = glob.glob(CNS_BED_FILE.format('*'))
+    bedfiles.extend(mutation_bedfiles)
+    bedfiles.extend(cns_bedfiles)
+    for bedfile in bedfiles:
         with open(SORTED_TMP_FILE, 'w') as sorted_file:
             result = subprocess.run(
                 ['sort', '-k1,1', '-k2,2n', bedfile],
