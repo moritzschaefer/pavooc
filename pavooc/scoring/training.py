@@ -191,7 +191,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
 
 def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
-                  epochs, loss=nn.MSELoss()):
+                  epochs, loss=nn.MSELoss(), folds='gene'):
     '''
     do one complete cross validation across all genes for the given model
     and configuration
@@ -200,8 +200,13 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
     results = []
     experiment_name = '{}_{}_{}_{}'.format(
         model_class.__name__, learning_rate, epochs, loss.__class__.__name__)
-    for i, gene in enumerate(distinct_genes):
-        experiment_name_i = '{}_{}|{}'.format(experiment_name, i, gene)
+
+    if folds == 'gene':
+        validation_folds = [(genes == gene) for gene in distinct_genes]
+    else:
+        validation_folds = folds
+    for i, validation_fold in enumerate(validation_folds):
+        experiment_name_i = '{}_cv|{}'.format(experiment_name, i)
         try:
             # TODO back it up instead of deleting
             crayon.remove_experiment(experiment_name_i)
@@ -211,7 +216,6 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
             pass
 
         tensorboard_experiment = crayon.create_experiment(experiment_name_i)
-        validation_fold = (genes == gene)
         losses, spearmans = train_predict(
             transformed_features, y, validation_fold, model_class,
             learning_rate, loss, epochs, tensorboard_experiment)

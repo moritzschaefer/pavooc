@@ -149,8 +149,8 @@ def cellline_mutation_trees():
     df.Chromosome = df.Chromosome.map(lambda c: f'chr{c}')
     for _, mutation in df.iterrows():
         try:
-            trees[mutation.Chromosome][mutation.Start_position:
-                                       mutation.End_position + 1] = \
+            trees[mutation.Chromosome][mutation.Start_position - 1:
+                                       mutation.End_position] = \
                                {'type': mutation.Variant_Type,
                                 'cellline': mutation.Tumor_Sample_Barcode}
         except KeyError:

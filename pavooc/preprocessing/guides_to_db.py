@@ -30,8 +30,10 @@ def guide_mutations(chromosome, position):
     #         for mut in
     #         cellline_mutation_trees[chromosome][position:position + 23]]
     # as long as other datais not necessary, we just return the cellline
-    return [mut[2]['cellline'] for mut in
-            cellline_mutation_trees()[chromosome][position:position + 23]]
+    # TODO add CNS?
+    mutations = [mut[2]['cellline'] for mut in
+                 cellline_mutation_trees()[chromosome][position:position + 23]]
+    return mutations
 
 
 def aa_cut_position(guide, canonical_exons):
@@ -192,6 +194,8 @@ def build_gene_document(gene, check_exists=True):
     guides.drop(guides.index[guides['azimuth_score'] < 0.5], inplace=True)
 
     flashfry_scores = flashfry.score(gene_id)
+
+    flashfry_scores.fillna(0, inplace=True)
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format

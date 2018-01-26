@@ -55,6 +55,9 @@ def train_predict_n_shuffles(
         model_class, normalized_features,
         feature_selector, y, num_runs=20,
         learning_rate=0.0003, epochs=6000):
+    '''
+    :returns: (validation_spearmans, test_spearmans, models)
+    '''
     sps = []
     test_sps = []
     models = []
