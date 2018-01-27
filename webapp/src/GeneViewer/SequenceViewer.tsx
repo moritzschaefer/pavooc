@@ -10,6 +10,7 @@ interface State {
 }
 
 interface Props {
+  cellline: string;
   gene: typeof GeneData;
   guides: Array<any>;
   hoveredGuide: number | undefined;
@@ -19,7 +20,7 @@ interface Props {
 
 let viewport: HTMLDivElement | undefined = undefined;
 
-export default class SequenceViewer extends React.Component<Props, State> {
+export default class SequenceViewer extends React.Component<any, State> {
   constructor(props: Props) {
     super(props);
 
@@ -31,7 +32,7 @@ export default class SequenceViewer extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, gene } = this.props;
+    const { hoveredGuide, guides, gene, cellline } = this.props;
     const { browser } = this.state;
     if (prevProps.hoveredGuide !== hoveredGuide) {
       if (!browser) {
@@ -41,19 +42,78 @@ export default class SequenceViewer extends React.Component<Props, State> {
       browser.clearHighlights();
       if (hoveredGuide) {
         const guide = guides[hoveredGuide];
-        let exonStart = gene.exons.find((exon: any) => exon.exon_id === guide.exon_id).start
-        browser.highlightRegion(gene.chromosome, 1 + guide.start + exonStart, 1 + guide.start + exonStart + 23);
+        let exonStart = gene.exons.find(
+          (exon: any) => exon.exon_id === guide.exon_id
+        ).start;
+        browser.highlightRegion(
+          gene.chromosome,
+          1 + guide.start + exonStart,
+          1 + guide.start + exonStart + 23
+        );
       }
     }
+
+    if (prevProps.cellline !== cellline) {
+      browser.removeTier(this.cns_config(prevProps.cellline));
+      browser.removeTier(this.snp_config(prevProps.cellline));
+
+      browser.addTier(this.cns_config(cellline));
+      browser.addTier(this.snp_config(cellline));
+    }
+  }
+
+  cns_config(cellline: string) {
+    return {
+      name: `${cellline} CNSs`,
+      desc: `copy number segmentation data for cellline ${cellline}`,
+      bwgURI: `/celllines/${cellline}_cns.bb`,
+      style: [
+        {
+          type: "default",
+          style: {
+            glyph: "ANCHORED_ARROW",
+            LABEL: true,
+            HEIGHT: "12",
+            BGITEM: true,
+            STROKECOLOR: "black",
+            BUMP: true,
+            FGCOLOR: "black"
+          }
+        }
+      ],
+      collapseSuperGroups: true
+    };
+  }
+  snp_config(cellline: string) {
+    return {
+      name: `${cellline} SNPs`,
+      desc: `mutations for cellline ${cellline}`,
+      bwgURI: `/celllines/${cellline}_mutations.bb`,
+      style: [
+        {
+          type: "default",
+          style: {
+            glyph: "ANCHORED_ARROW",
+            LABEL: true,
+            HEIGHT: "12",
+            BGITEM: true,
+            STROKECOLOR: "black",
+            BUMP: true,
+            FGCOLOR: "black"
+          }
+        }
+      ],
+      collapseSuperGroups: true
+    };
   }
   // TODO we can use trix to speed up the browser
-
   componentDidMount() {
     const { gene, onPdbClicked, onGuideHovered } = this.props;
 
     let geneStart = Math.min(...gene.exons.map((exon: any) => exon.start));
     let geneEnd = Math.max(...gene.exons.map((exon: any) => exon.end));
     let chr = gene.chromosome;
+
     let browser = new dalliance.Browser({
       chr: chr,
       viewStart: geneStart,
@@ -74,6 +134,8 @@ export default class SequenceViewer extends React.Component<Props, State> {
           twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
           tier_type: "sequence"
         },
+        this.cns_config(this.props.cellline),
+        this.snp_config(this.props.cellline),
         {
           name: "Guides",
           desc: "sgRNAs in the exome",
@@ -137,17 +199,21 @@ export default class SequenceViewer extends React.Component<Props, State> {
         }
       ]
     });
-    browser.addFeatureHoverListener((event: any, feature: any, hit: any, tier: any) => {
-      if (tier.dasSource.name === "Guides") {
-        const index = (hit[0].id.split(':')[0])-1;
-        onGuideHovered(index);
+    browser.addFeatureHoverListener(
+      (event: any, feature: any, hit: any, tier: any) => {
+        if (tier.dasSource.name === "Guides") {
+          const index = hit[0].id.split(":")[0] - 1;
+          onGuideHovered(index);
+        }
       }
-    });
-    browser.addFeatureListener((event: any, feature: any, hit: any, tier: any) => {
-      if (tier.dasSource.name === "PDBs") {
-        onPdbClicked(hit[0].id);
+    );
+    browser.addFeatureListener(
+      (event: any, feature: any, hit: any, tier: any) => {
+        if (tier.dasSource.name === "PDBs") {
+          onPdbClicked(hit[0].id);
+        }
       }
-    });
+    );
     browser.addInitListener(() => browser.setLocation(chr, geneStart, geneEnd));
     this.setState({ browser });
   }

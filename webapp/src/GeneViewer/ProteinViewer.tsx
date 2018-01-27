@@ -41,7 +41,13 @@ export default class ProteinViewer extends React.Component<Props, State> {
     let selection = "not all";
     if (hoveredGuide) {
       // TODO guides[hovered] is undefined sometimes
-      const aa_cut_position = guides[hoveredGuide].aa_cut_position;
+      let aa_cut_position;
+      try {
+        aa_cut_position = guides[hoveredGuide].aa_cut_position;
+      } catch (e) {
+        console.log(`${hoveredGuide} doesnt exist in ProteinViewer`);
+        return
+      }
       const highlightPosition = aa_cut_position - pdb.start;
       if (aa_cut_position >= 0 && highlightPosition) {
         selection = `${highlightPosition - 1}-${highlightPosition + 2}`; // bugfix extending indices
@@ -130,8 +136,9 @@ export default class ProteinViewer extends React.Component<Props, State> {
     if (this.state.stage) {
       const selectionChanged = false; // TODO implement
       if (
-        prevProps.pdb.pdb !== this.props.pdb.pdb ||
-        (prevState.stage !== this.state.stage && this.state.stage)
+        this.props.pdb &&
+        ((prevProps.pdb.pdb !== this.props.pdb.pdb) ||
+        (prevState.stage !== this.state.stage && this.state.stage))
       ) {
         this.loadPdb();
       } else if (
@@ -169,6 +176,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
     this.setState({ stage });
   }
 
+  // TODO render nothing if this.props.pdb is undefined such that guide table can grow
   render() {
     return (
       <div className={this.props.className}>

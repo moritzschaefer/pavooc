@@ -25,6 +25,7 @@ import IOEpic from "./IO/epic";
 import IOReducer from "./IO/reducer";
 import KnockoutListReducer from "./KnockoutList/reducer";
 import MessagesReducer from "./Messages/reducer";
+import AppReducer from "./App/reducer";
 
 // Create a history of your choosing (we're using a browser history in this case)
 const history = createHistory();
@@ -35,6 +36,7 @@ const rootReducer = combineReducers({
   router: routerReducer,
   io: IOReducer,
   messages: MessagesReducer,
+  app: AppReducer,
   knockoutList: KnockoutListReducer,
 });
 

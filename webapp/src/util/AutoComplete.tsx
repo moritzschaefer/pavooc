@@ -57,11 +57,11 @@ export default class AutoComplete extends React.Component<Props, State> {
     // TODO speedup!!
     const { dataSource, dataSourceReverse } = this.props;
 
-    let key = dataSource.get(upperInput);
-    if (!key && dataSourceReverse) {
-      key = dataSourceReverse.get(upperInput);
+    // TODO dataSource values must be uppercase
+    if (dataSource.get(upperInput)) {
+      return upperInput;
     }
-    return key; // key is undefined or the key
+    return dataSourceReverse && dataSourceReverse.get(upperInput);
   }
 
   onInputChange = ({
@@ -137,9 +137,11 @@ export default class AutoComplete extends React.Component<Props, State> {
   onChange = (selected: any, stateAndHelpers: object | undefined) => {
     const { onSelect, deleteOnSelect } = this.props;
     this.setState({ menuIsOpen: false });
-    if (onSelect && deleteOnSelect) {
-      this.setState({ inputValue: "" });
+    if (onSelect) { // TODO onSelect is called twice :/
       onSelect(selected);
+      if (deleteOnSelect) {
+        this.setState({ inputValue: "" });
+      }
     }
   };
 

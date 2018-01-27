@@ -9,6 +9,7 @@ import { MenuItem } from "material-ui/Menu";
 import { setGuideCount } from "./actions";
 import { toggleGuideSelection } from "../IO/actions";
 import { FormControl } from "material-ui/Form";
+import CelllineSelector from "../util/CelllineSelector";
 import Table, {
   TableBody,
   TableCell,
@@ -202,6 +203,7 @@ class KnockoutList extends React.Component<Props, object> {
           <div className="container">
             <div className="headControl">
               <h2 style={{ flex: 6 }}>Guide recommendations</h2>
+              <CelllineSelector />
               <Button raised={true} style={{ flex: 1, margin: 10 }} onClick={() => this.downloadCSV()}>
                 &darr; CSV
               </Button>

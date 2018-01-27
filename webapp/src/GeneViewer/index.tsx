@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
+import CelllineSelector from "../util/CelllineSelector";
 
 import { toggleGuideSelection, markGeneEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
@@ -24,6 +25,7 @@ interface Domain {
 }
 
 interface Props {
+  cellline: string;
   geneId: string;
   geneData: GeneData;
   push: (route: string) => {};
@@ -47,6 +49,7 @@ class GeneViewer extends React.Component<Props, State> {
     this.props.toggleGuideSelection(geneId, guideIndex);
     this.props.markGeneEdit(geneId);
   };
+
   setHoveredGuide = (hoveredGuide: number): void => {
     this.setState({ hoveredGuide });
   };
@@ -77,7 +80,7 @@ class GeneViewer extends React.Component<Props, State> {
   }
 
   render() {
-    const { geneData, geneId } = this.props;
+    const { geneData, geneId, cellline } = this.props;
     const { selectedPdb, hoveredGuide } = this.state;
     return (
       <div className="mainContainer">
@@ -93,6 +96,7 @@ class GeneViewer extends React.Component<Props, State> {
           </div>
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
+            <CelllineSelector />
             <Button raised={true}>&darr; CSV</Button>
           </div>
         </div>
@@ -114,6 +118,7 @@ class GeneViewer extends React.Component<Props, State> {
         </div>
         <div className="containerBottom">
           <SequenceViewer
+            cellline={cellline}
             hoveredGuide={hoveredGuide}
             guides={geneData.guides}
             onGuideHovered={this.setHoveredGuide}
@@ -130,6 +135,7 @@ const mapStateToProps = (
   state: any,
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => ({
+  cellline: state.app.cellline,
   geneData: state.io.guides.find((v: any) => v.gene_id === geneId),
   geneId
 });

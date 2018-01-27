@@ -5,18 +5,17 @@ import { FormControlLabel } from "material-ui/Form";
 import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
 import "./Form.css";
+import CelllineSelector from "../util/CelllineSelector";
 
 export interface Props {
-  go: (geneSelection: Array<string>, cellline: string) => {};
+  go: (geneSelection: Array<string>) => {};
   initialLoad: () => {};
   genes: Map<string, string>;
-  celllines: Map<string, string>;
   className: string;
   onMessage: (message: string) => {};
 }
 
 export interface State {
-  cellline: string;
   geneSelection: Map<string, string>;
   experimentType: string;
 }
@@ -25,7 +24,6 @@ export default class Form extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
-      cellline: "UM-UC-3",
       experimentType: "knockout",
       geneSelection: new Map()
     };
@@ -52,11 +50,6 @@ export default class Form extends React.Component<Props, State> {
     return true;
   };
 
-  selectCellline = (cellline: string): boolean => {
-    this.setState({ cellline });
-    return true;
-  };
-
   removeGene = (geneId: string) => {
     const geneSelection = new Map(this.state.geneSelection);
     geneSelection.delete(geneId);
@@ -75,8 +68,8 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { genes, celllines, className, onMessage } = this.props;
-    const { geneSelection, cellline } = this.state;
+    const { genes, className, onMessage } = this.props;
+    const { geneSelection } = this.state;
     let classes = "initialForm ";
     if (className) {
       classes += className;
@@ -84,27 +77,18 @@ export default class Form extends React.Component<Props, State> {
 
     let reversedGenes = undefined;
     try {
-      reversedGenes = genes && new Map(
-        Array.from(genes.entries()).map(([key, value]): [
-          string,
-          string
-        ] => [value, key])
-      )
-
-    } catch (e) {
-
-    }
+      reversedGenes =
+        genes &&
+        new Map(
+          Array.from(genes.entries()).map(([key, value]): [string, string] => [
+            value,
+            key
+          ])
+        );
+    } catch (e) {}
     return (
       <div className={classes}>
-        <AutoComplete
-          onSelect={this.selectCellline}
-          deleteOnSelect={false}
-          floatingLabelText="Cancer cellline"
-          openOnFocus={true}
-          dataSource={celllines}
-          dataSourceReverse={undefined}
-          onMessage={null}
-        />
+        <CelllineSelector />
         <br />
         <RadioGroup
           className="radioButtonGroup"
@@ -142,9 +126,8 @@ export default class Form extends React.Component<Props, State> {
           )}
         </div>
         <Button
-          onClick={() =>
-            this.props.go(Array.from(geneSelection.keys()), cellline)}
-          disabled={!geneSelection.size || !cellline}
+          onClick={() => this.props.go(Array.from(geneSelection.keys()))}
+          disabled={!geneSelection.size}
           raised={true}
           className="formButton"
         >

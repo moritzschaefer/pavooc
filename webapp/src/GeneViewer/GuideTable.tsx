@@ -65,7 +65,7 @@ export default class GuideTable extends React.Component<Props, State> {
     // sort, retaining indices
     const sortedGuides = guides.map((guide: Guide, index: number) => [guide, index])
     sortedGuides.sort(function(a: [Guide, number], b: [Guide, number]) {
-      return b[0].scores.aziumth - a[0].scores.azimuth;
+      return b[0].scores.azimuth - a[0].scores.azimuth;
     });
 
     return (
