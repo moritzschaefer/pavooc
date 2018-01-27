@@ -134,11 +134,19 @@ class GeneViewer extends React.Component<Props, State> {
 const mapStateToProps = (
   state: any,
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
-) => ({
-  cellline: state.app.cellline,
-  geneData: state.io.guides.find((v: any) => v.gene_id === geneId),
-  geneId
-});
+) => {
+  let geneData = state.io.guides.find((v: any) => v.gene_id === geneId);
+  return {
+    cellline: state.app.cellline,
+    geneData: {
+      ...geneData,
+      guides: geneData.guides.filter(
+        (guide: any) => !guide.mutations.includes(state.app.cellline)
+      )
+    },
+    geneId
+  };
+};
 
 const mapDispatchToProps = (dispatch: any) => ({
   push: (route: string) => dispatch(push(route)),

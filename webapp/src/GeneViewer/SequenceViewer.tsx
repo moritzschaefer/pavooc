@@ -42,14 +42,20 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.clearHighlights();
       if (hoveredGuide) {
         const guide = guides[hoveredGuide];
-        let exonStart = gene.exons.find(
-          (exon: any) => exon.exon_id === guide.exon_id
-        ).start;
-        browser.highlightRegion(
-          gene.chromosome,
-          1 + guide.start + exonStart,
-          1 + guide.start + exonStart + 23
-        );
+        try {
+          let exonStart = gene.exons.find(
+            (exon: any) => exon.exon_id === guide.exon_id
+          ).start;
+          browser.highlightRegion(
+            gene.chromosome,
+            1 + guide.start + exonStart,
+            1 + guide.start + exonStart + 23
+          );
+        } catch (e) {
+          console.log(e);
+          console.log(`${gene.gene_id} had no exon with exon_id`);
+          /* handle error */
+        }
       }
     }
 
