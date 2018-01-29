@@ -61,7 +61,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
             torch.from_numpy(train_labels).cuda())
     else:
         train_dataset = torch.utils.data.TensorDataset(
-                training_tensor, torch.from_numpy(train_labels))
+            training_tensor, torch.from_numpy(train_labels))
     loader = DataLoader(train_dataset, BATCH_SIZE)
     # if cuda.is_available():
     #     loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True,
@@ -119,6 +119,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
             # validation scores
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
+            if not (np.isfinite(predicted_labels).all()):
+                from IPython.core.debugger import set_trace
+                set_trace()
             l1 = np.abs(predicted_labels - validation_labels).mean()
             l2 = ((predicted_labels - validation_labels)**2).mean()
 
@@ -126,8 +129,14 @@ def train_predict(combined_features, y, validation_fold, model_class,
             training_spearman = st.spearmanr(
                 train_labels, predicted_training_labels)[0]
 
-            training_loss = criterion(Variable(torch.from_numpy(predicted_training_labels), requires_grad=False), Variable(
-                torch.from_numpy(train_labels), requires_grad=False)).data[0]
+            training_loss = criterion(
+                Variable(torch.from_numpy(predicted_training_labels),
+                         requires_grad=False),
+                Variable(torch.from_numpy(train_labels),
+                         requires_grad=False)).data[0]
+            if not (np.isfinite(predicted_training_labels).all()):
+                from IPython.core.debugger import set_trace
+                set_trace()
             training_l1 = np.abs(
                 predicted_training_labels - train_labels).mean()
             training_l2 = (
