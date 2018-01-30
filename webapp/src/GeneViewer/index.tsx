@@ -8,7 +8,7 @@ import CelllineSelector from "../util/CelllineSelector";
 import { toggleGuideSelection, markGeneEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer from "./SequenceViewer";
-import GuideTable from "./GuideTable";
+import GuideLineup from "./GuideLineup";
 import "./style.css";
 
 export interface GeneData {
@@ -108,7 +108,7 @@ class GeneViewer extends React.Component<Props, State> {
             guides={geneData.guides}
             pdb={geneData.pdbs[selectedPdb]}
           />
-          <GuideTable
+          <GuideLineup
             hoveredGuide={hoveredGuide}
             setHoveredGuide={this.setHoveredGuide}
             guideClicked={this.guideCheckboxClicked}
