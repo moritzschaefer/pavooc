@@ -225,7 +225,7 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
             pass
 
         tensorboard_experiment = crayon.create_experiment(experiment_name_i)
-        losses, spearmans = train_predict(
+        losses, spearmans, model = train_predict(
             transformed_features, y, validation_fold, model_class,
             learning_rate, loss, epochs, tensorboard_experiment)
         # print('Trained on fold {}/{}. Test gene: {}. Spearman: {}'

@@ -11,7 +11,7 @@ def _cns_bed_row(cns):
     return ['chr{}'.format(cns.Chromosome),
             cns.Start - 1,
             cns.End,
-            '{}-fold-amplification'.format(cns.Num_Probes),
+            '{}-fold-amplification'.format(2 * (2 ** cns.Segment_Mean)),
             0,
             '+',
             cns.Start - 1,

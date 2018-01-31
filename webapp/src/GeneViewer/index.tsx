@@ -5,7 +5,11 @@ import { push } from "react-router-redux";
 import Button from "material-ui/Button";
 import CelllineSelector from "../util/CelllineSelector";
 
-import { toggleGuideSelection, markGeneEdit } from "../IO/actions";
+import {
+  toggleGuideSelection,
+  setGuideSelection,
+  markGeneEdit
+} from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
@@ -31,6 +35,7 @@ interface Props {
   push: (route: string) => {};
   markGeneEdit: (geneId: string) => {};
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
+  setGuideSelection: (geneId: string, guideSelection: number[]) => {};
 }
 
 interface State {
@@ -78,6 +83,9 @@ class GeneViewer extends React.Component<Props, State> {
         .map((domain: Domain) => domain.name)
     }));
   }
+  _lineupSetGuideSelection = (guideSelection: number[]): void => {
+    this.props.setGuideSelection(this.props.geneId, guideSelection);
+  }
 
   render() {
     const { geneData, geneId, cellline } = this.props;
@@ -110,7 +118,9 @@ class GeneViewer extends React.Component<Props, State> {
           />
           <GuideLineup
             hoveredGuide={hoveredGuide}
+            cellline={cellline}
             setHoveredGuide={this.setHoveredGuide}
+            setGuideSelection={this._lineupSetGuideSelection}
             guideClicked={this.guideCheckboxClicked}
             guides={this._guidesWithDomains()}
             className="guideTable"
@@ -152,6 +162,8 @@ const mapDispatchToProps = (dispatch: any) => ({
   push: (route: string) => dispatch(push(route)),
   toggleGuideSelection: (geneId: string, guideIndex: number) =>
     dispatch(toggleGuideSelection(geneId, guideIndex)),
+  setGuideSelection: (geneId: string, guideSelection: number[]) =>
+    dispatch(setGuideSelection(geneId, guideSelection)),
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId))
 });
 

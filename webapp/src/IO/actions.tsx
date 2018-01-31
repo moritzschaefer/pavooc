@@ -74,6 +74,19 @@ export const initialLoadFailure = (error: string): InitialLoadFailure => ({
   error
 });
 
+export interface SetGuideSelection {
+  type: typeof t.SET_GUIDE_SELECTION;
+  geneId: string;
+  guideSelection: number[];
+}
+
+export const setGuideSelection = (geneId: string, guideSelection: number[]) : SetGuideSelection => ({
+  type: t.SET_GUIDE_SELECTION,
+  geneId,
+  guideSelection
+});
+
+
 export interface ToggleGuideSelection {
   type: typeof t.TOGGLE_GUIDE_SELECTION;
   geneId: string;

@@ -16,10 +16,25 @@ interface State {
 
 interface Props {
   className: string;
+  cellline: string;
   guides: Array<Guide>;
   hoveredGuide: number | undefined;
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
   guideClicked: (guideIndex: number) => void;
+  setGuideSelection: (guideSelection: number[]) => void;
+}
+
+function eqSet(as: Set<number>, bs: Set<number>) {
+  if (as.size !== bs.size) {
+    return false;
+  }
+  let equal = true;
+  as.forEach((v: number) => {
+    if (!bs.has(v)) {
+      equal = false;
+    }
+  });
+  return equal;
 }
 
 let viewport: HTMLElement | undefined = undefined;
@@ -30,9 +45,12 @@ export default class GuideLineup extends React.Component<Props, State> {
       .sidePanel(false, false)
       .deriveColumns()
       .deriveColors()
-      .defaultRanking()
       .build(viewport as HTMLElement);
     this._updateSelection(lineup);
+
+    lineup.data.on("selectionChanged", (selection: number[]) => {
+      this.props.setGuideSelection(selection);
+    });
     this.setState({ lineup });
   }
 
@@ -54,31 +72,35 @@ export default class GuideLineup extends React.Component<Props, State> {
     //   return b[0].scores.azimuth - a[0].scores.azimuth;
     // });
     return this.props.guides.map((guide: Guide, index: number) => ({
-      Label: guide.target,
+      //Label: guide.target,
       d: `Guide ${index}`,
       ...guide.scores
     }));
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
-    // check if the two arrays differ
-    if (nextProps.guides !== this.props.guides) {
-      console.log("guides changed in GuideLineup");
+    // TODO check if the two arrays differ
+    if (nextProps.cellline !== this.props.cellline) {
+      console.log("guides might have changed in GuideLineup");
+      return true;
     }
     return false;
   }
+
   componentDidUpdate(prevProps: Props, prevState: State) {
     this._updateSelection(this.state.lineup);
   }
 
   _updateSelection(lineup: any) {
-    lineup.data.clearSelection();
-    this.props.guides.forEach((guide: Guide, index: number) => {
-      if (guide.selected) {
-        lineup.data.select(index);
-        console.log(index);
-      }
-    });
+    // only update if not already the same
+    let newSelection = this.props.guides
+      .map((guide: Guide, index: number) => [guide, index])
+      .filter(([guide, index]: [Guide, number]) => guide.selected)
+      .map(([guide, index]: [Guide, number]) => index);
+
+    if (!eqSet(new Set(lineup.data.getSelection()), new Set(newSelection))) {
+      lineup.data.setSelection(newSelection);
+    }
   }
   // renderTableRow(guide: Guide, index: number) {
   //   const { setHoveredGuide, hoveredGuide } = this.props;

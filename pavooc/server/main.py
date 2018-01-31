@@ -62,11 +62,11 @@ knockout_output = api.model('KnockoutGuides', {
             'mutations': fields.List(fields.String),
             'scores': fields.Nested({
                 'azimuth': fields.Float,
-                'Doench2014OnTarget': fields.Float,
+                # 'Doench2014OnTarget': fields.Float,
                 'Doench2016CDFScore': fields.Float,
-                'dangerous_GC': fields.String,
-                'dangerous_polyT': fields.String,
-                'dangerous_in_genome': fields.String,
+                # 'dangerous_GC': fields.String,
+                # 'dangerous_polyT': fields.String,
+                # 'dangerous_in_genome': fields.String,
                 'Hsu2013': fields.Float
             }),
         }))

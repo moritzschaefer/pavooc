@@ -50,6 +50,20 @@ export default (state: State = INITIAL_STATE, action: any) => {
         ),
         celllines: action.celllines
       };
+    case t.SET_GUIDE_SELECTION:
+      // TODO slow?
+      return {
+        ...state,
+        guides: state.guides.map((gene: any) => ({
+          ...gene,
+          guides: gene.guides.map((guide: any, index: number) => ({
+            ...guide,
+            selected:
+              guide.selected !==
+              (gene.gene_id === action.geneId && action.guideSelection.includes(index))
+          }))
+        }))
+      };
     case t.TOGGLE_GUIDE_SELECTION:
       // TODO slow?
       return {
