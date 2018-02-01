@@ -13,7 +13,7 @@ from intervaltree import IntervalTree
 
 from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
     DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE, \
-    MUTATIONS_FILE, BASEDIR
+    MUTATIONS_FILE, CNS_FILE, BASEDIR
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
@@ -143,6 +143,22 @@ def gencode_exons():
 
 
 @buffer_return_value
+def cns_trees():
+    trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
+    df = pd.read_csv(CNS_FILE, sep='\t')
+    df.Chromosome = df.Chromosome.map(lambda c: f'chr{c}')
+    for _, cns in df.iterrows():
+        try:
+            trees[cns.Chromosome][cns.Start - 1:
+                                  cns.End] = \
+                {'type': 2 * (2 ** cns.Segment_Mean),
+                 'cellline': cns.CCLE_name}
+        except KeyError:
+            pass
+    return trees
+
+
+@buffer_return_value
 def cellline_mutation_trees():
     trees = {chromosome: IntervalTree() for chromosome in CHROMOSOMES}
     df = pd.read_csv(MUTATIONS_FILE, sep='\t')
@@ -151,8 +167,8 @@ def cellline_mutation_trees():
         try:
             trees[mutation.Chromosome][mutation.Start_position - 1:
                                        mutation.End_position] = \
-                               {'type': mutation.Variant_Type,
-                                'cellline': mutation.Tumor_Sample_Barcode}
+                {'type': mutation.Variant_Type,
+                 'cellline': mutation.Tumor_Sample_Barcode}
         except KeyError:
             pass
     return trees

@@ -27,7 +27,6 @@ export interface Props {
   guides: Array<any>;
 }
 
-
 class KnockoutList extends React.Component<Props, object> {
   componentDidMount() {
     this.updateGuideSelection(this.props.guideCount);
@@ -37,7 +36,8 @@ class KnockoutList extends React.Component<Props, object> {
     const exportFilename = "pavoocExport.csv";
 
     // TODO orientation->guideOrientation, geneStrand, delete selected, start->startInGene, add exonStart
-    const data = [].concat( // flatten array of arrays
+    const data = [].concat(
+      // flatten array of arrays
       ...this.props.guides.map((gene: any) =>
         gene.guides
           .filter((guide: any) => guide.selected) // only return selected guides
@@ -146,7 +146,7 @@ class KnockoutList extends React.Component<Props, object> {
     const targets = geneGuides.guides
       .filter((guide: any) => guide.selected)
       .map((v: any) => v.target);
-    const { filterCount } = geneGuides;
+    const { filterCount, cns } = geneGuides;
     const geneLink = `/geneviewer/${geneGuides.gene_id}`;
 
     return (
@@ -155,11 +155,17 @@ class KnockoutList extends React.Component<Props, object> {
           <Link className="tableLink" to={geneLink}>
             {geneGuides.gene_symbol}
           </Link>
-          { filterCount > 0 ?
-            <div style={{color: "orange"}}>
+          {filterCount > 0 ? (
+            <div style={{ color: "orange" }}>
               {filterCount} guides filtered due to cellline mutations
-            </div> : null
-          }
+            </div>
+          ) : null}
+          {cns ? (
+            <div style={{ color: "orange" }}>
+              This gene is affected by a copy number segmentation in the
+              selected cellline
+            </div>
+          ) : null}
         </TableCell>
         <TableCell
           style={{
@@ -204,7 +210,11 @@ class KnockoutList extends React.Component<Props, object> {
             <div className="headControl">
               <h2 style={{ flex: 6 }}>Guide recommendations</h2>
               <CelllineSelector />
-              <Button raised={true} style={{ flex: 1, margin: 10 }} onClick={() => this.downloadCSV()}>
+              <Button
+                raised={true}
+                style={{ flex: 1, margin: 10 }}
+                onClick={() => this.downloadCSV()}
+              >
                 &darr; CSV
               </Button>
               {this.renderGuideCountSelector()}
@@ -223,11 +233,18 @@ const mapStateToProps = (state: any) => {
   return {
     guideCount: state.knockoutList.guideCount,
     guides: state.io.guides.map((gene: any) => {
-      let filteredGuides = gene.guides.filter((guide: any) => !guide.mutations.includes(state.app.cellline));
-      return {...gene, guides: filteredGuides, filterCount: gene.guides.length - filteredGuides.length};
+      let filteredGuides = gene.guides.filter(
+        (guide: any) => !guide.mutations.includes(state.app.cellline)
+      );
+      return {
+        ...gene,
+        cns: gene.cns.includes(state.app.cellline),
+        guides: filteredGuides,
+        filterCount: gene.guides.length - filteredGuides.length
+      };
     })
   };
-}
+};
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
   push: (route: string) => dispatch(push(route)),

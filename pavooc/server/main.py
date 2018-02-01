@@ -29,6 +29,7 @@ knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
     'gene_symbol': fields.String,
     'chromosome': fields.String,
+    'cns': fields.List(fields.String),
     'exons': fields.List(
         fields.Nested({
             'start': fields.Integer,

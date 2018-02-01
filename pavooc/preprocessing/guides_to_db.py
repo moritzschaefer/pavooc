@@ -14,11 +14,21 @@ from pavooc.pdb import pdb_mappings
 from pavooc.util import normalize_pid
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
-    read_gencode, cellline_mutation_trees
+    read_gencode, cellline_mutation_trees, cns_trees
 from pavooc.scoring import azimuth, flashfry
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
+
+
+def cns_affection(exons):
+    '''
+    :returns: boolean whether the gene is affected by a CNS or not
+    '''
+    chromosome = exons.iloc[0].seqname
+    start = exons.start.min()
+    end = exons.end.max()
+    return [v[2]['cellline'] for v in cns_trees()[chromosome][start:end]]
 
 
 def guide_mutations(chromosome, position):
@@ -214,6 +224,7 @@ def build_gene_document(gene, check_exists=True):
     return {
         'gene_id': gene_id,
         'gene_symbol': gene_symbol,
+        'cns': cns_affection(exons),
         'strand': strand,
         'pdbs': list(pdbs_for_gene(gene_id).T.to_dict().values()),
         'chromosome': exons.iloc[0]['seqname'],
