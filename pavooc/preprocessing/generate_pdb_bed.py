@@ -1,6 +1,7 @@
 '''
 Create a bed file for the exome
 '''
+import os
 import logging
 import pandas as pd
 from pavooc.config import PDB_BED_FILE
@@ -102,66 +103,70 @@ def pdb_coordinates(pdb, pdb_exons):
 
 
 def main():
-    with open(PDB_BED_FILE, 'w') as f:
-        appris = read_appris()
-        exons = gencode_exons()
+    appris = read_appris()
+    exons = gencode_exons()
 
-        # filter out exons which dont belong to swissprot-transcripts
-        # (makes dataprocessing easier)
-        # TODO exons doesn't provide swissprot_id any more FIXME
-        exons = exons.loc[exons.swissprot_id.map(
-            lambda spid: type(spid) == str)].copy()
-        exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
+    # filter out exons which dont belong to swissprot-transcripts
+    # (makes dataprocessing easier)
+    # TODO exons doesn't provide swissprot_id any more FIXME
+    exons = exons.loc[exons.swissprot_id.map(
+        lambda spid: type(spid) == str)].copy()
+    exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
 
-        for _, pdb in pdb_list().iterrows():
-            # find the transcript, that corresponds to the pdb
-            gene_id = exons.loc[exons.swissprot_id
-                                == pdb.SP_PRIMARY].gene_id.drop_duplicates()
-            if len(gene_id) == 0:
-                continue
+    for _, pdb in pdb_list().iterrows():
+        # find the transcript, that corresponds to the pdb
+        gene_id = exons.loc[exons.swissprot_id
+                            == pdb.SP_PRIMARY].gene_id.drop_duplicates()
+        if len(gene_id) == 0:
+            continue
 
-            if len(gene_id) != 1:
-                logging.warn(f'PDB should corresponds to multiple geneids: '
-                             f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
+        if len(gene_id) != 1:
+            logging.warn(f'PDB should corresponds to multiple geneids: '
+                         f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
 
-            gene_id = gene_id.iloc[0]
+        gene_id = gene_id.iloc[0]
 
-            # TODO might be wrong in some circumstances TOIMPROVE
-            # right now we take the longest transcript anyways
-            # transcript_id = appris.loc[gene_id[:15]].transcript_id
-            # if isinstance(transcript_id, pd.Series):
-            #     logging.warning('Found {} canonical transcripts for {}. '
-            #                     'Choosing first one'.format(
-            #                         len(transcript_id), gene_id))
-            #     transcript_id = transcript_id.iloc[0]
+        # TODO might be wrong in some circumstances TOIMPROVE
+        # right now we take the longest transcript anyways
+        # transcript_id = appris.loc[gene_id[:15]].transcript_id
+        # if isinstance(transcript_id, pd.Series):
+        #     logging.warning('Found {} canonical transcripts for {}. '
+        #                     'Choosing first one'.format(
+        #                         len(transcript_id), gene_id))
+        #     transcript_id = transcript_id.iloc[0]
 
-            # filter the exons for the corresponding transcript
-            # TODO in  gencode_exons we could just not use the longest
-            # transcript but one from appris...
-            transcript_id = exons.transcript_id.drop_duplicates().iloc[0][:15]
-            appris_ids = appris.loc[gene_id[:15]].transcript_id
-            if isinstance(appris_ids, pd.Series):
-                if (appris_ids != transcript_id).all():
-                    print('transcript_id is not the primary one!')
-                    print(appris_ids, transcript_id)
-            else:
-                if appris_ids != transcript_id:
-                    print('transcript_id is not the primary one!')
-                    print(appris_ids, transcript_id)
+        # filter the exons for the corresponding transcript
+        # TODO in  gencode_exons we could just not use the longest
+        # transcript but one from appris...
+        transcript_id = exons.transcript_id.drop_duplicates().iloc[0][:15]
+        appris_ids = appris.loc[gene_id[:15]].transcript_id
+        if isinstance(appris_ids, pd.Series):
+            if (appris_ids != transcript_id).all():
+                print('transcript_id is not the primary one!')
+                print(appris_ids, transcript_id)
+        else:
+            if appris_ids != transcript_id:
+                print('transcript_id is not the primary one!')
+                print(appris_ids, transcript_id)
 
-            pdb_exons = exons.loc[
-                exons.gene_id == gene_id].copy().sort_values('exon_number')
+        pdb_exons = exons.loc[
+            exons.gene_id == gene_id].copy().sort_values('exon_number')
 
-            try:
-                data = pdb_coordinates(pdb, pdb_exons)
-            except ValueError as e:
-                logging.warning(gene_id)
-                logging.warning(e)
-                continue
-            else:
+        try:
+            data = pdb_coordinates(pdb, pdb_exons)
+        except ValueError as e:
+            logging.warning(gene_id)
+            logging.warning(e)
+            continue
+        else:
+            with open(PDB_BED_FILE.format(pdb.PDB), 'w') as f:
                 f.write('\t'.join([str(v) for v in data]))
                 f.write('\n')
 
 
 if __name__ == "__main__":
+    try:
+        os.makedirs(os.path.dirname(PDB_BED_FILE))
+    except FileExistsError:
+        pass
     main()

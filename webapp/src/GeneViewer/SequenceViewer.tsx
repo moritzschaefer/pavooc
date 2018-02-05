@@ -15,7 +15,8 @@ interface Props {
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number) => void;
-  onPdbClicked: (pdb: string) => void;
+  pdb: string;
+  onPdbClicked: () => void;
 }
 
 let viewport: HTMLDivElement | undefined = undefined;
@@ -32,7 +33,7 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, gene, cellline } = this.props;
+    const { hoveredGuide, guides, gene, cellline, pdb } = this.props;
     const { browser } = this.state;
     if (prevProps.hoveredGuide !== hoveredGuide) {
       if (!browser) {
@@ -60,15 +61,44 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
 
     if (prevProps.cellline !== cellline) {
-      browser.removeTier(this.cns_config(prevProps.cellline));
-      browser.removeTier(this.snp_config(prevProps.cellline));
+      browser.removeTier(this.cnsConfig(prevProps.cellline));
+      browser.removeTier(this.snpConfig(prevProps.cellline));
 
-      browser.addTier(this.cns_config(cellline));
-      browser.addTier(this.snp_config(cellline));
+      browser.addTier(this.cnsConfig(cellline));
+      browser.addTier(this.snpConfig(cellline));
+    }
+    if (prevProps.pdb !== pdb) {
+      browser.removeTier(this.pdbConfig(prevProps.pdb));
+      browser.addTier(this.pdbConfig(pdb));
     }
   }
 
-  cns_config(cellline: string) {
+  pdbConfig(pdb: string) {
+    return {
+      name: "PDB",
+      desc: "PDB mapped to gene coordinates",
+      uri: `/pdbs/${pdb}.bed`,
+      tier_type: "memstore",
+      payload: "bed",
+      style: [
+        {
+          type: "default",
+          style: {
+            glyph: "ANCHORED_ARROW",
+            LABEL: true,
+            HEIGHT: "10",
+            BGITEM: true,
+            STROKECOLOR: "black",
+            BUMP: true,
+            FGCOLOR: "black"
+          }
+        }
+      ],
+      collapseSuperGroups: true
+    };
+  }
+
+  cnsConfig(cellline: string) {
     return {
       name: `${cellline} CNSs`,
       desc: `copy number segmentation data for cellline ${cellline}`,
@@ -90,7 +120,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       collapseSuperGroups: true
     };
   }
-  snp_config(cellline: string) {
+
+  snpConfig(cellline: string) {
     return {
       name: `${cellline} SNPs`,
       desc: `mutations for cellline ${cellline}`,
@@ -112,9 +143,10 @@ export default class SequenceViewer extends React.Component<any, State> {
       collapseSuperGroups: true
     };
   }
+
   // TODO we can use trix to speed up the browser
   componentDidMount() {
-    const { gene, onPdbClicked, onGuideHovered } = this.props;
+    const { gene, onPdbClicked, onGuideHovered, cellline, pdb } = this.props;
 
     let geneStart = Math.min(...gene.exons.map((exon: any) => exon.start));
     let geneEnd = Math.max(...gene.exons.map((exon: any) => exon.end));
@@ -140,8 +172,9 @@ export default class SequenceViewer extends React.Component<any, State> {
           twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
           tier_type: "sequence"
         },
-        this.cns_config(this.props.cellline),
-        this.snp_config(this.props.cellline),
+        this.cnsConfig(cellline),
+        this.snpConfig(cellline),
+        this.pdbConfig(pdb),
         {
           name: "Guides",
           desc: "sgRNAs in the exome",
@@ -158,26 +191,6 @@ export default class SequenceViewer extends React.Component<any, State> {
                 STROKECOLOR: "black",
                 FGCOLOR: "black",
                 BGCOLOR: "blue"
-              }
-            }
-          ],
-          collapseSuperGroups: true
-        },
-        {
-          name: "PDBs",
-          desc: "PDBs mapped to gene coordinates",
-          bwgURI: "/pdbs.bb",
-          style: [
-            {
-              type: "default",
-              style: {
-                glyph: "ANCHORED_ARROW",
-                LABEL: true,
-                HEIGHT: "12",
-                BGITEM: true,
-                STROKECOLOR: "black",
-                BUMP: true,
-                FGCOLOR: "black"
               }
             }
           ],
@@ -215,8 +228,9 @@ export default class SequenceViewer extends React.Component<any, State> {
     );
     browser.addFeatureListener(
       (event: any, feature: any, hit: any, tier: any) => {
-        if (tier.dasSource.name === "PDBs") {
-          onPdbClicked(hit[0].id);
+        if (tier.dasSource.name === "PDB") {
+          // delete current track, add new one
+          onPdbClicked();
         }
       }
     );

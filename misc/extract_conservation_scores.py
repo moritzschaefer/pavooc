@@ -174,7 +174,7 @@ def pickle_return_value(func):
     import pickle
 
     def wrapper(*args, **kwargs):
-        filename = f'buffered_{func.__name__}.pickle'
+        filename = os.path.join(DATADIR, f'buffered_{func.__name__}.pickle')
         try:
             with open(filename, 'rb') as f:
                 return pickle.load(f)

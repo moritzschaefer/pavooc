@@ -4,6 +4,7 @@ import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
 import CelllineSelector from "../util/CelllineSelector";
+import PdbSelectionDialog from "./PdbSelectionDialog";
 
 import {
   toggleGuideSelection,
@@ -13,6 +14,7 @@ import {
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
+// import GuideTable from "./GuideTable";
 import "./style.css";
 
 export interface GeneData {
@@ -41,12 +43,13 @@ interface Props {
 interface State {
   selectedPdb: number;
   hoveredGuide: number | undefined;
+  pdbSelectionOpened: boolean;
 }
 
 class GeneViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { selectedPdb: 0, hoveredGuide: undefined };
+    this.state = { selectedPdb: 0, hoveredGuide: undefined, pdbSelectionOpened: false };
   }
 
   guideCheckboxClicked = (guideIndex: number) => {
@@ -59,15 +62,16 @@ class GeneViewer extends React.Component<Props, State> {
     this.setState({ hoveredGuide });
   };
 
-  showPdb = (clickedPdb: string): void => {
-    const { geneData } = this.props;
-    const selectedPdb = geneData.pdbs.findIndex(
-      (pdb: any) => pdb.PDB === clickedPdb
-    );
-    if (selectedPdb >= 0) {
-      this.setState({ selectedPdb });
+  _openPdbSelection = (): void => {
+    this.setState({ pdbSelectionOpened: true });
+  };
+
+  _selectPdb = (index: number): void => {
+    // TODO show selection dialog
+    if (index >= 0) {
+      this.setState({ selectedPdb: index, pdbSelectionOpened: false });
     } else {
-      console.log("Error: selected pdb doesnt exist in genedata");
+      this.setState({ pdbSelectionOpened: false });
     }
   };
 
@@ -83,15 +87,21 @@ class GeneViewer extends React.Component<Props, State> {
         .map((domain: Domain) => domain.name)
     }));
   }
+
   _lineupSetGuideSelection = (guideSelection: number[]): void => {
     this.props.setGuideSelection(this.props.geneId, guideSelection);
   }
 
   render() {
     const { geneData, geneId, cellline } = this.props;
-    const { selectedPdb, hoveredGuide } = this.state;
+    const { selectedPdb, hoveredGuide, pdbSelectionOpened  } = this.state;
     return (
       <div className="mainContainer">
+        <PdbSelectionDialog
+          data={geneData.pdbs.map((pdb: any) => pdb.pdb)}
+          opened={pdbSelectionOpened}
+          selectIndex={this._selectPdb}
+        />
         <div className="containerTop">
           <div className="geneViewerHeader">
             <Button
@@ -132,7 +142,8 @@ class GeneViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             guides={geneData.guides}
             onGuideHovered={this.setHoveredGuide}
-            onPdbClicked={this.showPdb}
+            pdb={geneData.pdbs[selectedPdb].pdb}
+            onPdbClicked={this._openPdbSelection}
             gene={geneData}
           />
         </div>

@@ -47,10 +47,12 @@ export default class GuideLineup extends React.Component<Props, State> {
       .column(LineUpJS.buildNumberColumn("Doench2016CDFScore", [0, 1]))
       .column(LineUpJS.buildNumberColumn("Hsu2013", [0, 100]))
       .column(LineUpJS.buildStringColumn("d"))
+      .column(LineUpJS.buildStringColumn("Domain"))
       .ranking(
         LineUpJS.buildRanking()
           .selection()
           .column("d")
+          .column("Domain")
           .weightedSum(
             "azimuth",
             0.45,
@@ -72,25 +74,9 @@ export default class GuideLineup extends React.Component<Props, State> {
   }
 
   _tableArray() {
-    // return [0, 5, 10, 15, 20].map((start: number) => (
-    //   <p
-    //     key={target + start.toString()}
-    //     style={{ marginTop: 0.2, marginBottom: 0.2 }}
-    //   >
-    //     {target.slice(start, start + 5)}
-    //   </p>
-    // ));
-    // sort, retaining indices
-    // const sortedGuides = guides.map((guide: Guide, index: number) => [
-    //   guide,
-    //   index
-    // ]);
-    // sortedGuides.sort(function(a: [Guide, number], b: [Guide, number]) {
-    //   return b[0].scores.azimuth - a[0].scores.azimuth;
-    // });
     return this.props.guides.map((guide: Guide, index: number) => ({
-      //Label: guide.target,
       d: `Guide ${index}`,
+      Domain: guide.domains.join(","),
       ...guide.scores
     }));
   }
