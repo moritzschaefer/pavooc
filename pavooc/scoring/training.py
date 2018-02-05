@@ -128,6 +128,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # training scores
             training_spearman = st.spearmanr(
                 train_labels, predicted_training_labels)[0]
+            if np.isnan(training_spearman):
+                from IPython.core.debugger import set_trace
+                set_trace()
 
             training_loss = criterion(
                 Variable(torch.from_numpy(predicted_training_labels),

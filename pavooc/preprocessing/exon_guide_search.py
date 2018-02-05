@@ -10,7 +10,7 @@ import pandas as pd
 import numpy as np
 
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-    GUIDES_FILE, SCORES_FILE, COMPUTATION_CORES
+    GUIDES_FILE, SCORES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
 from pavooc.data import read_gencode, exon_interval_trees
 from pavooc.scoring import flashfry
 
@@ -87,7 +87,7 @@ def flashfry_guides(gene_id):
         'java',
         '-Xmx{}M'.format(int((1024 * float(JAVA_RAM)) //
                              int(COMPUTATION_CORES))),
-        '-jar', 'FlashFry-assembly-1.7.jar',
+        '-jar', FLASHFRY_EXE,
         '--analysis', 'discover',
         '--fasta', gene_file,
         '--output', target_file,

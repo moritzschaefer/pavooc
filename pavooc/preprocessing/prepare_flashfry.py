@@ -4,7 +4,7 @@ import shutil
 import logging
 
 from pavooc.config import JAVA_RAM, FLASHFRY_TMP_DIR, FLASHFRY_DB_FILE, \
-        GENOME_FILE
+        GENOME_FILE, FLASHFRY_EXE
 
 
 def main():
@@ -16,7 +16,7 @@ def main():
     result = subprocess.run([
             'java',
             '-Xmx{}g'.format(JAVA_RAM),
-            '-jar', 'FlashFry-assembly-1.7.jar',
+            '-jar', FLASHFRY_EXE,
             '--analysis', 'index',
             '--tmpLocation', FLASHFRY_TMP_DIR,
             '--database', FLASHFRY_DB_FILE,

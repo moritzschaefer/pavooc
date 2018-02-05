@@ -3,7 +3,7 @@ import subprocess
 import pandas as pd
 
 from pavooc.config import GUIDES_FILE, SCORES_FILE, JAVA_RAM, \
-        COMPUTATION_CORES, FLASHFRY_DB_FILE
+        COMPUTATION_CORES, FLASHFRY_DB_FILE, FLASHFRY_EXE
 
 
 def score(gene_id):
@@ -18,7 +18,7 @@ def score(gene_id):
         'java',
         '-Xmx{}M'.format(int((1024 * float(JAVA_RAM)) //
                              int(COMPUTATION_CORES))),
-        '-jar', 'FlashFry-assembly-1.7.jar',
+        '-jar', FLASHFRY_EXE,
         '--analysis', 'score',
         '--input', guides_file,
         '--output', scores_file,

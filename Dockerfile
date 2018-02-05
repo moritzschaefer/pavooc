@@ -30,7 +30,7 @@ ADD requirements.txt /usr/app/requirements.txt
 WORKDIR /usr/app
 RUN pip install -r requirements.txt
 
-RUN wget https://github.com/aaronmck/FlashFry/releases/download/1.7/FlashFry-assembly-1.7.jar
+RUN wget https://github.com/aaronmck/FlashFry/releases/download/1.7.5/FlashFry-assembly-1.7.5.jar
 ADD . /usr/app
 
 # download data, do all preprocessing

@@ -54,6 +54,7 @@ HAEUSSLER_SCORES_FILE = os.path.join(DATADIR,
                                      '13059_2016_1012_MOESM14_ESM.tsv')
 WEIGHTS_DIR = os.path.join(DATADIR, 'weights')
 
+FLASHFRY_EXE = 'FlashFry-assembly-1.7.5.jar'
 JAVA_RAM = os.environ.get('JAVA_RAM', '3')
 COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')
