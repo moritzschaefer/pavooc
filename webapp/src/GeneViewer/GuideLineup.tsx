@@ -43,7 +43,24 @@ export default class GuideLineup extends React.Component<Props, State> {
   componentDidMount() {
     const lineup = LineUpJS.builder(this._tableArray())
       .sidePanel(false, false)
-      .deriveColumns()
+      .column(LineUpJS.buildNumberColumn("azimuth", [0, 1]))
+      .column(LineUpJS.buildNumberColumn("Doench2016CDFScore", [0, 1]))
+      .column(LineUpJS.buildNumberColumn("Hsu2013", [0, 100]))
+      .column(LineUpJS.buildStringColumn("d"))
+      .ranking(
+        LineUpJS.buildRanking()
+          .selection()
+          .column("d")
+          .weightedSum(
+            "azimuth",
+            0.45,
+            "Doench2016CDFScore",
+            0.45,
+            "Hsu2013",
+            0.1
+          )
+          .sortBy("score")
+      )
       .deriveColors()
       .build(viewport as HTMLElement);
     this._updateSelection(lineup);
@@ -88,6 +105,7 @@ export default class GuideLineup extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
+    this.state.lineup.data.setData(this._tableArray());
     this._updateSelection(this.state.lineup);
   }
 
@@ -102,31 +120,6 @@ export default class GuideLineup extends React.Component<Props, State> {
       lineup.data.setSelection(newSelection);
     }
   }
-  // renderTableRow(guide: Guide, index: number) {
-  //   const { setHoveredGuide, hoveredGuide } = this.props;
-  //   return (
-  //     <TableRow
-  //       onMouseEnter={() => setHoveredGuide(index)}
-  //       onMouseLeave={() => setHoveredGuide(undefined)}
-  //       selected={hoveredGuide === index}
-  //       key={guide.target}
-  //     >
-  //       <TableCell padding="checkbox">
-  //         <Checkbox
-  //           checked={guide.selected}
-  //           onChange={() => this.props.guideClicked(index)}
-  //         />
-  //       </TableCell>
-  //       <TableCell
-  //         style={{ maxWidth: 60, whiteSpace: "normal", wordWrap: "break-word" }}
-  //       >
-  //         {this._renderTarget(guide.target)}
-  //       </TableCell>
-  //       <TableCell>{guide.domains.join()}</TableCell>
-  //       <TableCell>{guide.scores.azimuth.toFixed(3)}</TableCell>
-  //     </TableRow>
-  //   );
-  // }
 
   render() {
     return (
@@ -135,7 +128,7 @@ export default class GuideLineup extends React.Component<Props, State> {
           ref={(v: HTMLDivElement) => {
             viewport = v;
           }}
-          style={{ flex: 1 }}
+          style={{ position: "relative", width: "100%", height: "100%" }}
         />
       </div>
     );

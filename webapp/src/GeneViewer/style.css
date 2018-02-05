@@ -59,7 +59,6 @@
 .guideTable {
   flex: 2;
   height: 340px;
-  overflow-y: scroll;
   margin: 3px;
 }
 
