@@ -32,31 +32,43 @@ export default class SequenceViewer extends React.Component<any, State> {
     };
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, gene, cellline, pdb } = this.props;
+  _highlightGuide(guide: any, clear: boolean = false) {
+    const { gene } = this.props;
     const { browser } = this.state;
-    if (prevProps.hoveredGuide !== hoveredGuide) {
-      if (!browser) {
-        console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
-        return;
-      }
+    if (clear) {
       browser.clearHighlights();
+    }
+    try {
+      let exonStart = gene.exons.find(
+        (exon: any) => exon.exon_id === guide.exon_id
+      ).start;
+      browser.highlightRegion(
+        gene.chromosome,
+        1 + guide.start + exonStart,
+        1 + guide.start + exonStart + 23
+      );
+    } catch (e) {
+      console.log(e);
+      console.log(`${gene.gene_id} had no exon with exon_id`);
+    }
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    const { hoveredGuide, guides, cellline, pdb } = this.props;
+    const { browser } = this.state;
+    if (!browser) {
+      console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
+      return;
+    }
+    if (prevProps.hoveredGuide !== hoveredGuide) {
+
       if (hoveredGuide) {
-        const guide = guides[hoveredGuide];
-        try {
-          let exonStart = gene.exons.find(
-            (exon: any) => exon.exon_id === guide.exon_id
-          ).start;
-          browser.highlightRegion(
-            gene.chromosome,
-            1 + guide.start + exonStart,
-            1 + guide.start + exonStart + 23
-          );
-        } catch (e) {
-          console.log(e);
-          console.log(`${gene.gene_id} had no exon with exon_id`);
-          /* handle error */
-        }
+        this._highlightGuide(guides[hoveredGuide], true);
+      } else {
+        // highlight all selected guides
+        guides.filter((guide: any) => guide.selected).forEach((guide: any) => {
+          this._highlightGuide(guide);
+        });
       }
     }
 
@@ -73,6 +85,11 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
   }
 
+  // TODO test if this works
+  _test = (i: any, info: any) => {
+    info._inhibitPopup = true;
+ }
+
   pdbConfig(pdb: string) {
     return {
       name: "PDB",
@@ -80,6 +97,9 @@ export default class SequenceViewer extends React.Component<any, State> {
       uri: `/pdbs/${pdb}.bed`,
       tier_type: "memstore",
       payload: "bed",
+      noSourceFeatureInfo: true,
+      //disableDefaultFeaturePopup: true, // TODO try maybe
+      featureInfoPlugin: this._test,
       style: [
         {
           type: "default",
