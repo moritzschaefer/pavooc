@@ -5,13 +5,14 @@ import pickle
 import re
 from tqdm import tqdm
 from multiprocessing import Pool
+import tempfile
 
 import pandas as pd
 import numpy as np
 
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
     GUIDES_FILE, SCORES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
-from pavooc.data import read_gencode, exon_interval_trees
+from pavooc.data import read_gencode, exon_interval_trees, chromosomes
 from pavooc.scoring import flashfry
 
 logging.basicConfig(level=logging.WARN,
@@ -24,6 +25,7 @@ PATTERN = re.compile(
 )
 
 
+# TODO maybe improve this heuristic
 def off_targets_relevant(off_targets, gene_id, mismatches):
     '''
     :off_targets: string containing all off targets to check for relevance
@@ -34,15 +36,15 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
     in_exons_summary = False
     result = PATTERN.match(off_targets)
     assert bool(result), off_targets  # check that pattern is valid
-    for off_locus in result.group('off_loci').split('\\|'):
+    for off_locus in result.group('off_loci').split('|'):
         # in flashfry, the position is always the left-handside
         # (in forward strand direction)
         try:
             chromosome, rest = off_locus.split(':')
-            position, strand = rest.split('\\^')
+            position, strand = rest.split('^')
         except:
-            import ipdb
-            ipdb.set_trace()
+            from IPython.core.debugger import set_trace
+            set_trace()
         if strand == 'F':
             position = int(position) + 17
         elif strand == 'R':
@@ -75,21 +77,19 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
     return result.group('mismatch_count') == 0 and in_exons_summary
 
 
-def flashfry_guides(gene_id):
+def flashfry_guides(seq_file, target_file):
     '''
     Generates the flashfry guides with off-targets for a gene
     :returns: The filename of the files with the generated guides
     '''
-    gene_file = os.path.join(EXON_DIR, gene_id)
 
-    target_file = GUIDES_FILE.format(gene_id)
     result = subprocess.run([
         'java',
         '-Xmx{}M'.format(int((1024 * float(JAVA_RAM)) //
                              int(COMPUTATION_CORES))),
         '-jar', FLASHFRY_EXE,
         '--analysis', 'discover',
-        '--fasta', gene_file,
+        '--fasta', seq_file,
         '--output', target_file,
         '--maxMismatch', '5',
         '--maximumOffTargets', '1500',
@@ -101,7 +101,68 @@ def flashfry_guides(gene_id):
     return target_file
 
 
+def generate_edit_guides(gene_id, chromosome, edit_position, offset=1000):
+    '''
+    :chromosome: e.g. 'chr12'
+    :edit_position: edit_position in chromosome
+    :offset: number of nucleotides before and after the edit_position to look for guides
+    :returns: A tuple (before_guides, after_guides) with all scored guides before and after the edit_position
+    '''
+    seq_file = tempfile.NamedTemporaryFile(delete=False)
+    target_file = tempfile.NamedTemporaryFile(delete=False)
+    target_file.close()
+    seq_file.write(
+        bytes(f'>{chromosome}:{gene_id}:{edit_position-offset}-{edit_position+offset}\n', 'ascii'))
+    seq_start = edit_position - offset
+    seq = chromosomes()[chromosome][seq_start:edit_position + offset]
+    seq_file.write(bytes(seq, 'ascii'))
+    seq_file.close()
+
+    guides = generate_guides(gene_id, seq_file.name,
+                             target_file.name, check_in_exon=False)
+    os.remove(seq_file.name)
+
+    # TODO from here on DRY with guides_to_db:build_gene_document
+
+    try:
+        guides = pd.read_csv(target_file.name, sep='\t', index_col=False)
+    except Exception as e:
+        logging.fatal('Couldn\'t load guides file for {}'
+                      .format(target_file.name))
+        raise
+    else:
+        os.remove(target_file.name)
+
+    try:
+        guides['cut_position'] = guides.apply(
+            lambda row: seq_start + row['start'] + (7 if row['orientation'] == 'RVS' else 16), axis=1)
+    except ValueError as e:  # guides is empty and apply returned a DataFrame
+        logging.warn('no guides: {}'.format(e))
+        guides['cut_position'] = []
+
+    # TODO add scores
+    guides['score'] = 0.5
+
+    before_guides = []
+    after_guides = []
+
+    for index, guide in guides.iterrows():
+        if guide.cut_position < edit_position:
+            before_guides.append(guide)
+        else:
+            after_guides.append(guide)
+
+    # TODO convert to dataframes?
+    return before_guides, after_guides
+
+
 def generate_exon_guides(gene_id):
+    seq_file = os.path.join(EXON_DIR, gene_id)
+    target_file = GUIDES_FILE.format(gene_id)
+    return generate_guides(gene_id, seq_file, target_file, check_in_exon=True)
+
+
+def generate_guides(gene_id, seq_file, target_file, check_in_exon):
     '''
     :gene_id:
     :returns: tuple (overflow count, mismatches)
@@ -111,7 +172,7 @@ def generate_exon_guides(gene_id):
     mismatches = {}
     overflow_count = 0
 
-    target_file = flashfry_guides(gene_id)
+    flashfry_guides(seq_file, target_file)
 
     # now read the file, analyze and delete unnecessary guides
     data = pd.read_csv(
@@ -140,18 +201,19 @@ def generate_exon_guides(gene_id):
         if row['otCount'] == 0:
             continue
 
-        # check if the DSB is really inside the exon
-        # (we padded the exons by 16bps on both sides)
-        # row.start is in padded coordinates
-        exon_data = row['contig'].split(';')
-        exon_length = int(exon_data[3]) - int(exon_data[2])
+        if check_in_exon:
+            # check if the DSB is really inside the exon
+            # (we padded the exons by 16bps on both sides)
+            # row.start is in padded coordinates
+            exon_data = row['contig'].split(';')
+            exon_length = int(exon_data[3]) - int(exon_data[2])
 
-        if (row['orientation'] == 'FWD' and
+            if (row['orientation'] == 'FWD' and
                 row['start'] + 16 > exon_length + 16) or \
-            (row['orientation'] == 'RVS' and
-                row['start'] < 10):
-            delete_indices.add(index)
-            continue
+                (row['orientation'] == 'RVS' and
+                 row['start'] < 10):
+                delete_indices.add(index)
+                continue
 
         # check for off_target duplicates inside the exome
         for off_targets in row['offTargets'].split(','):
