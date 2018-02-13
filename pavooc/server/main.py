@@ -14,7 +14,8 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
 from pavooc.config import DEBUG  # noqa
 from pavooc.db import guide_collection  # noqa
-from pavooc.data import celllines
+from pavooc.data import celllines, read_gencode
+from pavooc.preprocessing.exon_guide_search import generate_edit_guides
 
 
 app = Flask(__name__)
@@ -52,25 +53,28 @@ pdb_field = fields.Nested({
 
 edit_input = api.model('EditInput', {
     'gene_id': fields.String,
-    'in_gene_edit_position': fields.Integer,
-    'target_nucleotide': fields.String
+    'edit_position': fields.Integer,
+    'padding': fields.Integer,
 })
 
 edit_output = api.model('EditGuides', {
-    'gene_id': fields.String,
-    'gene_symbol': fields.String,
-    'target_nucleotide': fields.String,
-    'source_nucleotide': fields.String,
-    'template': fields.String,
     'guides_before': fields.List(guide_field),
     'guides_after': fields.List(guide_field),
-    'pdbs': fields.List(pdb_field, default=[])
-}
+    'sequence': fields.String,
+    'pdbs': fields.List(pdb_field, default=[]),
+    'canonical_exons': fields.List(fields.Nested({
+        'start': fields.Integer,
+        'end': fields.Integer,
+        'exon_id': fields.String
+    })
+    )
+})
 
-knockout_input=api.model('KnockoutInput', {
+knockout_input = api.model('KnockoutInput', {
     'gene_ids': fields.List(fields.String),
 })
-knockout_output=api.model('KnockoutGuides', {
+
+knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
     'gene_symbol': fields.String,
     'chromosome': fields.String,
@@ -87,11 +91,11 @@ knockout_output=api.model('KnockoutGuides', {
             'start': fields.Integer,
             'end': fields.Integer
         }), default=[]),
-    'pdbs': fields.List(pdb_field, default=[])
+    'pdbs': fields.List(pdb_field, default=[]),
     'guides': fields.List(guide_field)
 })
 
-initial_output=api.model('InitialData', {
+initial_output = api.model('InitialData', {
     'genes': fields.List(fields.Nested({
         'gene_id': fields.String,
         'gene_symbol': fields.String,
@@ -108,7 +112,7 @@ class InitialData(Resource):
 
     @api.marshal_with(initial_output)
     def get(self):
-        genes=[{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
+        genes = [{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
                  for v in guide_collection.find(
             {}, {'gene_id': 1, 'gene_symbol': 1})]
         # TODO return from txt file
@@ -124,13 +128,13 @@ class KnockoutGuides(Resource):
     @api.expect(knockout_input)
     @api.marshal_with(knockout_output)
     def post(self):
-        gene_ids=request.get_json(force=True)['gene_ids']
+        gene_ids = request.get_json(force=True)['gene_ids']
         if not gene_ids:  # TODO improve
             raise BadRequest('gene_ids not set')
 
         # TODO here goes all the computation for checking wether SNP and CNSD
         # influence the guides. For now return the 6 best guides
-        aggregation_pipeline=[
+        aggregation_pipeline = [
             # filter our genes
             {'$match': {'gene_id': {'$in': gene_ids}}},
             # unwind guides so we can access their score
@@ -147,7 +151,7 @@ class KnockoutGuides(Resource):
             #     'guides': {'$push': '$guides'}
             # }},
         ]
-        result=guide_collection.aggregate(aggregation_pipeline)
+        result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)
 
 
@@ -160,28 +164,24 @@ class EditGuides(Resource):
     @api.expect(edit_input)
     @api.marshal_with(edit_output)
     def post(self):
-        'gene_id': fields.String,
-        'in_gene_edit_position': fields.Integer,
-        'target_nucleotide': fields.String
-
         data = request.get_json(force=True)
         gene_id = data['gene_id']
+        edit_position = data['edit_position']
 
         if not gene_id:  # TODO improve
             raise BadRequest('gene_id not set')
+        gene_data = guide_collection.find_one({'gene_id': gene_id})
 
         output = {}
-        output['gene_id'] = data['gene_id']
-        output['gene_symbol'] = gene_symbol
-        output['target_nucleotide'] = data['target_nucleotide']
-        output['source_nucleotide'] = 'A'  # TODO
+        # TODO sequence to upper case in generate_edit_guides?
+        output['sequence'], output['guides_before'], output['guides_after'] = \
+            generate_edit_guides(
+                    gene_id, gene_data['chromosome'], edit_position)
 
-    'target_nucleotide': fields.String,
-    'source_nucleotide': fields.String,
-    'template': fields.String,
-    'guides_before': fields.List(guide_field),
-    'guides_after': fields.List(guide_field),
-    'pdbs': fields.List(pdb_field, default=[])
+        output['pdbs'] = gene_data['pdbs']
+        output['canonical_exons'] = gene_data['canonical_exons']
+
+        return output
 
 
 def main():

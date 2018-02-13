@@ -106,7 +106,7 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=1000):
     :chromosome: e.g. 'chr12'
     :edit_position: edit_position in chromosome
     :offset: number of nucleotides before and after the edit_position to look for guides
-    :returns: A tuple (before_guides, after_guides) with all scored guides before and after the edit_position
+    :returns: A tuple (sequence, before_guides, after_guides) with all scored guides before and after the edit_position
     '''
     seq_file = tempfile.NamedTemporaryFile(delete=False)
     target_file = tempfile.NamedTemporaryFile(delete=False)
@@ -153,7 +153,7 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=1000):
             after_guides.append(guide)
 
     # TODO convert to dataframes?
-    return before_guides, after_guides
+    return seq, before_guides, after_guides
 
 
 def generate_exon_guides(gene_id):
@@ -164,7 +164,11 @@ def generate_exon_guides(gene_id):
 
 def generate_guides(gene_id, seq_file, target_file, check_in_exon):
     '''
-    :gene_id:
+    Find and prepare guides for a given region
+    :gene_id: Needed to check for off targets. Off targets in the same gene
+    dont matter
+    :seq_file: the provided sequence region as FASTA file
+    :target_file: the prepared guides
     :returns: tuple (overflow count, mismatches)
     '''
 
