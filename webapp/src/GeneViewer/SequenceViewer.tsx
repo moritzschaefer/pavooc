@@ -1,21 +1,27 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
 
-import { GeneData } from "./GeneViewer";
-
 interface State {
   genome: string;
   genes: string;
+  viewStart: number;
+  viewEnd: number;
+  viewChromosome: string;
   browser: typeof dalliance.Browser | undefined;
 }
 
 interface Props {
   cellline: string;
-  gene: typeof GeneData;
+  chromosome: string;
+  geneStart: number;
+  geneEnd: number;
+  exons: Array<any> | undefined;
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number) => void;
   pdb: string;
+  editPosition: number;
+  editPositionChanged: ((editPosition: number) => void) | undefined;
   onPdbClicked: () => void;
 }
 
@@ -28,40 +34,40 @@ export default class SequenceViewer extends React.Component<any, State> {
     this.state = {
       genes: "http://www.derkholm.net:8080/das/hsa_54_36p/",
       genome: "http://www.derkholm.net:8080/das/hg18comp/",
+      viewStart: -1,
+      viewEnd: -1,
+      viewChromosome: "",
       browser: undefined
     };
   }
 
   _highlightGuide(guide: any, clear: boolean = false) {
-    const { gene } = this.props;
+    const { exons, chromosome } = this.props;
     const { browser } = this.state;
     if (clear) {
       browser.clearHighlights();
     }
     try {
-      let exonStart = gene.exons.find(
-        (exon: any) => exon.exon_id === guide.exon_id
-      ).start;
+      let exonStart = exons.find((exon: any) => exon.exon_id === guide.exon_id)
+        .start;
       browser.highlightRegion(
-        gene.chromosome,
+        chromosome,
         1 + guide.start + exonStart,
         1 + guide.start + exonStart + 23
       );
     } catch (e) {
       console.log(e);
-      console.log(`${gene.gene_id} had no exon with exon_id`);
     }
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, cellline, pdb } = this.props;
-    const { browser } = this.state;
+    const { hoveredGuide, guides, cellline, pdb, editPosition } = this.props;
+    const { browser, viewStart } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
       return;
     }
     if (prevProps.hoveredGuide !== hoveredGuide) {
-
       if (hoveredGuide) {
         this._highlightGuide(guides[hoveredGuide], true);
       } else {
@@ -83,12 +89,18 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.removeTier(this.pdbConfig(prevProps.pdb));
       browser.addTier(this.pdbConfig(pdb));
     }
+    if (
+      prevProps.editPosition !== editPosition ||
+      prevState.viewStart !== viewStart
+    ) {
+      this._drawEditPosition();
+    }
   }
 
   // TODO test if this works
   _test = (i: any, info: any) => {
     info._inhibitPopup = true;
- }
+  };
 
   pdbConfig(pdb: string) {
     return {
@@ -164,13 +176,31 @@ export default class SequenceViewer extends React.Component<any, State> {
     };
   }
 
+  // Draw the editposition marker right into the dalliance
+  _drawEditPosition() {
+    const { viewStart /*, viewEnd, viewChromosome*/ } = this.state;
+    const { editPosition } = this.props;
+    if (!editPosition || viewStart < 0) {
+      return;
+    }
+
+    // TODO find perfect position and draw!
+  }
+
   // TODO we can use trix to speed up the browser
   componentDidMount() {
-    const { gene, onPdbClicked, onGuideHovered, cellline, pdb } = this.props;
+    const {
+      chromosome,
+      geneStart,
+      geneEnd,
+      onPdbClicked,
+      onGuideHovered,
+      cellline,
+      pdb,
+      editPositionChanged
+    } = this.props;
 
-    let geneStart = Math.min(...gene.exons.map((exon: any) => exon.start));
-    let geneEnd = Math.max(...gene.exons.map((exon: any) => exon.end));
-    let chr = gene.chromosome;
+    let chr = chromosome;
 
     let browser = new dalliance.Browser({
       chr: chr,
@@ -252,7 +282,16 @@ export default class SequenceViewer extends React.Component<any, State> {
           // delete current track, add new one
           onPdbClicked();
         }
+        if (tier.dasSource.name === "Genome") {
+          // TODO where is that position??
+          editPositionChanged(tier.dasSource.position);
+        }
       }
+    );
+    // TODO is this correct?
+    browser.addLocationListener(
+      (viewChromosome: string, viewStart: number, viewEnd: number) =>
+        this.setState({ viewChromosome, viewStart, viewEnd })
     );
     browser.addInitListener(() => browser.setLocation(chr, geneStart, geneEnd));
     this.setState({ browser });

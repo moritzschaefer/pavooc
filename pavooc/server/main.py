@@ -99,6 +99,9 @@ initial_output = api.model('InitialData', {
     'genes': fields.List(fields.Nested({
         'gene_id': fields.String,
         'gene_symbol': fields.String,
+        'chromosome': fields.String,
+        'start': fields.Integer,
+        'end': fields.Integer,
     })),
     'celllines': fields.List(fields.String)
 })

@@ -16,12 +16,15 @@ import SequenceViewer from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
 import "./style.css";
+import { Exon } from "./EditViewer";
 
 export interface GeneData {
   domains: Array<any>;
   gene_id: string;
   guides: Array<any>;
   pdbs: Array<any>;
+  exons: Array<Exon>;
+  chromosome: string;
 }
 
 interface Domain {
@@ -144,7 +147,10 @@ class GeneViewer extends React.Component<Props, State> {
             onGuideHovered={this.setHoveredGuide}
             pdb={geneData.pdbs[selectedPdb].pdb}
             onPdbClicked={this._openPdbSelection}
-            gene={geneData}
+            chromosome={geneData.chromosome}
+            exons={geneData.exons}
+            geneStart={Math.min(...geneData.exons.map((exon: any) => exon.start))}
+            geneEnd={Math.max(...geneData.exons.map((exon: any) => exon.end))}
           />
         </div>
       </div>

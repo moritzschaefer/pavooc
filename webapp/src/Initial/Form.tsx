@@ -6,11 +6,13 @@ import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
 import "./Form.css";
 import CelllineSelector from "../util/CelllineSelector";
+import { Gene } from "../IO/reducer";
 
 export interface Props {
-  go: (geneSelection: Array<string>) => {};
+  goKnockout: (geneSelection: Array<string>) => {};
+  goEdit: (geneId: string) => {};
   initialLoad: () => {};
-  genes: Map<string, string>;
+  genes: Map<string, Gene>;
   className: string;
   onMessage: (message: string) => {};
 }
@@ -42,12 +44,22 @@ export default class Form extends React.Component<Props, State> {
       return false;
     }
     const geneSelection = new Map(this.state.geneSelection);
-    const value = genes.get(geneId);
-    if (value) {
-      geneSelection.set(geneId, value);
+    const gene = genes.get(geneId);
+    if (gene) {
+      geneSelection.set(geneId, gene.geneSymbol);
     }
     this.setState({ geneSelection });
     return true;
+  };
+
+  _goButtonClick = () => {
+    const { experimentType, geneSelection } = this.state;
+    if (experimentType === "knockout") {
+      this.props.goKnockout(Array.from(geneSelection.keys()));
+    } else if (experimentType === "edit") {
+      this.props.goEdit(Array.from(geneSelection.keys())[0]);
+
+    }
   };
 
   removeGene = (geneId: string) => {
@@ -79,11 +91,11 @@ export default class Form extends React.Component<Props, State> {
     try {
       reversedGenes =
         genes &&
-        new Map(
-          Array.from(genes.entries()).map(([key, value]): [string, string] => [
-            value,
+        new Map<string, string>(
+          Array.from(genes.entries()).map(([key, value]: [string, Gene]): [string, string] => ([
+            value.geneSymbol,
             key
-          ])
+          ]))
         );
     } catch (e) {}
     return (
@@ -126,7 +138,7 @@ export default class Form extends React.Component<Props, State> {
           )}
         </div>
         <Button
-          onClick={() => this.props.go(Array.from(geneSelection.keys()))}
+          onClick={this._goButtonClick}
           disabled={!geneSelection.size}
           raised={true}
           className="formButton"

@@ -1,9 +1,9 @@
 import InitialForm from './Form';
+import { push } from "react-router-redux";
 import { fetchKnockouts, initialLoad } from '../IO/actions';
 import { showMessage } from '../Messages/actions';
-//import * as actions from '../actions/';
+// import * as actions from '../actions/';
 import { connect } from 'react-redux';
-// import { push } from 'react-router-redux';
 
 export function mapStateToProps(state: any) {
   return {
@@ -13,8 +13,11 @@ export function mapStateToProps(state: any) {
 
 export function mapDispatchToProps(dispatch: any, ownProps: any) {
   return {
-    go: (geneIds: Array<string>) => {
+    goKnockout: (geneIds: Array<string>) => {
       dispatch(fetchKnockouts(geneIds));
+    },
+    goEdit: (geneId: string) => {
+      dispatch(push(`/edit/${geneId}`));
     },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message)),
@@ -23,3 +26,4 @@ export function mapDispatchToProps(dispatch: any, ownProps: any) {
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(InitialForm);
+

@@ -17,7 +17,7 @@ interface State {
 interface Props {
   className: string;
   cellline: string;
-  guides: Array<Guide>;
+  guides: Array<Guide> | Map<number, Guide>;
   hoveredGuide: number | undefined;
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
   guideClicked: (guideIndex: number) => void;
@@ -73,8 +73,13 @@ export default class GuideLineup extends React.Component<Props, State> {
     this.setState({ lineup });
   }
 
+  // _guidesMap() {
+  //
+  // }
+
   _tableArray() {
-    return this.props.guides.map((guide: Guide, index: number) => ({
+    // TODO fix as Array needs conversion
+    return (this.props.guides as Array<Guide>).map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
       Domain: guide.domains.join(","),
       ...guide.scores
@@ -97,7 +102,7 @@ export default class GuideLineup extends React.Component<Props, State> {
 
   _updateSelection(lineup: any) {
     // only update if not already the same
-    let newSelection = this.props.guides
+    let newSelection = (this.props.guides as Array<Guide>)
       .map((guide: Guide, index: number) => [guide, index])
       .filter(([guide, index]: [Guide, number]) => guide.selected)
       .map(([guide, index]: [Guide, number]) => index);

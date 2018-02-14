@@ -1,4 +1,4 @@
-// this class, unfortunately, is not very generic...
+// this class is used for Gene AutoComplete only
 import * as React from "react";
 import Downshift from "downshift";
 import Paper from "material-ui/Paper";
@@ -6,9 +6,11 @@ import { MenuItem } from "material-ui/Menu";
 import TextField from "material-ui/TextField";
 import "./AutoComplete.css";
 
+import { Gene } from "../IO/reducer";
+
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
-  dataSource: Map<string, string>;
+  dataSource: Map<string, Gene>;
   dataSourceReverse: Map<string, string> | undefined;
   floatingLabelText: string;
   openOnFocus: boolean;
@@ -35,7 +37,7 @@ export default class AutoComplete extends React.Component<Props, State> {
   }
 
   renderSuggestion(
-    item: Array<string>,
+    item: [string, Gene],
     selected: boolean,
     highlighted: boolean,
     itemProps: object
@@ -47,7 +49,7 @@ export default class AutoComplete extends React.Component<Props, State> {
         component="div"
         key={item[0]}
       >
-        <div>{item[1]}</div>
+        <div>{item[1].geneSymbol}</div>
       </MenuItem>
     );
   }
@@ -180,7 +182,7 @@ export default class AutoComplete extends React.Component<Props, State> {
                       e =>
                         !inputValue ||
                         e[0].includes(inputValue.toUpperCase()) ||
-                        e[1].includes(inputValue.toUpperCase())
+                        e[1].geneSymbol.includes(inputValue.toUpperCase())
                     )
                     .map((item, index) =>
                       this.renderSuggestion(
