@@ -49,7 +49,7 @@ interface State {
   pdbSelectionOpened: boolean;
 }
 
-class GeneViewer extends React.Component<Props, State> {
+class KnockoutViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { selectedPdb: 0, hoveredGuide: undefined, pdbSelectionOpened: false };
@@ -132,6 +132,7 @@ class GeneViewer extends React.Component<Props, State> {
           <GuideLineup
             hoveredGuide={hoveredGuide}
             cellline={cellline}
+            showDomain={true}
             setHoveredGuide={this.setHoveredGuide}
             setGuideSelection={this._lineupSetGuideSelection}
             guideClicked={this.guideCheckboxClicked}
@@ -184,4 +185,4 @@ const mapDispatchToProps = (dispatch: any) => ({
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId))
 });
 
-export default connect(mapStateToProps, mapDispatchToProps)(GeneViewer);
+export default connect(mapStateToProps, mapDispatchToProps)(KnockoutViewer);

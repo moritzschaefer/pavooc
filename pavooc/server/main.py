@@ -115,10 +115,18 @@ class InitialData(Resource):
 
     @api.marshal_with(initial_output)
     def get(self):
-        genes = [{'gene_id': v['gene_id'], 'gene_symbol': v['gene_symbol']}
-                 for v in guide_collection.find(
-            {}, {'gene_id': 1, 'gene_symbol': 1})]
-        # TODO return from txt file
+        fields = ['gene_id', 'gene_symbol', 'chromosome', 'start', 'end']
+        genes = guide_collection.aggregate([
+            {"$unwind": "$exons"},
+            {"$group": {
+                "_id": "$_id",
+                "gene_id": {"$first": "$gene_id"},
+                "gene_symbol": {"$first": "$gene_symbol"},
+                "start": {"$min": "$exons.start"},
+                "chromosome": {"$first": "$chromosome"},
+                "end": {"$max": "$exons.end"}}}])
+        genes = [{field: v[field] for field in fields} for v in genes]
+
         return {'genes': genes, 'celllines': celllines()}
 
 
@@ -179,7 +187,7 @@ class EditGuides(Resource):
         # TODO sequence to upper case in generate_edit_guides?
         output['sequence'], output['guides_before'], output['guides_after'] = \
             generate_edit_guides(
-                    gene_id, gene_data['chromosome'], edit_position)
+            gene_id, gene_data['chromosome'], edit_position)
 
         output['pdbs'] = gene_data['pdbs']
         output['canonical_exons'] = gene_data['canonical_exons']

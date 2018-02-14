@@ -21,7 +21,7 @@ const INITIAL_STATE: State = {
   isFetching: false,
   error: undefined,
   guides: undefined, // TODO rename this guides to knockoutData or so
-  editData: undefined,
+  editData: {},
   genes: new Map<string, Gene>(),
   celllines: []
 };
@@ -68,7 +68,8 @@ export default (state: State = INITIAL_STATE, action: any) => {
         genes: new Map(
           action.genes.map((g: Gene) => [g.geneId, g])
         ),
-        celllines: action.celllines
+        celllines: action.celllines,
+        editData: {}
       };
     case t.SET_GUIDE_SELECTION:
       // TODO slow?

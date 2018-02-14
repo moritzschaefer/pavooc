@@ -41,6 +41,18 @@
   margin: 10px;
 }
 
+.centerLeft {
+  display: flex;
+  flex-direction: column;
+  flex: 5;
+}
+
+.centerRight {
+  display: flex;
+  flex-direction: column;
+  flex: 3;
+}
+
 .containerBottom {
   flex: 2;
   margin: 10px;
@@ -66,4 +78,8 @@
   display: flex;
   border: 1px;
   flex: 3;
+}
+
+#svgHolder {
+  flex: 2;
 }

@@ -19,10 +19,11 @@ interface Props {
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number) => void;
-  pdb: string;
+  pdb: string | undefined;
   editPosition: number;
   editPositionChanged: ((editPosition: number) => void) | undefined;
   onPdbClicked: () => void;
+  onNucleotideClick?: (nucleotidePosition: number) => void;
 }
 
 let viewport: HTMLDivElement | undefined = undefined;
@@ -86,8 +87,12 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.addTier(this.snpConfig(cellline));
     }
     if (prevProps.pdb !== pdb) {
-      browser.removeTier(this.pdbConfig(prevProps.pdb));
-      browser.addTier(this.pdbConfig(pdb));
+      if (prevProps.pdb) {
+        browser.removeTier(this.pdbConfig(prevProps.pdb));
+      }
+      if (pdb) {
+        browser.addTier(this.pdbConfig(pdb));
+      }
     }
     if (
       prevProps.editPosition !== editPosition ||
@@ -110,7 +115,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       tier_type: "memstore",
       payload: "bed",
       noSourceFeatureInfo: true,
-      //disableDefaultFeaturePopup: true, // TODO try maybe
+      disableDefaultFeaturePopup: true, // TODO try maybe
       featureInfoPlugin: this._test,
       style: [
         {
@@ -186,24 +191,84 @@ export default class SequenceViewer extends React.Component<any, State> {
 
     // TODO find perfect position and draw!
   }
+  _initialSources() {
+    const { pdb, cellline } = this.props;
+    let sources: Array<any> = [
+      {
+        name: "Genome",
+        twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
+        tier_type: "sequence"
+      },
+      this.cnsConfig(cellline),
+      this.snpConfig(cellline),
+      {
+        name: "Guides",
+        desc: "sgRNAs in the exome",
+        bwgURI: "/guides.bb",
+        style: [
+          {
+            type: "default",
+            style: {
+              glyph: "ANCHORED_ARROW",
+              LABEL: false,
+              HEIGHT: "12",
+              BGITEM: true,
+              BUMP: true,
+              STROKECOLOR: "black",
+              FGCOLOR: "black",
+              BGCOLOR: "blue"
+            }
+          }
+        ],
+        collapseSuperGroups: true
+      },
+      {
+        name: "Genes",
+        // style: [
+        //   {
+        //     type: "default",
+        //     style: {
+        //       glyph: "ARROW",
+        //       LABEL: true,
+        //       HEIGHT: "12",
+        //       BGITEM: true,
+        //       STROKECOLOR: "black",
+        //       FGCOLOR: "black"
+        //     }
+        //   }
+        // ],
+        desc: "Gene structures from GENCODE 19",
+        bwgURI: "/exome.bb",
+        stylesheet_uri: "/gencode.xml",
+        collapseSuperGroups: true
+      }
+    ];
+    if (pdb) {
+      sources.push(this.pdbConfig(pdb));
+    }
+    return sources;
+  }
 
   // TODO we can use trix to speed up the browser
   componentDidMount() {
-    const {
+    let { // const
       chromosome,
       geneStart,
       geneEnd,
       onPdbClicked,
       onGuideHovered,
-      cellline,
-      pdb,
       editPositionChanged
     } = this.props;
 
     let chr = chromosome;
+    if (!chr) { // TODO workaround delete
+      chr = "chr22";
+      geneStart = 40000000;
+      geneEnd = 40000600;
+    }
 
     let browser = new dalliance.Browser({
-      chr: chr,
+      chr,
       viewStart: geneStart,
       viewEnd: geneEnd,
       defaultSubtierMax: 3,
@@ -215,58 +280,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         version: "37",
         ucscName: "hg19"
       },
-
-      sources: [
-        {
-          name: "Genome",
-          twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
-          tier_type: "sequence"
-        },
-        this.cnsConfig(cellline),
-        this.snpConfig(cellline),
-        this.pdbConfig(pdb),
-        {
-          name: "Guides",
-          desc: "sgRNAs in the exome",
-          bwgURI: "/guides.bb",
-          style: [
-            {
-              type: "default",
-              style: {
-                glyph: "ANCHORED_ARROW",
-                LABEL: false,
-                HEIGHT: "12",
-                BGITEM: true,
-                BUMP: true,
-                STROKECOLOR: "black",
-                FGCOLOR: "black",
-                BGCOLOR: "blue"
-              }
-            }
-          ],
-          collapseSuperGroups: true
-        },
-        {
-          name: "Genes",
-          // style: [
-          //   {
-          //     type: "default",
-          //     style: {
-          //       glyph: "ARROW",
-          //       LABEL: true,
-          //       HEIGHT: "12",
-          //       BGITEM: true,
-          //       STROKECOLOR: "black",
-          //       FGCOLOR: "black"
-          //     }
-          //   }
-          // ],
-          desc: "Gene structures from GENCODE 19",
-          bwgURI: "/exome.bb",
-          stylesheet_uri: "/gencode.xml",
-          collapseSuperGroups: true
-        }
-      ]
+      sources: this._initialSources()
     });
     browser.addFeatureHoverListener(
       (event: any, feature: any, hit: any, tier: any) => {
@@ -282,19 +296,34 @@ export default class SequenceViewer extends React.Component<any, State> {
           // delete current track, add new one
           onPdbClicked();
         }
-        if (tier.dasSource.name === "Genome") {
-          // TODO where is that position??
-          editPositionChanged(tier.dasSource.position);
-        }
       }
     );
-    // TODO is this correct?
-    browser.addLocationListener(
+    browser.addViewListener(
       (viewChromosome: string, viewStart: number, viewEnd: number) =>
         this.setState({ viewChromosome, viewStart, viewEnd })
     );
-    browser.addInitListener(() => browser.setLocation(chr, geneStart, geneEnd));
+    browser.addInitListener(() => {
+      browser.setLocation(chr, geneStart, geneEnd)
+
+      if (editPositionChanged) {
+        // TODO only for gene editing
+        // // TODO add hovering
+        // Tier 0 is the genome
+        //
+        browser.tiers[0].viewport.addEventListener("click", this._genomeClick);
+      }
+    });
     this.setState({ browser });
+  }
+
+  _genomeClick = (event: any) => {
+    const { viewStart, viewEnd } = this.state;
+    const { editPositionChanged } = this.props;
+    const clickPosition = event.x;
+    const browserWidth = event.target.parentElement.parentElement.offsetWidth;
+
+    const nucleotidePosition = Math.floor(viewStart + (clickPosition / browserWidth) * (viewEnd - viewStart));
+    editPositionChanged(nucleotidePosition);
   }
 
   render() {

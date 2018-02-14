@@ -22,6 +22,7 @@ interface Props {
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
   guideClicked: (guideIndex: number) => void;
   setGuideSelection: (guideSelection: number[]) => void;
+  showDomain?: boolean;
 }
 
 function eqSet(as: Set<number>, bs: Set<number>) {
@@ -41,18 +42,13 @@ let viewport: HTMLElement | undefined = undefined;
 
 export default class GuideLineup extends React.Component<Props, State> {
   componentDidMount() {
-    const lineup = LineUpJS.builder(this._tableArray())
-      .sidePanel(false, false)
-      .column(LineUpJS.buildNumberColumn("azimuth", [0, 1]))
-      .column(LineUpJS.buildNumberColumn("Doench2016CDFScore", [0, 1]))
-      .column(LineUpJS.buildNumberColumn("Hsu2013", [0, 100]))
-      .column(LineUpJS.buildStringColumn("d"))
-      .column(LineUpJS.buildStringColumn("Domain"))
-      .ranking(
-        LineUpJS.buildRanking()
+    let ranking = LineUpJS.buildRanking()
           .selection()
-          .column("d")
-          .column("Domain")
+          .column("d");
+    if (this.props.showDomain) {
+      ranking = ranking.column("Domain");
+    }
+    ranking = ranking
           .weightedSum(
             "azimuth",
             0.45,
@@ -61,8 +57,16 @@ export default class GuideLineup extends React.Component<Props, State> {
             "Hsu2013",
             0.1
           )
-          .sortBy("score")
-      )
+          .sortBy("score");
+
+    const lineup = LineUpJS.builder(this._tableArray())
+      .sidePanel(false, false)
+      .column(LineUpJS.buildNumberColumn("azimuth", [0, 1]))
+      .column(LineUpJS.buildNumberColumn("Doench2016CDFScore", [0, 1]))
+      .column(LineUpJS.buildNumberColumn("Hsu2013", [0, 100]))
+      .column(LineUpJS.buildStringColumn("d"))
+      .column(LineUpJS.buildStringColumn("Domain"))
+      .ranking(ranking)
       .deriveColors()
       .build(viewport as HTMLElement);
     this._updateSelection(lineup);
@@ -78,10 +82,10 @@ export default class GuideLineup extends React.Component<Props, State> {
   // }
 
   _tableArray() {
-    // TODO fix as Array needs conversion
+    // TODO fix as Array needs conversion <- ??
     return (this.props.guides as Array<Guide>).map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
-      Domain: guide.domains.join(","),
+      Domain: guide.domains ? guide.domains.join(",") : "",
       ...guide.scores
     }));
   }

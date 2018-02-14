@@ -23,15 +23,14 @@ export const fetchInitialApi = () => {
     .then(response => response.json())
     .then(response => {
       // TODO convert gene_id to geneId and
-      let ret = response;
-      ret.genes = ret.genes.map((g: any) => ({
+      response.genes = response.genes.map((g: any) => ({
         geneId: g.gene_id,
         geneSymbol: g.gene_symbol,
         start: g.start,
         end: g.end,
         chromosome: g.chromosome
       }));
-      return ret;
+      return response;
     });
   return Observable.from(request);
 };
@@ -50,6 +49,34 @@ export const fetchEditApi = (
     })
   })
     .then(handleFetchErrors)
-    .then(response => response.json());
+    .then(response => response.json())
+    .then(res => {
+      // TODO convert gene_id to geneId and
+      Object.defineProperty(
+        res,
+        "guidesBefore",
+        Object.getOwnPropertyDescriptor(
+          res,
+          "guides_before"
+        ) as PropertyDescriptor
+      );
+      Object.defineProperty(res, "guidesAfter", Object.getOwnPropertyDescriptor(
+        res,
+        "guides_after"
+      ) as PropertyDescriptor);
+      Object.defineProperty(
+        res,
+        "canonicalExons",
+        Object.getOwnPropertyDescriptor(
+          res,
+          "canonical_exons"
+        ) as PropertyDescriptor
+      );
+      delete res.guides_before;
+      delete res.guides_after;
+      delete res.canonical_exons;
+
+      return res;
+    });
   return Observable.from(request);
 };
