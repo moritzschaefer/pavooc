@@ -80,14 +80,13 @@ export default (state: State = INITIAL_STATE, action: any) => {
           guides: gene.guides.map((guide: any, index: number) => ({
             ...guide,
             selected:
-              guide.selected !==
-              (gene.gene_id === action.geneId &&
-                action.guideSelection.includes(index))
+              ((gene.gene_id === action.geneId) && action.guideSelection.includes(index)) ||
+              ((guide.selected && (gene.gene_id !== action.geneId)))
           }))
         }))
       };
     case t.TOGGLE_GUIDE_SELECTION:
-      // TODO slow?
+      // TODO slow?, and..
       return {
         ...state,
         guides: state.guides.map((gene: any) => ({

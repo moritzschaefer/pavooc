@@ -1,7 +1,16 @@
 import * as React from "react";
 import "./style.css";
-import "lineupjs/build/LineUpJS.min.css";
-import * as LineUpJS from "lineupjs";
+import "lineupjsx/build/LineUpJSx.css";
+import {
+  LineUp,
+  LineUpStringColumnDesc,
+  LineUpNumberColumnDesc,
+  LineUpRanking,
+  LineUpColumn,
+  LineUpWeightedSumColumn,
+  LineUpWeightedColumn,
+  LineUpSupportColumn
+} from "lineupjsx";
 
 interface Guide {
   target: string;
@@ -25,65 +34,26 @@ interface Props {
   showDomain?: boolean;
 }
 
-function eqSet(as: Set<number>, bs: Set<number>) {
-  if (as.size !== bs.size) {
-    return false;
-  }
-  let equal = true;
-  as.forEach((v: number) => {
-    if (!bs.has(v)) {
-      equal = false;
-    }
-  });
-  return equal;
-}
-
-let viewport: HTMLElement | undefined = undefined;
+// function eqSet(as: Set<number>, bs: Set<number>) {
+//   if (as.size !== bs.size) {
+//     return false;
+//   }
+//   let equal = true;
+//   as.forEach((v: number) => {
+//     if (!bs.has(v)) {
+//       equal = false;
+//     }
+//   });
+//   return equal;
+// }
+//
 
 export default class GuideLineup extends React.Component<Props, State> {
-  componentDidMount() {
-    let ranking = LineUpJS.buildRanking()
-          .selection()
-          .column("d");
-    if (this.props.showDomain) {
-      ranking = ranking.column("Domain");
-    }
-    ranking = ranking
-          .weightedSum(
-            "azimuth",
-            0.45,
-            "Doench2016CDFScore",
-            0.45,
-            "Hsu2013",
-            0.1
-          )
-          .sortBy("score");
-
-    const lineup = LineUpJS.builder(this._tableArray())
-      .sidePanel(false, false)
-      .column(LineUpJS.buildNumberColumn("azimuth", [0, 1]))
-      .column(LineUpJS.buildNumberColumn("Doench2016CDFScore", [0, 1]))
-      .column(LineUpJS.buildNumberColumn("Hsu2013", [0, 100]))
-      .column(LineUpJS.buildStringColumn("d"))
-      .column(LineUpJS.buildStringColumn("Domain"))
-      .ranking(ranking)
-      .deriveColors()
-      .build(viewport as HTMLElement);
-    this._updateSelection(lineup);
-
-    lineup.data.on("selectionChanged", (selection: number[]) => {
-      this.props.setGuideSelection(selection);
-    });
-    this.setState({ lineup });
-  }
-
-  // _guidesMap() {
-  //
-  // }
-
   _tableArray() {
     // TODO fix as Array needs conversion <- ??
-    return (this.props.guides as Array<Guide>).map((guide: Guide, index: number) => ({
+    return (this.props.guides as Array<
+      Guide
+    >).map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
       Domain: guide.domains ? guide.domains.join(",") : "",
       ...guide.scores
@@ -91,40 +61,70 @@ export default class GuideLineup extends React.Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
-    // TODO check if the two arrays differ
-    if (nextProps.cellline !== this.props.cellline) {
-      console.log("guides might have changed in GuideLineup");
-      return true;
-    }
+    //TODO check if the two arrays differ
+
+    // if (nextProps.cellline !== this.props.cellline) {
+    //   console.log("guides might have changed in GuideLineup");
+    //   return true;
+    // }
     return false;
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
-    this.state.lineup.data.setData(this._tableArray());
-    this._updateSelection(this.state.lineup);
-  }
-
-  _updateSelection(lineup: any) {
+  _selectionIndices() {
     // only update if not already the same
     let newSelection = (this.props.guides as Array<Guide>)
       .map((guide: Guide, index: number) => [guide, index])
       .filter(([guide, index]: [Guide, number]) => guide.selected)
       .map(([guide, index]: [Guide, number]) => index);
-
-    if (!eqSet(new Set(lineup.data.getSelection()), new Set(newSelection))) {
-      lineup.data.setSelection(newSelection);
-    }
+    console.log(newSelection);
+    return newSelection;
   }
 
   render() {
     return (
       <div className={this.props.className}>
-        <div
-          ref={(v: HTMLDivElement) => {
-            viewport = v;
-          }}
-          style={{ position: "relative", width: "100%", height: "100%" }}
-        />
+        <LineUp
+          data={this._tableArray()}
+          defaultRanking={false}
+          onSelectionChanged={(selection: number[]) =>
+            this.props.setGuideSelection(selection)}
+          onHighlightChanged={(highlight: number) =>
+            this.props.setHoveredGuide(
+              highlight === -1 ? undefined : highlight
+            )}
+          selection={this._selectionIndices()}
+          highlight={this.props.hoveredGuide}
+          sidePanel={false}
+        >
+          <LineUpStringColumnDesc column="d" label="Label" width={80} />
+          <LineUpStringColumnDesc column="Domain" label="Domain" width={60} />
+          <LineUpNumberColumnDesc
+            column="azimuth"
+            domain={[0, 1]}
+            color="red"
+          />
+          <LineUpNumberColumnDesc
+            column="Doench2016CDFScore"
+            domain={[0, 1]}
+            color="green"
+          />
+          <LineUpNumberColumnDesc
+            column="Hsu2013"
+            domain={[0, 100]}
+            color="blue"
+          />
+
+          <LineUpRanking sortBy="Scores:desc">
+            <LineUpSupportColumn type="selection" />
+            <LineUpColumn column="d" />
+            <LineUpColumn column="Domain" />
+            <LineUpWeightedSumColumn label="Scores">
+              <LineUpWeightedColumn column="azimuth" weight={0.45} />
+              <LineUpWeightedColumn column="Doench2016CDFScore" weight={0.35} />
+              <LineUpWeightedColumn column="Hsu2013" weight={0.2} />
+            </LineUpWeightedSumColumn>
+          </LineUpRanking>
+        </LineUp>
       </div>
     );
   }

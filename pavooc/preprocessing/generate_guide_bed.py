@@ -22,7 +22,7 @@ def guide_to_bed(gene, guide, index):
         guide['start'] + exon_start,
         guide['start'] + exon_start + 23,
         '{}:{}'.format(index+1, guide['target']),
-        min(100,  max(int(guide['score'] * 100), 0)),
+        min(100,  max(int(guide['scores']['azimuth'] * 100), 0)),  # TODO
         strand,
         guide['start'] + exon_start,
         guide['start'] + exon_start + 23,

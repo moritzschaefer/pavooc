@@ -82,16 +82,23 @@ export default class ProteinViewer extends React.Component<Props, State> {
       this.atomColor = function(atom: any) {
         // the residue index is zero-based, same order as in the loaded file
         let { resno } = atom;
-        if (hoveredGuide) {
-
-          if (guides[hoveredGuide].aa_cut_position === pdb.mappings[resno]) {
-            if (guides[hoveredGuide].selected) {
-              return 0xffff00;
+        if (typeof hoveredGuide !== "undefined") {
+          try {
+            if (guides[hoveredGuide].aa_cut_position === pdb.mappings[resno]) {
+              if (guides[hoveredGuide].selected) {
+                return 0xffff00;
+              } else {
+                return 0xff0000;
+              }
             } else {
-              return 0xff0000;
+              return 0x777777;
             }
-          } else {
-            return 0x777777;
+          } catch (e) {
+            console.log("ProteinViewer guides[hoveredGuide] is undefined!!");
+            console.log(hoveredGuide);
+            console.log(guides.length);
+            console.log(guides[hoveredGuide]);
+            return 0x0000ff;
           }
         }
         // TODO Map<aa_cut_position-pdb.start, guide> for fast lookup
@@ -134,7 +141,17 @@ export default class ProteinViewer extends React.Component<Props, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     if (this.state.stage) {
-      const selectionChanged = false; // TODO implement
+      let selectionChanged = false;
+      try {
+        this.props.guides.forEach((guide: any, index: number) => {
+          if (prevProps.guides[index].selected !== guide.selected) {
+            selectionChanged = true;
+            return;
+          }
+        });
+      } catch (e) { // if guides changed for example
+        selectionChanged = true;
+      }
       if (
         this.props.pdb &&
         ((prevProps.pdb.pdb !== this.props.pdb.pdb) ||

@@ -18,7 +18,7 @@ interface Props {
   exons: Array<any> | undefined;
   guides: Array<any>;
   hoveredGuide: number | undefined;
-  onGuideHovered: (hoveredGuide: number) => void;
+  onGuideHovered: (hoveredGuide: number | undefined) => void;
   pdb: string | undefined;
   editPosition: number;
   editPositionChanged: ((editPosition: number) => void) | undefined;
@@ -69,9 +69,10 @@ export default class SequenceViewer extends React.Component<any, State> {
       return;
     }
     if (prevProps.hoveredGuide !== hoveredGuide) {
-      if (hoveredGuide) {
+      if (guides[hoveredGuide]) {
         this._highlightGuide(guides[hoveredGuide], true);
       } else {
+        browser.clearHighlights();
         // highlight all selected guides
         guides.filter((guide: any) => guide.selected).forEach((guide: any) => {
           this._highlightGuide(guide);
@@ -285,8 +286,13 @@ export default class SequenceViewer extends React.Component<any, State> {
     browser.addFeatureHoverListener(
       (event: any, feature: any, hit: any, tier: any) => {
         if (tier.dasSource.name === "Guides") {
-          const index = hit[0].id.split(":")[0] - 1;
-          onGuideHovered(index);
+          // const index = hit[0].id.split(":")[0] - 1;
+          if (feature) {
+            const index = feature.label.split(":")[0] - 1;
+            onGuideHovered(index);
+          } else {
+            onGuideHovered(undefined);
+          }
         }
       }
     );

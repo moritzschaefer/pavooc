@@ -39,6 +39,7 @@
   flex-direction: row;
   flex: 3;
   margin: 10px;
+  height: 340px;
 }
 
 .centerLeft {
@@ -69,12 +70,13 @@
 }
 
 .guideTable {
+  display: grid;
   flex: 2;
-  height: 340px;
   margin: 3px;
 }
 
 .proteinViewer {
+  height: 100%;
   display: flex;
   border: 1px;
   flex: 3;
