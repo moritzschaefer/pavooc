@@ -39,7 +39,7 @@
   flex-direction: row;
   flex: 3;
   margin: 10px;
-  height: 340px;
+  height: 100%;
 }
 
 .centerLeft {
@@ -73,6 +73,10 @@
   display: grid;
   flex: 2;
   margin: 3px;
+}
+
+.lu-wrapper {
+  height: 100%;
 }
 
 .proteinViewer {

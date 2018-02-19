@@ -2,6 +2,7 @@ import * as React from "react";
 import * as NGL from "ngl";
 import RepresentationComponent from "ngl/src/component/representation-component.js";
 import StructureRepresentation from "ngl/src/representation/structure-representation.js";
+import * as elementResizeEvent from "element-resize-event";
 
 interface State {
   stage: typeof NGL.Stage | undefined;
@@ -11,9 +12,9 @@ interface State {
 interface Props {
   className: string;
   pdb: any;
-  hoveredGuide: number | undefined;
-  setHoveredGuide: (hoveredGuide: number | undefined) => void;
-  guides: any;
+  hoveredGuide?: number | undefined;
+  setHoveredGuide?: (hoveredGuide: number | undefined) => void;
+  highlightPositions: Array<{ aa_cut_position: number; selected: boolean }>;
 }
 
 let viewport: HTMLDivElement | undefined = undefined; // TODO try with state again..
@@ -28,53 +29,8 @@ export default class ProteinViewer extends React.Component<Props, State> {
     };
   }
 
-  updateHovering() {
-    // Update the representation/highlighting of NGL
-    const { representation } = this.state;
-    const { pdb, hoveredGuide, guides } = this.props;
-
-    if (!representation) {
-      throw "representation MUST not be undefined";
-    }
-
-    // Either show the hoveredGuide, or highlight all guides
-    let selection = "not all";
-    if (hoveredGuide) {
-      // TODO guides[hovered] is undefined sometimes
-      let aa_cut_position;
-      try {
-        aa_cut_position = guides[hoveredGuide].aa_cut_position;
-      } catch (e) {
-        console.log(`${hoveredGuide} doesnt exist in ProteinViewer`);
-        return
-      }
-      const highlightPosition = aa_cut_position - pdb.start;
-      if (aa_cut_position >= 0 && highlightPosition) {
-        selection = `${highlightPosition - 1}-${highlightPosition + 2}`; // bugfix extending indices
-      }
-    } else {
-      const cuts = [];
-      for (let guide of guides) {
-        const inPdbPosition = guide.aa_cut_position - pdb.start;
-        if (
-          guide.aa_cut_position >= 0 &&
-          inPdbPosition >= 0 &&
-          inPdbPosition < pdb.end - pdb.start
-        ) {
-          cuts.push(`${inPdbPosition - 1}-${inPdbPosition + 2}`); // bugfix extending indices
-        }
-      }
-      if (cuts.length === 0) {
-        console.log("Zero Guides found. Must not have. TODO: convert to throw");
-      } else {
-        selection = cuts.join(" or ");
-      }
-    }
-    representation.setSelection(selection);
-  }
-
   generateScheme() {
-    const { hoveredGuide, guides, pdb } = this.props;
+    const { hoveredGuide, highlightPositions, pdb } = this.props;
     let scheme = NGL.ColormakerRegistry.addScheme(function(
       this: any,
       params: any
@@ -84,8 +40,11 @@ export default class ProteinViewer extends React.Component<Props, State> {
         let { resno } = atom;
         if (typeof hoveredGuide !== "undefined") {
           try {
-            if (guides[hoveredGuide].aa_cut_position === pdb.mappings[resno]) {
-              if (guides[hoveredGuide].selected) {
+            if (
+              highlightPositions[hoveredGuide].aa_cut_position ===
+              pdb.mappings[resno]
+            ) {
+              if (highlightPositions[hoveredGuide].selected) {
                 return 0xffff00;
               } else {
                 return 0xff0000;
@@ -94,15 +53,17 @@ export default class ProteinViewer extends React.Component<Props, State> {
               return 0x777777;
             }
           } catch (e) {
-            console.log("ProteinViewer guides[hoveredGuide] is undefined!!");
+            console.log(
+              "ProteinViewer highlightPositions[hoveredGuide] is undefined!!"
+            );
             console.log(hoveredGuide);
-            console.log(guides.length);
-            console.log(guides[hoveredGuide]);
+            console.log(highlightPositions.length);
+            console.log(highlightPositions[hoveredGuide]);
             return 0x0000ff;
           }
         }
         // TODO Map<aa_cut_position-pdb.start, guide> for fast lookup
-        const guide = guides.find(
+        const guide = highlightPositions.find(
           (g: any) => g.aa_cut_position === pdb.mappings[resno]
         );
         if (guide) {
@@ -143,19 +104,25 @@ export default class ProteinViewer extends React.Component<Props, State> {
     if (this.state.stage) {
       let selectionChanged = false;
       try {
-        this.props.guides.forEach((guide: any, index: number) => {
-          if (prevProps.guides[index].selected !== guide.selected) {
+        this.props.highlightPositions.forEach((guide: any, index: number) => {
+          if (
+            prevProps.highlightPositions[index].selected !== guide.selected ||
+            prevProps.highlightPositions[index].aa_cut_position !==
+              guide.aa_cut_position
+          ) {
             selectionChanged = true;
             return;
           }
         });
-      } catch (e) { // if guides changed for example
+      } catch (e) {
+        // if guides changed for example
+        console.log(e);
         selectionChanged = true;
       }
       if (
         this.props.pdb &&
-        ((prevProps.pdb.pdb !== this.props.pdb.pdb) ||
-        (prevState.stage !== this.state.stage && this.state.stage))
+        (prevProps.pdb.pdb !== this.props.pdb.pdb ||
+          (prevState.stage !== this.state.stage && this.state.stage))
       ) {
         this.loadPdb();
       } else if (
@@ -171,7 +138,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    const { setHoveredGuide, guides, pdb } = this.props;
+    const { setHoveredGuide, highlightPositions, pdb } = this.props;
     // set up ngl
     const stage = new NGL.Stage(viewport);
     stage.setParameters({ backgroundColor: "black" });
@@ -179,17 +146,26 @@ export default class ProteinViewer extends React.Component<Props, State> {
     stage.signals.hovered.add((pickingProxy: any) => {
       if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
         let { resno } = pickingProxy.atom;
-        const guideIndex = guides.findIndex(
+        const guideIndex = highlightPositions.findIndex(
           (guide: any) => pdb.mappings[resno] === guide.aa_cut_position
         );
         if (guideIndex >= 0) {
-          setHoveredGuide(guideIndex);
+          if (setHoveredGuide) {
+            setHoveredGuide(guideIndex);
+          }
         }
       } else {
         // Mouse left hovering area
-        setHoveredGuide(undefined);
+        if (setHoveredGuide) {
+          setHoveredGuide(undefined);
+        }
       }
     });
+
+    elementResizeEvent(viewport, () => {
+      stage.handleResize();
+    });
+
     this.setState({ stage });
   }
 

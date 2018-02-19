@@ -10,10 +10,12 @@ import tempfile
 import pandas as pd
 import numpy as np
 
+from azimuth.model_comparison import predict as azimuth_predict
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-    GUIDES_FILE, SCORES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
-from pavooc.data import read_gencode, exon_interval_trees, chromosomes
-from pavooc.scoring import flashfry
+    GUIDES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
+from pavooc.data import read_gencode, exon_interval_trees, chromosomes, \
+    azimuth_model
+from pavooc.scoring import azimuth, flashfry
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -101,8 +103,9 @@ def flashfry_guides(seq_file, target_file):
     return target_file
 
 
-def generate_edit_guides(gene_id, chromosome, edit_position, offset=1000):
+def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
     '''
+    I hope they all have the same index..
     :chromosome: e.g. 'chr12'
     :edit_position: edit_position in chromosome
     :offset: number of nucleotides before and after the edit_position to look for guides
@@ -130,28 +133,53 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=1000):
         logging.fatal('Couldn\'t load guides file for {}'
                       .format(target_file.name))
         raise
-    else:
-        os.remove(target_file.name)
+
+    flashfry_scores = flashfry.score(target_file.name)
+    flashfry_scores.fillna(0, inplace=True)
+
+    # delete all guides with incomplete context (at the border of the sequence)
+    guides = guides[guides.context.apply(len) == 35]
+    guides['start'] += seq_start
 
     try:
         guides['cut_position'] = guides.apply(
-            lambda row: seq_start + row['start'] + (7 if row['orientation'] == 'RVS' else 16), axis=1)
+            lambda row: row['start'] +
+            (7 if row['orientation'] == 'RVS' else 16), axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
         logging.warn('no guides: {}'.format(e))
         guides['cut_position'] = []
 
-    # TODO add scores
-    guides['score'] = 0.5
+    logging.info('calculating azimuth score for {}'.format(gene_id))
+    try:
+        guides.context = guides.context.apply(lambda c: c[2:32])
+        azimuth_score = pd.Series(
+            azimuth_predict(guides['context'].values, model=azimuth_model()),
+            index=guides.index)
+    except ValueError as e:
+        guides.to_csv(f'{gene_id}.csv')
+        logging.error(
+            f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
+        azimuth_score = pd.Series(0, index=guides.index)
+
+    # delete all guides with scores below 0.57
+    # TODO use something more sophisticated
+    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
 
     before_guides = []
     after_guides = []
 
+    # TODO does the index really match????
     for index, guide in guides.iterrows():
+        converted = {**guide, 'scores': {
+            'azimuth': azimuth_score.loc[index],
+            **flashfry_scores.loc[index][[
+                'Doench2016CFDScore', 'Hsu2013']].to_dict()}}
         if guide.cut_position < edit_position:
-            before_guides.append(guide)
+            before_guides.append(converted)
         else:
-            after_guides.append(guide)
+            after_guides.append(converted)
 
+    os.remove(target_file.name)
     # TODO convert to dataframes?
     return seq, before_guides, after_guides
 
@@ -255,8 +283,8 @@ def main():
     else:
         # debuggable
         for gene_id in tqdm(gene_ids, total=len(gene_ids)):
-            partial_overflow_count, partial_mismatches = \
-                generate_exon_guides(gene_id)
+            partial_overflow_count, partial_mismatches = generate_exon_guides(
+                gene_id)
             overflow_count += partial_overflow_count
             for key in partial_mismatches:
                 try:

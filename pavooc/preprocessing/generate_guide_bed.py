@@ -13,24 +13,28 @@ def guide_to_bed(gene, guide, index):
     """
     strand = '+' if guide['orientation'] == 'FWD' else '-'
 
-    exon_start = [exon['start'] for exon in gene['exons']
-                  if exon['exon_id'] == guide['exon_id']][0]
-
     # BED is 0-based
     return '\t'.join([str(v) for v in [
         gene['chromosome'],
-        guide['start'] + exon_start,
-        guide['start'] + exon_start + 23,
+        guide['start'],
+        guide['start'] + 23,
         '{}:{}'.format(index+1, guide['target']),
         min(100,  max(int(guide['scores']['azimuth'] * 100), 0)),  # TODO
         strand,
-        guide['start'] + exon_start,
-        guide['start'] + exon_start + 23,
+        guide['start'],
+        guide['start'] + 23,
         ','.join([str(v) for v in [0, 255, 0]]),
         '1',
         '23',
         '0'
     ]])
+
+
+def guides_to_bed(guides, gene, bed_file):
+    with open(bed_file, 'w') as f:
+        for guide_index, guide in enumerate(guides):
+            f.write(guide_to_bed(gene, guide, guide_index))
+            f.write('\n')
 
 
 def main():

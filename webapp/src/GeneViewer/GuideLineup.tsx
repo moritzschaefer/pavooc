@@ -26,10 +26,9 @@ interface State {
 interface Props {
   className: string;
   cellline: string;
-  guides: Array<Guide> | Map<number, Guide>;
+  guides: Array<Guide>;
   hoveredGuide: number | undefined;
   setHoveredGuide: (hoveredGuide: number | undefined) => void;
-  guideClicked: (guideIndex: number) => void;
   setGuideSelection: (guideSelection: number[]) => void;
   showDomain?: boolean;
 }
@@ -51,9 +50,7 @@ interface Props {
 export default class GuideLineup extends React.Component<Props, State> {
   _tableArray() {
     // TODO fix as Array needs conversion <- ??
-    return (this.props.guides as Array<
-      Guide
-    >).map((guide: Guide, index: number) => ({
+    return this.props.guides.map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
       Domain: guide.domains ? guide.domains.join(",") : "",
       ...guide.scores
@@ -61,22 +58,43 @@ export default class GuideLineup extends React.Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
-    //TODO check if the two arrays differ
-
-    // if (nextProps.cellline !== this.props.cellline) {
-    //   console.log("guides might have changed in GuideLineup");
+    // if (nextProps.setGuideSelection !== this.props.setGuideSelection) {
+    //   console.log("setGuideSelection did change");
     //   return true;
     // }
-    return false;
+    //
+    // if (nextProps.setHoveredGuide !== this.props.setHoveredGuide) {
+    //   console.log("setHoveredGuide did change");
+    //   return true;
+    // }
+
+    if (
+      nextProps.cellline !== this.props.cellline ||
+      nextProps.hoveredGuide !== this.props.hoveredGuide
+    ) {
+      console.log("guides might have changed in GuideLineup");
+      return true;
+    }
+    let changed = false;
+    nextProps.guides.forEach((guide: Guide, index: number) => {
+      // comparing target and selected should be enough
+      if (
+        !this.props.guides[index] ||
+        this.props.guides[index].target !== guide.target ||
+        this.props.guides[index].selected !== guide.selected
+      ) {
+        changed = true;
+        return;
+      }
+    });
+    return changed;
   }
 
   _selectionIndices() {
-    // only update if not already the same
-    let newSelection = (this.props.guides as Array<Guide>)
+    let newSelection = this.props.guides
       .map((guide: Guide, index: number) => [guide, index])
       .filter(([guide, index]: [Guide, number]) => guide.selected)
       .map(([guide, index]: [Guide, number]) => index);
-    console.log(newSelection);
     return newSelection;
   }
 
@@ -104,7 +122,7 @@ export default class GuideLineup extends React.Component<Props, State> {
             color="red"
           />
           <LineUpNumberColumnDesc
-            column="Doench2016CDFScore"
+            column="Doench2016CFDScore"
             domain={[0, 1]}
             color="green"
           />
@@ -120,7 +138,7 @@ export default class GuideLineup extends React.Component<Props, State> {
             <LineUpColumn column="Domain" />
             <LineUpWeightedSumColumn label="Scores">
               <LineUpWeightedColumn column="azimuth" weight={0.45} />
-              <LineUpWeightedColumn column="Doench2016CDFScore" weight={0.35} />
+              <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.35} />
               <LineUpWeightedColumn column="Hsu2013" weight={0.2} />
             </LineUpWeightedSumColumn>
           </LineUpRanking>

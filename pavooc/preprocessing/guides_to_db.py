@@ -117,7 +117,7 @@ def pdbs_for_gene(gene_id):
     return gene_pdbs
 
 
-def _cut_position(row):
+def _absolute_position(row):
     try:
         exon = gencode_exons().loc[row.exon_id]
     except KeyError:
@@ -129,8 +129,7 @@ def _cut_position(row):
             logging.error(f'same exon_id with different starts {exon}')
         exon = exon.iloc[0]
 
-    return exon.start + row['start'] + \
-        (7 if row['orientation'] == 'RVS' else 16)
+    return exon.start + row['start']
 
 
 def build_gene_document(gene, check_exists=True):
@@ -157,26 +156,32 @@ def build_gene_document(gene, check_exists=True):
     unique_exons = exons.groupby('exon_id').first().reset_index()[
         ['start', 'end', 'exon_id']]
 
-    # delete padding introduced before guide-finding (flashfry)
-    guides['start'] -= 16
-
     guides['exon_id'] = guides['contig'].apply(lambda v: v.split(';')[0])
 
+    # delete padding introduced before guide-finding (flashfry)
+    guides['start'] -= 16
+    guides['in_exon_start'] = guides['start']
+
     try:
-        guides['cut_position'] = guides.apply(_cut_position, axis=1)
+        guides['start'] = guides.apply(_absolute_position, axis=1)
+        guides['cut_position'] = guides.apply(
+            lambda row: row['start'] +
+            (7 if row['orientation'] == 'RVS' else 16),
+            axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
         logging.warn('no guides: {}'.format(e))
+        guides['start'] = []
         guides['cut_position'] = []
-    # TODO add scores here and stuff
 
+    guides.set_index(['start', 'orientation'], drop=False, inplace=True)
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:
-        guides['azimuth_score'] = azimuth.score(guides)
+        azimuth_score = pd.Series(azimuth.score(guides), index=guides.index)
     except ValueError as e:
         guides.to_csv(f'{gene_id}.csv')
         logging.error(
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
-        guides['azimuth_score'] = 0
+        azimuth_score = pd.Series(0, index=guides.index)
     # TODO add amino acid cut position and percent peptides
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -199,13 +204,14 @@ def build_gene_document(gene, check_exists=True):
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['aa_cut_position'] = []
 
-    # delete all guides with scores below 0.5
+    # delete all guides with scores below 0.57
     # TODO use something more sophisticated
-    guides.drop(guides.index[guides['azimuth_score'] < 0.5], inplace=True)
+    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
 
-    flashfry_scores = flashfry.score(gene_id)
-
+    guides_file = GUIDES_FILE.format(gene_id)
+    flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
+    flashfry_scores.set_index(['start', 'orientation'], drop=False, inplace=True)
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
@@ -215,11 +221,11 @@ def build_gene_document(gene, check_exists=True):
                 'cut_position', 'aa_cut_position']].to_dict(),
         'mutations': guide_mutations(chromosome, gene_start + row['start']),
         'scores': {**flashfry_scores.loc[index][
-            ['Doench2014OnTarget', 'Doench2016CDFScore',
+            ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
              'dangerous_in_genome', 'Hsu2013']].to_dict(),
-            'azimuth': row['azimuth_score']}
-    } for index, row in guides.iterrows()]
+            'azimuth': azimuth_score.loc[index]}
+    } for index, row in guides.iterrows() if index in flashfry_scores.index]
 
     return {
         'gene_id': gene_id,

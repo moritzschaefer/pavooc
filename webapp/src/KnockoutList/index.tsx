@@ -24,7 +24,7 @@ export interface Props {
   setGuideCount: (guideCount: number) => {};
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
   push: (route: string) => {};
-  guides: Array<any>;
+  knockoutData: Array<any>;
 }
 
 class KnockoutList extends React.Component<Props, object> {
@@ -38,7 +38,7 @@ class KnockoutList extends React.Component<Props, object> {
     // TODO orientation->guideOrientation, geneStrand, delete selected, start->startInGene, add exonStart
     const data = [].concat(
       // flatten array of arrays
-      ...this.props.guides.map((gene: any) =>
+      ...this.props.knockoutData.map((gene: any) =>
         gene.guides
           .filter((guide: any) => guide.selected) // only return selected guides
           .map((guide: any) => ({ gene_id: gene.gene_id, ...guide }))
@@ -83,9 +83,9 @@ class KnockoutList extends React.Component<Props, object> {
   }
 
   updateGuideSelection(guideCount: number) {
-    const { guides } = this.props;
+    const { knockoutData } = this.props;
     // select all top-guides where no editing has occured before
-    for (let gene of guides) {
+    for (let gene of knockoutData) {
       // Make sure we don't erase selection edits by the user
       if (gene.edited) {
         continue;
@@ -182,7 +182,7 @@ class KnockoutList extends React.Component<Props, object> {
     );
   }
   renderTable() {
-    const { guides } = this.props;
+    const { knockoutData } = this.props;
     return (
       <Paper>
         <Table>
@@ -193,7 +193,7 @@ class KnockoutList extends React.Component<Props, object> {
             </TableRow>
           </TableHead>
           <TableBody>
-            {guides.map((geneGuides: any) => this.renderTableRow(geneGuides))}
+            {knockoutData.map((geneGuides: any) => this.renderTableRow(geneGuides))}
           </TableBody>
         </Table>
       </Paper>
@@ -232,7 +232,7 @@ const mapStateToProps = (state: any) => {
   // Filter guides for mutations within the selected cellline
   return {
     guideCount: state.knockoutList.guideCount,
-    guides: state.io.guides.map((gene: any) => {
+    knockoutData: state.io.knockoutData.map((gene: any) => {
       let filteredGuides = gene.guides.filter(
         (guide: any) => !guide.mutations.includes(state.app.cellline)
       );

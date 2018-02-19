@@ -55,12 +55,6 @@ class KnockoutViewer extends React.Component<Props, State> {
     this.state = { selectedPdb: 0, hoveredGuide: undefined, pdbSelectionOpened: false };
   }
 
-  guideCheckboxClicked = (guideIndex: number) => {
-    const { geneId } = this.props;
-    this.props.toggleGuideSelection(geneId, guideIndex);
-    this.props.markGeneEdit(geneId);
-  };
-
   setHoveredGuide = (hoveredGuide: number): void => {
     this.setState({ hoveredGuide });
   };
@@ -126,7 +120,7 @@ class KnockoutViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             setHoveredGuide={this.setHoveredGuide}
             className="proteinViewer"
-            guides={geneData.guides}
+            highlightPositions={geneData.guides}
             pdb={geneData.pdbs[selectedPdb]}
           />
           <GuideLineup
@@ -135,7 +129,6 @@ class KnockoutViewer extends React.Component<Props, State> {
             showDomain={true}
             setHoveredGuide={this.setHoveredGuide}
             setGuideSelection={this._lineupSetGuideSelection}
-            guideClicked={this.guideCheckboxClicked}
             guides={this._guidesWithDomains()}
             className="guideTable"
           />
@@ -163,7 +156,7 @@ const mapStateToProps = (
   state: any,
   { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
 ) => {
-  let geneData = state.io.guides.find((v: any) => v.gene_id === geneId);
+  let geneData = state.io.knockoutData.find((v: any) => v.gene_id === geneId);
   return {
     cellline: state.app.cellline,
     geneData: {

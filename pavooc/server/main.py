@@ -7,12 +7,16 @@ from flask import Flask, request
 from flask_restplus import Resource, Api, fields
 from werkzeug.exceptions import BadRequest
 
+import os
+import time
+import tempfile
 import sys
 from os import path
 # bugfix server debugging
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
-from pavooc.config import DEBUG  # noqa
+from pavooc.preprocessing.generate_guide_bed import guides_to_bed
+from pavooc.config import DEBUG, BASEDIR  # noqa
 from pavooc.db import guide_collection  # noqa
 from pavooc.data import celllines, read_gencode
 from pavooc.preprocessing.exon_guide_search import generate_edit_guides
@@ -34,7 +38,7 @@ guide_field = fields.Nested({
     'scores': fields.Nested({
         'azimuth': fields.Float,
         # 'Doench2014OnTarget': fields.Float,
-        'Doench2016CDFScore': fields.Float,
+        'Doench2016CFDScore': fields.Float,
         # 'dangerous_GC': fields.String,
         # 'dangerous_polyT': fields.String,
         # 'dangerous_in_genome': fields.String,
@@ -58,10 +62,12 @@ edit_input = api.model('EditInput', {
 })
 
 edit_output = api.model('EditGuides', {
+    'bed_url': fields.String,
     'guides_before': fields.List(guide_field),
     'guides_after': fields.List(guide_field),
     'sequence': fields.String,
-    'pdbs': fields.List(pdb_field, default=[]),
+    'edit_position': fields.Integer,
+    # 'pdbs': fields.List(pdb_field, default=[]),
     'canonical_exons': fields.List(fields.Nested({
         'start': fields.Integer,
         'end': fields.Integer,
@@ -97,9 +103,11 @@ knockout_output = api.model('KnockoutGuides', {
 
 initial_output = api.model('InitialData', {
     'genes': fields.List(fields.Nested({
+        'pdbs': fields.List(pdb_field, default=[]),  # TODO is this too much?
         'gene_id': fields.String,
         'gene_symbol': fields.String,
         'chromosome': fields.String,
+        'strand': fields.String,
         'start': fields.Integer,
         'end': fields.Integer,
     })),
@@ -115,13 +123,16 @@ class InitialData(Resource):
 
     @api.marshal_with(initial_output)
     def get(self):
-        fields = ['gene_id', 'gene_symbol', 'chromosome', 'start', 'end']
+        fields = ['gene_id', 'gene_symbol',
+                  'chromosome', 'start', 'end', 'strand', 'pdbs']
         genes = guide_collection.aggregate([
             {"$unwind": "$exons"},
             {"$group": {
                 "_id": "$_id",
                 "gene_id": {"$first": "$gene_id"},
+                "pdbs": {"$first": "$pdbs"},
                 "gene_symbol": {"$first": "$gene_symbol"},
+                "strand": {"$first": "$strand"},
                 "start": {"$min": "$exons.start"},
                 "chromosome": {"$first": "$chromosome"},
                 "end": {"$max": "$exons.end"}}}])
@@ -184,6 +195,7 @@ class EditGuides(Resource):
         gene_data = guide_collection.find_one({'gene_id': gene_id})
 
         output = {}
+        output['edit_position'] = edit_position
         # TODO sequence to upper case in generate_edit_guides?
         output['sequence'], output['guides_before'], output['guides_after'] = \
             generate_edit_guides(
@@ -191,6 +203,12 @@ class EditGuides(Resource):
 
         output['pdbs'] = gene_data['pdbs']
         output['canonical_exons'] = gene_data['canonical_exons']
+
+        bed_url = f'{time.time()}.guides.bed'
+        guides_to_bed(output['guides_before'] + output['guides_after'],
+                      gene_data,
+                      os.path.join(BASEDIR, 'webapp/public/', bed_url))
+        output['bed_url'] = f'/{bed_url}'
 
         return output
 

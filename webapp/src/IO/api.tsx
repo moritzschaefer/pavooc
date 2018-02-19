@@ -8,7 +8,7 @@ function handleFetchErrors(response: Response) {
 }
 
 export const fetchKnockoutsApi = (geneIds: any) => {
-  const request = fetch(`/api/knockout`, {
+  const request = fetch("/api/knockout", {
     method: "POST",
     body: JSON.stringify({ gene_ids: geneIds })
   })
@@ -18,12 +18,14 @@ export const fetchKnockoutsApi = (geneIds: any) => {
 };
 
 export const fetchInitialApi = () => {
-  const request = fetch(`/api/initial`, { method: "GET" })
+  const request = fetch("/api/initial", { method: "GET" })
     .then(handleFetchErrors)
     .then(response => response.json())
     .then(response => {
       // TODO convert gene_id to geneId and
       response.genes = response.genes.map((g: any) => ({
+        pdbs: g.pdbs,
+        strand: g.strand,
         geneId: g.gene_id,
         geneSymbol: g.gene_symbol,
         start: g.start,
@@ -35,12 +37,24 @@ export const fetchInitialApi = () => {
   return Observable.from(request);
 };
 
+const renameAttribute = (obj: any, oldName: string, newName: string) => {
+  Object.defineProperty(
+    obj,
+    newName,
+    Object.getOwnPropertyDescriptor(
+      obj,
+      oldName
+    ) as PropertyDescriptor
+  );
+  delete obj[oldName];
+}
+
 export const fetchEditApi = (
   geneId: string,
   editPosition: number,
   padding: number = 400
 ) => {
-  const request = fetch(`/api/edit`, {
+  const request = fetch("/api/edit", {
     method: "POST",
     body: JSON.stringify({
       gene_id: geneId,
@@ -51,30 +65,11 @@ export const fetchEditApi = (
     .then(handleFetchErrors)
     .then(response => response.json())
     .then(res => {
-      // TODO convert gene_id to geneId and
-      Object.defineProperty(
-        res,
-        "guidesBefore",
-        Object.getOwnPropertyDescriptor(
-          res,
-          "guides_before"
-        ) as PropertyDescriptor
-      );
-      Object.defineProperty(res, "guidesAfter", Object.getOwnPropertyDescriptor(
-        res,
-        "guides_after"
-      ) as PropertyDescriptor);
-      Object.defineProperty(
-        res,
-        "canonicalExons",
-        Object.getOwnPropertyDescriptor(
-          res,
-          "canonical_exons"
-        ) as PropertyDescriptor
-      );
-      delete res.guides_before;
-      delete res.guides_after;
-      delete res.canonical_exons;
+      // TODO convert snake to camel case
+      renameAttribute(res, "guides_after", "guidesAfter");
+      renameAttribute(res, "guides_before", "guidesBefore");
+      renameAttribute(res, "canonical_exons", "canonicalExons");
+      renameAttribute(res, "bed_url", "bedUrl");
 
       return res;
     });

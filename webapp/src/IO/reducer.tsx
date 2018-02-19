@@ -3,7 +3,7 @@ import * as t from "./actionTypes";
 export type State = {
   readonly isFetching: boolean;
   readonly error: string | undefined;
-  readonly guides: any | undefined;
+  readonly knockoutData: any | undefined;
   readonly genes: Map<string, Gene>;
   readonly celllines: Array<string>;
   readonly editData: any;
@@ -12,6 +12,7 @@ export type State = {
 export interface Gene {
   geneId: string;
   geneSymbol: string;
+  strand: string;
   start: number;
   end: number;
   chromosome: string;
@@ -20,7 +21,7 @@ export interface Gene {
 const INITIAL_STATE: State = {
   isFetching: false,
   error: undefined,
-  guides: undefined, // TODO rename this guides to knockoutData or so
+  knockoutData: undefined,
   editData: {},
   genes: new Map<string, Gene>(),
   celllines: []
@@ -36,7 +37,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
         isFetching: false,
         error: undefined,
         // just add selected:false to every guide and edited:false to every gene
-        guides: action.data.map((gene: any) => ({
+        knockoutData: action.data.map((gene: any) => ({
           ...gene,
           edited: false,
           guides: gene.guides.map((guide: any) => ({
@@ -75,7 +76,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
       // TODO slow?
       return {
         ...state,
-        guides: state.guides.map((gene: any) => ({
+        knockoutData: state.knockoutData.map((gene: any) => ({
           ...gene,
           guides: gene.guides.map((guide: any, index: number) => ({
             ...guide,
@@ -89,7 +90,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
       // TODO slow?, and..
       return {
         ...state,
-        guides: state.guides.map((gene: any) => ({
+        knockoutData: state.knockoutData.map((gene: any) => ({
           ...gene,
           guides: gene.guides.map((guide: any, index: number) => ({
             ...guide,
@@ -102,7 +103,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
     case t.MARK_GENE_EDIT:
       return {
         ...state,
-        guides: state.guides.map((gene: any) => ({
+        knockoutData: state.knockoutData.map((gene: any) => ({
           ...gene,
           edited: gene.edited !== (gene.gene_id === action.geneId)
         }))

@@ -11,10 +11,10 @@ from pavooc.data import chromosomes, azimuth_model, gencode_exons
 from azimuth.model_comparison import predict as azimuth_predict
 
 
-def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
+def _context_guide(exon_id, start, guide_direction, context_length=5):
     '''
     :exon_id: ensembl id
-    :start_in_exon: bp position start of guide(!) relative to ensembl start
+    :start: bp position start of guide(!) relative to chromosome
     :guide_direction: either 'FWD' or 'RVS'
     :context_length: option to adjust padding in bps TODO: implement
     :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
@@ -26,15 +26,14 @@ def _context_guide(exon_id, start_in_exon, guide_direction, context_length=5):
         if len(exon.start.unique()) != 1:
             logging.error(f'same exon_id with different starts {exon}')
         exon = exon.iloc[0]
-    chromosome_start = exon.start + start_in_exon
 
     if guide_direction == 'RVS':
-        chromosome_start -= 3
+        start -= 3
     else:
-        chromosome_start -= 4
+        start -= 4
 
     seq = chromosomes()[exon['seqname']
-                        ][chromosome_start:chromosome_start + 30].upper()
+                        ][start:start + 30].upper()
 
     # if the strands don't match, it needs to be reversed
     if guide_direction == 'RVS':

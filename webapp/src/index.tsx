@@ -4,7 +4,7 @@ import * as React from "react";
 import * as ReactDOM from "react-dom";
 import { createStore, combineReducers, applyMiddleware, compose } from "redux";
 import { Provider } from "react-redux";
-import { persistStore, persistReducer } from "redux-persist";
+import { persistStore, persistReducer, createTransform } from "redux-persist";
 import storage from "redux-persist/es/storage";
 import { PersistGate } from "redux-persist/es/integration/react";
 import {
@@ -17,6 +17,7 @@ import createHistory from "history/createBrowserHistory";
 
 import registerServiceWorker from "./registerServiceWorker";
 import "./index.css";
+import { Gene } from "./IO/reducer";
 
 import App from "./App";
 import Loading from "./util/Loading";
@@ -46,8 +47,25 @@ const middleware = applyMiddleware(
   createEpicMiddleware(epics)
 );
 
+const mapTransform = createTransform(
+  (inboundState: any, key: any) => {
+    // convert Map to Array
+    let genes = new Array<Gene>();
+    inboundState.genes.forEach((value: Gene) => genes.push(value));
+    return { ...inboundState, genes };
+  },
+  // transform state being rehydrated
+  (outboundState: any, key: any) => {
+    let genes = new Map(outboundState.genes.map((g: Gene) => [g.geneId, g]))
+    return { ...outboundState, genes };
+  },
+  // define which reducers this transform gets called for.
+  { whitelist: ['io'] }
+);
+
 const config = {
   key: "root", // key is required
+  transforms: [mapTransform],
   storage // storage is now required
 };
 // interface Window { [key: string]: any }

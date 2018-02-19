@@ -15,15 +15,15 @@ interface Props {
   chromosome: string;
   geneStart: number;
   geneEnd: number;
+  guidesUrl?: string;
   exons: Array<any> | undefined;
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number | undefined) => void;
   pdb: string | undefined;
   editPosition: number;
-  editPositionChanged: ((editPosition: number) => void) | undefined;
+  editPositionChanged?: ((editPosition: number) => void);
   onPdbClicked: () => void;
-  onNucleotideClick?: (nucleotidePosition: number) => void;
 }
 
 let viewport: HTMLDivElement | undefined = undefined;
@@ -43,26 +43,21 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   _highlightGuide(guide: any, clear: boolean = false) {
-    const { exons, chromosome } = this.props;
+    const { chromosome } = this.props;
     const { browser } = this.state;
     if (clear) {
       browser.clearHighlights();
     }
-    try {
-      let exonStart = exons.find((exon: any) => exon.exon_id === guide.exon_id)
-        .start;
-      browser.highlightRegion(
-        chromosome,
-        1 + guide.start + exonStart,
-        1 + guide.start + exonStart + 23
-      );
-    } catch (e) {
-      console.log(e);
-    }
+    let guideStart = guide.start + 1;
+    browser.highlightRegion(
+      chromosome,
+      guideStart,
+      guideStart + 23
+    );
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, cellline, pdb, editPosition } = this.props;
+    const { hoveredGuide, guides, cellline, pdb, editPosition, guidesUrl } = this.props;
     const { browser, viewStart } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
@@ -87,6 +82,12 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.addTier(this.cnsConfig(cellline));
       browser.addTier(this.snpConfig(cellline));
     }
+
+    if (prevProps.guidesUrl !== guidesUrl) {
+      browser.removeTier(this.guidesConfig(prevProps.guidesUrl));
+      browser.addTier(this.guidesConfig(guidesUrl));
+    }
+
     if (prevProps.pdb !== pdb) {
       if (prevProps.pdb) {
         browser.removeTier(this.pdbConfig(prevProps.pdb));
@@ -182,27 +183,10 @@ export default class SequenceViewer extends React.Component<any, State> {
     };
   }
 
-  // Draw the editposition marker right into the dalliance
-  _drawEditPosition() {
-    const { viewStart /*, viewEnd, viewChromosome*/ } = this.state;
-    const { editPosition } = this.props;
-    if (!editPosition || viewStart < 0) {
-      return;
-    }
-
-    // TODO find perfect position and draw!
-  }
-  _initialSources() {
-    const { pdb, cellline } = this.props;
-    let sources: Array<any> = [
-      {
-        name: "Genome",
-        twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
-        tier_type: "sequence"
-      },
-      this.cnsConfig(cellline),
-      this.snpConfig(cellline),
-      {
+  guidesConfig(url: string = "") {
+    // if url is undefined we load the complete guide file
+    if (!url) {
+      return {
         name: "Guides",
         desc: "sgRNAs in the exome",
         bwgURI: "/guides.bb",
@@ -222,7 +206,56 @@ export default class SequenceViewer extends React.Component<any, State> {
           }
         ],
         collapseSuperGroups: true
+      };
+    } else {
+      // else we load the provided url
+      return {
+        name: "Guides",
+        desc: "sgRNAs for the provided edit position",
+        uri: url,
+        tier_type: "memstore",
+        payload: "bed",
+        style: [
+          {
+            type: "default",
+            style: {
+              glyph: "ANCHORED_ARROW",
+              LABEL: false,
+              HEIGHT: "12",
+              BGITEM: true,
+              BUMP: true,
+              STROKECOLOR: "black",
+              FGCOLOR: "black",
+              BGCOLOR: "blue"
+            }
+          }
+        ]
+      };
+
+    }
+  }
+
+  // Draw the editposition marker right into the dalliance
+  _drawEditPosition() {
+    const { viewStart /*, viewEnd, viewChromosome*/ } = this.state;
+    const { editPosition } = this.props;
+    if (!editPosition || viewStart < 0) {
+      return;
+    }
+
+    // TODO find perfect position and draw!
+  }
+  _initialSources() {
+    const { pdb, cellline, guidesUrl } = this.props;
+    let sources: Array<any> = [
+      {
+        name: "Genome",
+        twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
+        tier_type: "sequence"
       },
+      this.cnsConfig(cellline),
+      this.snpConfig(cellline),
+      this.guidesConfig(guidesUrl),
       {
         name: "Genes",
         // style: [
@@ -262,12 +295,6 @@ export default class SequenceViewer extends React.Component<any, State> {
     } = this.props;
 
     let chr = chromosome;
-    if (!chr) { // TODO workaround delete
-      chr = "chr22";
-      geneStart = 40000000;
-      geneEnd = 40000600;
-    }
-
     let browser = new dalliance.Browser({
       chr,
       viewStart: geneStart,
