@@ -45,6 +45,7 @@ interface Props {
   pdbs: Array<any>;
   canonicalExons: Array<any>;
   onMessage: (message: string) => {};
+  isFetching: boolean;
 }
 
 interface State {
@@ -140,22 +141,13 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _renderMainContainer() {
-    const { cellline, guidesBefore, guidesAfter, pdbs } = this.props;
-    const { selectedPdb, hoveredGuide } = this.state;
-    let highlightPositions = [];
-    const { aaPosition } = this._findAA();
-    if (aaPosition) {
-      highlightPositions.push({ aa_cut_position: aaPosition, selected: true });
-    }
+    const { cellline, guidesBefore, guidesAfter } = this.props;
+    const { hoveredGuide } = this.state;
 
     return (
       <div className="containerCenter">
         <div className="centerLeft">
-          <ProteinViewer
-            className="proteinViewer"
-            highlightPositions={highlightPositions}
-            pdb={pdbs[selectedPdb]}
-          />
+          {this._renderProteinViewer()}
           {this._renderSequenceViewer()}
         </div>
         <div className="centerRight">
@@ -188,6 +180,37 @@ class EditViewer extends React.Component<Props, State> {
     );
   }
 
+  _renderPreviewContainer() {
+    return (
+      <div className="previewContainer">
+        {this._renderProteinViewer()}
+        {this._renderSequenceViewer()}
+      </div>
+    );
+  }
+
+  _renderProteinViewer() {
+    const { pdbs } = this.props;
+    const { selectedPdb } = this.state;
+    let highlightPositions = [];
+    try {
+      const { aaPosition } = this._findAA();
+      if (aaPosition) {
+        highlightPositions.push({ aa_cut_position: aaPosition, selected: true });
+      }
+    } catch (e) {
+      highlightPositions = []; // TODO set highlight here
+    }
+    return (
+      <ProteinViewer
+        className="proteinViewer"
+        highlightPositions={highlightPositions}
+        pdb={pdbs[selectedPdb]}
+      />
+    );
+  }
+
+
   _renderSequenceViewer() {
     const {
       geneStart,
@@ -198,28 +221,36 @@ class EditViewer extends React.Component<Props, State> {
       bedUrl,
       pdbs,
       chromosome,
-      canonicalExons
+      canonicalExons,
+      isFetching
     } = this.props;
     const { selectedPdb, hoveredGuide, editPosition } = this.state;
 
     const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
     const pdb = pdbs[selectedPdb] && pdbs[selectedPdb].pdb;
     return (
-      <SequenceViewer
-        cellline={cellline}
-        editPosition={editPosition}
-        editPositionChanged={this._setEditPosition}
-        hoveredGuide={hoveredGuide}
-        guidesUrl={bedUrl}
-        guides={allGuides}
-        onGuideHovered={this.setHoveredGuide}
-        pdb={pdb}
-        onPdbClicked={this._openPdbSelection}
-        chromosome={chromosome}
-        geneStart={geneStart}
-        geneEnd={geneEnd}
-        exons={canonicalExons}
-      />
+      <div style={{position: "relative" }}>
+        { isFetching ?
+          <div className="busyOverlay">
+            <div className="spinner" />
+          </div> : null
+        }
+        <SequenceViewer
+          cellline={cellline}
+          editPosition={editPosition}
+          editPositionChanged={this._setEditPosition}
+          hoveredGuide={hoveredGuide}
+          guidesUrl={bedUrl}
+          guides={allGuides}
+          onGuideHovered={this.setHoveredGuide}
+          pdb={pdb}
+          onPdbClicked={this._openPdbSelection}
+          chromosome={chromosome}
+          geneStart={geneStart}
+          geneEnd={geneEnd}
+          exons={canonicalExons}
+        />
+      </div>
     );
   }
 
@@ -250,7 +281,7 @@ class EditViewer extends React.Component<Props, State> {
             <Button raised={true}>&darr; CSV</Button>
           </div>
         </div>
-        {sequence ? this._renderMainContainer() : this._renderSequenceViewer()}
+        {sequence ? this._renderMainContainer() : this._renderPreviewContainer()}
       </div>
     );
   }
@@ -263,6 +294,7 @@ const mapStateToProps = (
   let gene = (state.io.genes.get && state.io.genes.get(geneId)) || {};
   return {
     ...state.io.editData, // guides{Before,After)}, sequence, pdbs
+    isFetching: state.io.isFetching,
     cellline: state.app.cellline,
     strand: gene.strand,
     geneStart: gene.start,

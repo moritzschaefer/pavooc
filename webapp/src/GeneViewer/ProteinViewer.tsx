@@ -116,7 +116,6 @@ export default class ProteinViewer extends React.Component<Props, State> {
         });
       } catch (e) {
         // if guides changed for example
-        console.log(e);
         selectionChanged = true;
       }
       if (
