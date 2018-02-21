@@ -31,6 +31,7 @@ def read_gencode():
     Returns relevant columns only
     Returns the gencode dataframe but with havana and ensembl merged
     '''
+
     df = read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
@@ -38,7 +39,7 @@ def read_gencode():
     # only take protein_coding genes/transcripts/exons
     df = df[
         (df['gene_type'] == 'protein_coding') &
-        (df['feature'].isin(['gene', 'transcript', 'exon'])) &
+        (df['feature'].isin(['gene', 'transcript', 'exon', 'UTR'])) &
         (df['seqname'].isin(CHROMOSOMES))]
     # drop all transcripts and exons that have no protein_id
     df.drop(df.index[(df.protein_id == '') & (
@@ -71,13 +72,27 @@ def read_gencode():
 
     # TODO Note that this deletes some genes
     # use the first APPRIS transcript
-    first_apprises = read_appris().groupby('gene_id').first()
+    # first_apprises = read_appris().groupby('gene_id').first()
     logging.debug('# of genes: {}'.format(
         len(df.gene_id.drop_duplicates())))
-    df = df[df.transcript_id.map(
-        lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
+    df = df[(df.feature == 'gene') | (df.tag.str.contains('appris_principal'))]
+    # df = df[df.transcript_id.map(
+    #     lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
+    # TODO shouldnt have changed... so it doesnt make sense here
     logging.debug('# of genes after selecting for appris transcript_id: {}'
                   .format(len(df.gene_id.drop_duplicates())))
+
+    # make sure there is only one transcript
+    first_transcripts = df[df.feature == 'transcript'].groupby(
+        'gene_id').first().transcript_id
+    invalid_elements = df.feature.isin(['transcript', 'exon', 'UTR']) & \
+        ~(df.transcript_id).isin(first_transcripts)
+    logging.debug(f'{invalid_elements.sum()} elements to delete because '
+                  f'not in first transcript')
+    df.drop(df.index[invalid_elements], inplace=True)
+    logging.debug(
+        f'# of genes after deleting secondary transcripts: '
+        f'{len(df.gene_id.drop_duplicates())}')
 
     # drop all genes which have no transcripts
     valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
@@ -115,6 +130,7 @@ def load_protein_mapping():
 @buffer_return_value
 def gencode_exons():
     '''
+
     Return the protein-coding exons from gencode, indexed by exon_id
     Return only the exons for the longest transcript for each gene
 

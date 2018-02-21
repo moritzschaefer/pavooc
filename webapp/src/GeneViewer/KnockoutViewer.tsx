@@ -139,7 +139,7 @@ class KnockoutViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             guides={geneData.guides}
             onGuideHovered={this.setHoveredGuide}
-            pdb={geneData.pdbs[selectedPdb].pdb}
+            pdb={geneData.pdbs[selectedPdb] && geneData.pdbs[selectedPdb].pdb}
             onPdbClicked={this._openPdbSelection}
             chromosome={geneData.chromosome}
             exons={geneData.exons}

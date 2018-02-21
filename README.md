@@ -13,6 +13,8 @@ runs everything required to get you started. Additionally there is a docker-envi
 
 # Conventions
 
+- In the DB 'exons' right now are only the exons for the canonical transcript.. this also means, that in knockout and edit experiments we only consider the canonical transcripts
+- canonical exons contain all exons of the canonical transcript MINUS UTR regions
 - All sequences are saved in gene-relative direction ('-'-strands are reverse-complemented).
 - Ensembl gene IDs are used
 - Exon are saved with paddings such that a sgRNA search can find all guides that would cut inside the exon. Forward strand: (16padding)(exon)(6padding), Backward strand: (6padding)(exon)(16padding)

@@ -67,12 +67,35 @@ def aa_cut_position(guide, canonical_exons):
     return -1
 
 
+# TODO !
 def compute_canonical_exons(gene_id, exons):
-    try:
-        return exons.reset_index()[['start', 'end', 'exon_id']]
-    except Exception as e:
-        logging.error('Failed finding canonical exons: {}'.format(e))
-    return pd.DataFrame()
+    df = read_gencode()
+    utrs = []
+    for index, row in \
+            df[(df.feature == 'UTR') & (df.gene_id == gene_id)].iterrows():
+        utrs.extend(list(range(row.start, row.end)))
+    utrs = set(utrs)
+
+    sorted_exons = exons.sort_values('exon_number')
+    result_exons = []
+
+    for index, exon in sorted_exons.iterrows():
+        exon_positions = set(range(exon.start, exon.end))
+        filtered = (exon_positions - utrs)
+        try:
+            end = max(filtered) + 1
+            start = min(filtered)
+        except ValueError:
+            continue
+        else:
+            new_exon = exon.copy()
+            new_exon.start = start
+            new_exon.end = end
+            result_exons.append(new_exon)
+
+    df = pd.DataFrame(result_exons)
+    df.index.name = 'exon_id'
+    return df.reset_index()[['start', 'end', 'exon_id', 'exon_number']]
 
 
 def pdbs_for_gene(gene_id):
@@ -121,8 +144,8 @@ def _absolute_position(row):
     try:
         exon = gencode_exons().loc[row.exon_id]
     except KeyError:
-        import ipdb
-        ipdb.set_trace()
+        logging.warn('missing exon: {}'.format(row.exon_id))
+        raise
 
     if isinstance(exon, pd.DataFrame):
         if len(exon.start.unique()) != 1:
@@ -137,6 +160,7 @@ def build_gene_document(gene, check_exists=True):
     Compute all necessary data (scores for example) and return a document for
     the gene
     '''
+
     gene_id, exons = gene
     chromosome = exons.iloc[0]['seqname']
     if check_exists and \
@@ -172,8 +196,10 @@ def build_gene_document(gene, check_exists=True):
         logging.warn('no guides: {}'.format(e))
         guides['start'] = []
         guides['cut_position'] = []
+    except KeyError as e:  # exon_id from guides doesnt exist
+        logging.warn('. gene: {}'.format(e, gene_id))
+        return None
 
-    guides.set_index(['start', 'orientation'], drop=False, inplace=True)
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:
         azimuth_score = pd.Series(azimuth.score(guides), index=guides.index)
@@ -204,14 +230,14 @@ def build_gene_document(gene, check_exists=True):
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['aa_cut_position'] = []
 
-    # delete all guides with scores below 0.57
-    # TODO use something more sophisticated
-    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
 
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
-    flashfry_scores.set_index(['start', 'orientation'], drop=False, inplace=True)
+
+    # delete all guides with scores below 0.57
+    # TODO use something more sophisticated
+    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
