@@ -1,12 +1,12 @@
 '''
-Create a bed file for the exome
+Create a bed file for each pdb
 '''
 import os
 import logging
 import pandas as pd
 from pavooc.config import PDB_BED_FILE
 from pavooc.util import normalize_pid
-from pavooc.data import gencode_exons, read_appris, pdb_list
+from pavooc.data import gencode_exons, pdb_list
 from pavooc.pdb import pdb_mappings
 
 
@@ -103,7 +103,6 @@ def pdb_coordinates(pdb, pdb_exons):
 
 
 def main():
-    appris = read_appris()
     exons = gencode_exons()
 
     # filter out exons which dont belong to swissprot-transcripts
@@ -125,29 +124,6 @@ def main():
                          f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
 
         gene_id = gene_id.iloc[0]
-
-        # TODO might be wrong in some circumstances TOIMPROVE
-        # right now we take the longest transcript anyways
-        # transcript_id = appris.loc[gene_id[:15]].transcript_id
-        # if isinstance(transcript_id, pd.Series):
-        #     logging.warning('Found {} canonical transcripts for {}. '
-        #                     'Choosing first one'.format(
-        #                         len(transcript_id), gene_id))
-        #     transcript_id = transcript_id.iloc[0]
-
-        # filter the exons for the corresponding transcript
-        # TODO in  gencode_exons we could just not use the longest
-        # transcript but one from appris...
-        transcript_id = exons.transcript_id.drop_duplicates().iloc[0][:15]
-        appris_ids = appris.loc[gene_id[:15]].transcript_id
-        if isinstance(appris_ids, pd.Series):
-            if (appris_ids != transcript_id).all():
-                print('transcript_id is not the primary one!')
-                print(appris_ids, transcript_id)
-        else:
-            if appris_ids != transcript_id:
-                print('transcript_id is not the primary one!')
-                print(appris_ids, transcript_id)
 
         pdb_exons = exons.loc[
             exons.gene_id == gene_id].copy().sort_values('exon_number')
