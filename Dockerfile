@@ -25,7 +25,7 @@ RUN \
     rm -rf /var/lib/apt/lists/*
 
 # workaround for scikit-bio
-RUN pip install numpy
+RUN pip install numpy requests
 ADD requirements.txt /usr/app/requirements.txt
 WORKDIR /usr/app
 RUN pip install -r requirements.txt
