@@ -95,7 +95,7 @@ class KnockoutList extends React.Component<Props, object> {
         index
       ]);
       sortedGuides.sort(function(a: [any, number], b: [any, number]) {
-        return b[0].score - a[0].score;
+        return b[0].scores.azimuth - a[0].scores.azimuth;
       });
       // enable first <guideCount> guides
       for (let [guide, index] of sortedGuides.slice(0, guideCount)) {

@@ -336,7 +336,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         this.setState({ viewChromosome, viewStart, viewEnd })
     );
     browser.addInitListener(() => {
-      browser.setLocation(chr, geneStart, geneEnd)
+      browser.setLocation(chr, geneStart - 1000, geneEnd + 1000)
 
       if (editPositionChanged) {
         // TODO only for gene editing
