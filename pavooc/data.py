@@ -127,23 +127,53 @@ def load_protein_mapping():
         index_col=False)
 
 
+def compute_canonical_exons(gene):
+    exons = gene[gene.feature == 'exon']
+    utrs = []
+    for index, row in gene[gene.feature == 'UTR'].iterrows():
+        utrs.extend(list(range(row.start, row.end)))
+    utrs = set(utrs)
+
+    sorted_exons = exons.sort_values('exon_number')
+    result_exons = []
+
+    for index, exon in sorted_exons.iterrows():
+        exon_positions = set(range(exon.start, exon.end))
+        filtered = (exon_positions - utrs)
+        try:
+            end = max(filtered) + 1
+            start = min(filtered)
+        except ValueError:
+            continue
+        else:
+            new_exon = exon.copy()
+            new_exon.start = start
+            new_exon.end = end
+            result_exons.append(new_exon)
+
+    df = pd.DataFrame(result_exons)
+    # df.index.name = 'exon_id'
+    return df.reset_index()[[
+        'seqname', 'start', 'end', 'strand', 'transcript_id',
+        'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+
+
 @buffer_return_value
 def gencode_exons():
     '''
 
     Return the protein-coding exons from gencode, indexed by exon_id
-    Return only the exons for the longest transcript for each gene
 
-    Delete overlapping exons
+    Deletes UTR (untranslated region)
     :returns: DataFrame with unique exons
     '''
     gencode = read_gencode()
 
-    prepared = gencode.loc[gencode['feature'] == 'exon'][[
-        'seqname', 'start', 'end', 'strand', 'transcript_id',
-        'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']] \
-        .drop_duplicates().copy()
+    prepared = gencode.groupby('gene_id').apply(compute_canonical_exons)
 
+    return prepared.set_index('exon_id')
+
+    # OLD: (we now use simply appris principal)
     # # Use longest transcript only
     # prepared['length'] = prepared['end'] - prepared['start']
     # transcripts_lengths = prepared.groupby(
@@ -154,8 +184,6 @@ def gencode_exons():
     #
     # prepared = prepared[prepared.transcript_id.isin(
     #     longest_transcripts.index.get_level_values(1))]
-
-    return prepared.set_index('exon_id')
 
 
 @buffer_return_value

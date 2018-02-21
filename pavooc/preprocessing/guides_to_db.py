@@ -67,37 +67,6 @@ def aa_cut_position(guide, canonical_exons):
     return -1
 
 
-# TODO !
-def compute_canonical_exons(gene_id, exons):
-    df = read_gencode()
-    utrs = []
-    for index, row in \
-            df[(df.feature == 'UTR') & (df.gene_id == gene_id)].iterrows():
-        utrs.extend(list(range(row.start, row.end)))
-    utrs = set(utrs)
-
-    sorted_exons = exons.sort_values('exon_number')
-    result_exons = []
-
-    for index, exon in sorted_exons.iterrows():
-        exon_positions = set(range(exon.start, exon.end))
-        filtered = (exon_positions - utrs)
-        try:
-            end = max(filtered) + 1
-            start = min(filtered)
-        except ValueError:
-            continue
-        else:
-            new_exon = exon.copy()
-            new_exon.start = start
-            new_exon.end = end
-            result_exons.append(new_exon)
-
-    df = pd.DataFrame(result_exons)
-    df.index.name = 'exon_id'
-    return df.reset_index()[['start', 'end', 'exon_id', 'exon_number']]
-
-
 def pdbs_for_gene(gene_id):
     gencode = read_gencode()
     pdbs = pdb_list()
@@ -222,11 +191,10 @@ def build_gene_document(gene, check_exists=True):
                for domain in interval_domains
                if domain[2][1] == strand]
 
-    canonical_exons = compute_canonical_exons(gene_id, exons)
     # AA number of canonical transcript cut position for each guide
     try:
         guides['aa_cut_position'] = guides.apply(
-            lambda row: aa_cut_position(row, canonical_exons), axis=1)
+            lambda row: aa_cut_position(row, exons), axis=1)
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['aa_cut_position'] = []
 
@@ -260,7 +228,6 @@ def build_gene_document(gene, check_exists=True):
         'strand': strand,
         'pdbs': list(pdbs_for_gene(gene_id).T.to_dict().values()),
         'chromosome': exons.iloc[0]['seqname'],
-        'canonical_exons': list(canonical_exons.T.to_dict().values()),
         'exons': list(unique_exons.T.to_dict().values()),
         'domains': domains,
         'guides': guides_list
