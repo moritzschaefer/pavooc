@@ -68,7 +68,6 @@ export const fetchEditApi = (
       // TODO convert snake to camel case
       renameAttribute(res, "guides_after", "guidesAfter");
       renameAttribute(res, "guides_before", "guidesBefore");
-      renameAttribute(res, "canonical_exons", "canonicalExons");
       renameAttribute(res, "bed_url", "bedUrl");
 
       return res;

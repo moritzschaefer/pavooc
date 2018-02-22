@@ -43,7 +43,7 @@ interface Props {
   guidesBefore: Array<any>;
   guidesAfter: Array<any>;
   pdbs: Array<any>;
-  canonicalExons: Array<any>;
+  exons: Array<any>;
   onMessage: (message: string) => {};
   isFetching: boolean;
 }
@@ -98,13 +98,13 @@ class EditViewer extends React.Component<Props, State> {
 
   _findAA() {
     // count the amino acids until to the editPosition
-    const { canonicalExons, sequence, strand } = this.props;
+    const { exons, sequence, strand } = this.props;
     const { padding, editPosition } = this.state;
     let relativePosition = 0;
     let codon = "";
     // let lastExonEnd = 0;
     // let codonPosition = [];
-    for (let exon of canonicalExons) {
+    for (let exon of exons) {
       if (
         (strand === "+" && exon.end <= editPosition) ||
         (strand === "-" && exon.start > editPosition)
@@ -221,7 +221,7 @@ class EditViewer extends React.Component<Props, State> {
       bedUrl,
       pdbs,
       chromosome,
-      canonicalExons,
+      exons,
       isFetching
     } = this.props;
     const { selectedPdb, hoveredGuide, editPosition } = this.state;
@@ -248,7 +248,7 @@ class EditViewer extends React.Component<Props, State> {
           chromosome={chromosome}
           geneStart={geneStart}
           geneEnd={geneEnd}
-          exons={canonicalExons}
+          exons={exons}
         />
       </div>
     );
@@ -300,7 +300,7 @@ const mapStateToProps = (
     geneStart: gene.start,
     geneEnd: gene.end,
     geneId,
-    canonicalExons: state.io.editData.canonicalExons,
+    exons: state.io.editData.exons,
     chromosome: gene.chromosome,
     // pdbs: state.io.editData.pdbs || []
     pdbs: gene.pdbs || []

@@ -68,7 +68,7 @@ edit_output = api.model('EditGuides', {
     'sequence': fields.String,
     'edit_position': fields.Integer,
     # 'pdbs': fields.List(pdb_field, default=[]),
-    'canonical_exons': fields.List(fields.Nested({
+    'exons': fields.List(fields.Nested({
         'start': fields.Integer,
         'end': fields.Integer,
         'exon_id': fields.String
@@ -202,7 +202,7 @@ class EditGuides(Resource):
             gene_id, gene_data['chromosome'], edit_position)
 
         output['pdbs'] = gene_data['pdbs']
-        output['canonical_exons'] = gene_data['canonical_exons']
+        output['exons'] = gene_data['exons']
 
         bed_url = f'{time.time()}.guides.bed'
         guides_to_bed(output['guides_before'] + output['guides_after'],
