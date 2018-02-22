@@ -322,7 +322,7 @@ export default class SequenceViewer extends React.Component<any, State> {
           }
         }
       }
-    );
+    , {immediate: true});
     browser.addFeatureListener(
       (event: any, feature: any, hit: any, tier: any) => {
         if (tier.dasSource.name === "PDB") {

@@ -37,7 +37,13 @@ export default class ProteinViewer extends React.Component<Props, State> {
     ) {
       this.atomColor = function(atom: any) {
         // the residue index is zero-based, same order as in the loaded file
-        let { resno } = atom;
+        let { resno, chainid, chainname } = atom;
+        if (chainid !== chainname) {
+          console.log(`chainid is not chainname!: ${chainid} !== ${chainname}`);
+        }
+        if (chainid !== pdb.chain) {
+          return 0x505050;
+        }
         if (typeof hoveredGuide !== "undefined") {
           try {
             if (
@@ -50,7 +56,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
                 return 0xff0000;
               }
             } else {
-              return 0x777777;
+              return 0x77A7A7;
             }
           } catch (e) {
             console.log(
@@ -73,7 +79,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
             return 0x990000;
           }
         } else {
-          return 0x999999;
+          return 0x99B9B9;
         }
       };
     });
@@ -137,27 +143,30 @@ export default class ProteinViewer extends React.Component<Props, State> {
   }
 
   componentDidMount() {
-    const { setHoveredGuide, highlightPositions, pdb } = this.props;
     // set up ngl
     const stage = new NGL.Stage(viewport);
     stage.setParameters({ backgroundColor: "black" });
     // listen to `hovered` signal to move tooltip around and change its text
     stage.signals.hovered.add((pickingProxy: any) => {
+      const { setHoveredGuide, highlightPositions, pdb } = this.props;
       if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
-        let { resno } = pickingProxy.atom;
+        let { resno, chainid } = pickingProxy.atom;
+        if (chainid !== pdb.chain) {
+          return;
+        }
         const guideIndex = highlightPositions.findIndex(
           (guide: any) => pdb.mappings[resno] === guide.aa_cut_position
         );
         if (guideIndex >= 0) {
           if (setHoveredGuide) {
             setHoveredGuide(guideIndex);
+            return;
           }
         }
-      } else {
-        // Mouse left hovering area
-        if (setHoveredGuide) {
-          setHoveredGuide(undefined);
-        }
+      }
+      // Mouse left hovering area or hovers a non-guide atom
+      if (setHoveredGuide) {
+        setHoveredGuide(undefined);
       }
     });
 

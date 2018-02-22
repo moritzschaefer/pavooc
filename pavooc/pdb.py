@@ -68,5 +68,6 @@ def pdb_mappings(pdb, chain, swissprot_id):
                                   ret[uniprot_rn], (pdb_rn, pdb_aa))
                             #raise Exception("Fix this! 1")
                         #ret[uniprot_rn] = (pdb_rn, pdb_aa)
-                        ret[uniprot_rn] = pdb_rn
+                        ret[pdb_rn] = uniprot_rn-1  # make uniprot rn 0-based
+                        # ret[uniprot_rn] = pdb_rn  # <- old mapping direction
     return ret

@@ -58,6 +58,7 @@ export default class GuideLineup extends React.Component<Props, State> {
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
+    return false;
     // if (nextProps.setGuideSelection !== this.props.setGuideSelection) {
     //   console.log("setGuideSelection did change");
     //   return true;
@@ -67,27 +68,27 @@ export default class GuideLineup extends React.Component<Props, State> {
     //   console.log("setHoveredGuide did change");
     //   return true;
     // }
-
-    if (
-      nextProps.cellline !== this.props.cellline ||
-      nextProps.hoveredGuide !== this.props.hoveredGuide
-    ) {
-      console.log("guides might have changed in GuideLineup");
-      return true;
-    }
-    let changed = false;
-    nextProps.guides.forEach((guide: Guide, index: number) => {
-      // comparing target and selected should be enough
-      if (
-        !this.props.guides[index] ||
-        this.props.guides[index].target !== guide.target ||
-        this.props.guides[index].selected !== guide.selected
-      ) {
-        changed = true;
-        return;
-      }
-    });
-    return changed;
+    //
+    // if (
+    //   nextProps.cellline !== this.props.cellline ||
+    //   nextProps.hoveredGuide !== this.props.hoveredGuide
+    // ) {
+    //   console.log("guides might have changed in GuideLineup");
+    //   return true;
+    // }
+    // let changed = false;
+    // nextProps.guides.forEach((guide: Guide, index: number) => {
+    //   // comparing target and selected should be enough
+    //   if (
+    //     !this.props.guides[index] ||
+    //     this.props.guides[index].target !== guide.target ||
+    //     this.props.guides[index].selected !== guide.selected
+    //   ) {
+    //     changed = true;
+    //     return;
+    //   }
+    // });
+    // return changed;
   }
 
   _selectionIndices() {

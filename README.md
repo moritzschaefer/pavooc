@@ -69,7 +69,7 @@ It is possible to manually build and push the images using
 
 To create a EC2 instance with docker run
 
-docker-machine create --driver=amazonec2 --amazonec2-instance-type t2.large --amazonec2-region eu-central-1 --amazonec2-root-size=50 machine-name
+docker-machine create --driver=amazonec2 --amazonec2-instance-type t2.large --amazonec2-region eu-central-1 --amazonec2-root-size=250 machine-name
 
 To connect to it run
 eval $(docker-machine env machine-name)

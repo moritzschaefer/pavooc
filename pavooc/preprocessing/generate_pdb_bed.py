@@ -3,7 +3,8 @@ Create a bed file for each pdb
 '''
 import os
 import logging
-import pandas as pd
+from tqdm import tqdm
+
 from pavooc.config import PDB_BED_FILE
 from pavooc.util import normalize_pid
 from pavooc.data import gencode_exons, pdb_list
@@ -38,8 +39,8 @@ def pdb_coordinates(pdb, pdb_exons):
         pdb_exons.end -= zero
 
     mappings = pdb_mappings(pdb.PDB, pdb.CHAIN, pdb.SP_PRIMARY)
-    sp_start = min(mappings.keys())
-    sp_end = max(mappings.keys())
+    sp_start = min(mappings.values())
+    sp_end = max(mappings.values()) + 1  # last one is contained
 
     # Iterate over each exon (in order) and check in which interval the
     # Protein lies
@@ -112,7 +113,7 @@ def main():
         lambda spid: type(spid) == str)].copy()
     exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
 
-    for _, pdb in pdb_list().iterrows():
+    for _, pdb in tqdm(pdb_list().iterrows(), total=len(pdb_list())):
         # find the transcript, that corresponds to the pdb
         gene_id = exons.loc[exons.swissprot_id
                             == pdb.SP_PRIMARY].gene_id.drop_duplicates()

@@ -53,14 +53,17 @@ def aa_cut_position(guide, canonical_exons):
     :returns: either the AA cut-position ith the canonical exon sequence
         or -1
 
-    # TODO does this work for REVERSE strand?
     '''
     bp_position = 0
     for index, canonical_exon in canonical_exons.iterrows():
         if guide.cut_position >= canonical_exon['start'] and \
                 guide.cut_position < canonical_exon['end']:
-            return (bp_position +
-                    (guide.cut_position - canonical_exon['start'])) // 3
+            if canonical_exon.strand == '+':
+                return (bp_position +
+                        (guide.cut_position - canonical_exon['start'])) // 3
+            else:
+                return (bp_position +
+                        (canonical_exon['end'] - guide.cut_position)) // 3
 
         exon_length_bp = (canonical_exon['end'] - canonical_exon['start'])
         bp_position += exon_length_bp
@@ -99,9 +102,9 @@ def pdbs_for_gene(gene_id):
             gene_pdbs.drop(gene_pdbs.index[empty_mappings], inplace=True)
 
         gene_pdbs['start'] = gene_pdbs['mappings'].apply(
-            lambda mappings: min(mappings.keys()))
+            lambda mappings: min(mappings.values()))
         gene_pdbs['end'] = gene_pdbs['mappings'].apply(
-            lambda mappings: max(mappings.keys()))
+            lambda mappings: max(mappings.values()) + 1)  # end is contained
         gene_pdbs['mappings'] = gene_pdbs['mappings'].apply(
             lambda mappings: {str(key): value
                               for key, value in mappings.items()})
@@ -197,7 +200,6 @@ def build_gene_document(gene, check_exists=True):
             lambda row: aa_cut_position(row, exons), axis=1)
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['aa_cut_position'] = []
-
 
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
