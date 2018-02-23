@@ -72,6 +72,14 @@ class KnockoutViewer extends React.Component<Props, State> {
     }
   };
 
+  _aaClicked = (aa: number) => {
+    const { geneData, geneId } = this.props;
+    const index = geneData.guides.findIndex((guide: any) => guide.aa_cut_position === aa);
+    if (index >= 0) {
+      this.props.toggleGuideSelection(geneId, index); // warning: two guides on one amino acid? only one is selected
+    }
+  }
+
   _guidesWithDomains() {
     const { geneData } = this.props;
     return geneData.guides.map((guide: any) => ({
@@ -119,6 +127,7 @@ class KnockoutViewer extends React.Component<Props, State> {
           <ProteinViewer
             hoveredGuide={hoveredGuide}
             setHoveredGuide={this.setHoveredGuide}
+            aaClicked={this._aaClicked}
             className="proteinViewer"
             highlightPositions={geneData.guides}
             pdb={geneData.pdbs[selectedPdb]}
