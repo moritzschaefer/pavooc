@@ -1,0 +1,119 @@
+.cl-chip {
+  margin: 12px;
+}
+
+.cellline-selector {
+  flex-grow: 1;
+}
+
+.cellline-selector .Select-menu-outer {
+  top: 36px;
+}
+
+.cellline-selector .MuiInput-inkbar-3:after {
+  height: 0;
+}
+
+/* .cellline-select .MuiInput-underline-9:before { */
+/*   height: 0; */
+/* } */
+/*  */
+/* .cellline-selector .MuiInput-inputSingleline-12 { */
+/*   height: 100%; */
+/* } */
+/* .cellline-selector ..MuiInput-root-1 { */
+/*   padding-bottom: 0px; */
+/* } */
+.Select-control {
+  display: 'flex';
+  alignItems: 'center';
+  border: 0;
+  height: 'auto';
+  background: 'transparent';
+}
+.Select-control:hover {
+  boxShadow: 'none';
+}
+'.Select-multi-value-wrapper' {
+  flexGrow: 1;
+  display: 'flex';
+  flexWrap: 'wrap';
+}
+'.Select--multi .Select-input' {
+  margin: 0;
+}
+'.Select.has-value.is-clearable.Select--single > .Select-control .Select-value' {
+  padding: 0;
+}
+'.Select-noresults' {
+  padding: theme.spacing.unit * 2;
+}
+'.Select-input' {
+  display: 'inline-flex !important';
+  padding: 0;
+  height: 'auto';
+}
+'.Select-input input' {
+  background: 'transparent';
+  border: 0;
+  padding: 0;
+  cursor: 'default';
+  display: 'inline-block';
+  fontFamily: 'inherit';
+  fontSize: 'inherit';
+  margin: 0;
+  outline: 0;
+}
+'.Select-placeholder; .Select--single .Select-value' {
+  position: 'absolute';
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: 'flex';
+  alignItems: 'center';
+  fontFamily: theme.typography.fontFamily;
+  fontSize: theme.typography.pxToRem(16);
+  padding: 0;
+}
+'.Select-placeholder' {
+  opacity: 0.42;
+  color: theme.palette.common.black;
+}
+'.Select-menu-outer' {
+  backgroundColor: white;
+  boxShadow: 5px 10px;
+  position: 'absolute';
+  left: 0;
+  top: 150px;
+  margin-top: 100px;
+  width: '100%';
+  zIndex: 200;
+  maxHeight: 45 * 4.5;
+}
+'.Select.is-focused:not(.is-open) > .Select-control' {
+  boxShadow: 'none';
+}
+'.Select-menu' {
+  maxHeight: 45 * 4.5;
+  overflowY: 'auto';
+}
+'.Select-menu div' {
+  boxSizing: 'content-box';
+}
+'.Select-arrow-zone; .Select-clear-zone' {
+  color: theme.palette.action.active;
+  cursor: 'pointer';
+  height: 21;
+  width: 21;
+  zIndex: 1;
+}
+
+'.Select-aria-only' {
+  position: 'absolute';
+  overflow: 'hidden';
+  clip: 'rect(0 0 0 0)';
+  height: 1;
+  width: 1;
+  margin: -1;
+}
