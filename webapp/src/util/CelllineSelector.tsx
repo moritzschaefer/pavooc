@@ -2,11 +2,83 @@ import * as React from "react";
 import { connect } from "react-redux";
 import { setCellline } from "../App/actions";
 
-import Downshift from "downshift";
-import TextField from "material-ui/TextField";
-import Paper from "material-ui/Paper";
+import Typography from "material-ui/Typography";
+import Input from "material-ui/Input";
 import { MenuItem } from "material-ui/Menu";
-// import { withStyles } from "material-ui/styles";
+import ArrowDropDownIcon from "material-ui-icons/ArrowDropDown";
+import ArrowDropUpIcon from "material-ui-icons/ArrowDropUp";
+import ClearIcon from "material-ui-icons/Clear";
+import Chip from "material-ui/Chip";
+import Select from "react-select";
+import "./CelllineSelector.css";
+import "react-select/dist/react-select.css";
+
+class Option extends React.Component<any, any> {
+  handleClick = (event: any) => {
+    this.props.onSelect(this.props.option, event);
+  };
+
+  render() {
+    const { children, isFocused, isSelected, onFocus } = this.props;
+
+    return (
+      <MenuItem
+        onFocus={onFocus}
+        selected={isFocused}
+        onClick={this.handleClick}
+        component="div"
+        style={{
+          fontWeight: isSelected ? 500 : 400
+        }}
+      >
+        {children}
+      </MenuItem>
+    );
+  }
+}
+
+function SelectWrapped(props: any) {
+  const { ...other } = props;
+
+  return (
+    <Select
+      optionComponent={Option}
+      noResultsText={<Typography>{"No results found"}</Typography>}
+      arrowRenderer={(arrowProps: any) => {
+        return arrowProps.isOpen ? <ArrowDropUpIcon /> : <ArrowDropDownIcon />;
+      }}
+      clearRenderer={() => <ClearIcon />}
+      valueComponent={(valueProps: any) => {
+        const { children, onRemove } = valueProps; // value normally
+
+        {
+          /* const onDelete = (event: any) => { */
+        }
+        {
+          /*   event.preventDefault(); */
+        }
+        {
+          /*   event.stopPropagation(); */
+        }
+        {
+          /*   onRemove(value); */
+        }
+        {
+          /* }; */
+        }
+        {
+          /*  */
+        }
+        if (onRemove) {
+          return <Chip tabIndex={-1} label={children} className="cl-chip" />;
+        }
+
+        return <div className="Select-value">{children}</div>;
+      }}
+      {...other}
+    />
+  );
+}
 
 interface Props {
   cellline: string;
@@ -14,117 +86,33 @@ interface Props {
   setCellline: (cellline: string) => {};
 }
 
-interface State {
-  inputValue: string;
-  menuIsOpen: boolean;
-}
+interface State {}
 
 class CelllineSelector extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = {
-      menuIsOpen: false,
-      inputValue: ""
-    };
   }
-
-  renderInput(value: string) {
-    return <TextField autoFocus={false} className="autoInput" value={value} />;
-  }
-
-  renderSuggestion(
-    item: string,
-    selected: boolean,
-    highlighted: boolean,
-    itemProps: object
-  ) {
-    return (
-      <MenuItem
-        {...itemProps}
-        selected={highlighted}
-        component="div"
-        key={item}
-      >
-        <div>{item}</div>
-      </MenuItem>
-    );
-  }
-
-  onInputChange = ({
-    inputValue,
-    highlightedIndex
-  }: {
-    inputValue: string;
-    highlightedIndex: number | undefined;
-  }) => {
-    if (typeof inputValue !== "string") {
-      if (typeof highlightedIndex === "undefined") {
-        this.setState({ menuIsOpen: false });
-      }
-      return;
-    }
-    this.setState({ inputValue });
-
-    if (this.props.celllines.includes(inputValue)) {
-      this.props.setCellline(inputValue);
-      this.setState({ menuIsOpen: false });
-    }
-  };
-
-  onChange = (selected: any, stateAndHelpers: object | undefined) => {
-    this.onInputChange(selected);
-  };
 
   render() {
-    // onOuterClick={() => this.setState({menuIsOpen: false})}
-    // TODO support lowercase
-    const { celllines } = this.props;
-    const { inputValue, menuIsOpen } = this.state;
+    const { celllines, cellline } = this.props;
+    const inputProps: any = {
+      value: cellline,
+      onChange: this.props.setCellline,
+      placeholder: "Select single-value…",
+      instanceId: "react-select-single",
+      id: "react-select-single",
+      name: "react-select-single",
+      simpleValue: true,
+      options: celllines.map((c: string) => ({ label: c, value: c }))
+    };
     return (
-      <Downshift
-        isOpen={menuIsOpen}
-        inputValue={inputValue}
-        onChange={this.onChange}
-        onStateChange={this.onInputChange}
-      >
-        {({
-          getInputProps,
-          getLabelProps,
-          getItemProps,
-          highlightedIndex,
-          selectedItem
-        }) => {
-          return (
-            <div>
-              <TextField
-                inputProps={getInputProps()}
-                label={"Cancer celllines"}
-                value={inputValue || undefined}
-                onFocusCapture={() =>
-                  this.setState({ menuIsOpen: true })}
-              />
-              {menuIsOpen ? (
-                <Paper className="suggestionContainer">
-                  {Array.from(celllines)
-                    .filter(
-                      e =>
-                        !inputValue ||
-                        e.includes(inputValue.toUpperCase())
-                    ).slice(0, 50)
-                    .map((item, index) =>
-                      this.renderSuggestion(
-                        item,
-                        selectedItem === item,
-                        highlightedIndex === index,
-                        getItemProps({ index, item: item })
-                      )
-                    )}
-                </Paper>
-              ) : null}
-            </div>
-          );
-        }}
-      </Downshift>
+      <div className="cellline-selector">
+        <Input
+          fullWidth={true}
+          inputComponent={SelectWrapped}
+          inputProps={inputProps}
+        />
+      </div>
     );
   }
 }

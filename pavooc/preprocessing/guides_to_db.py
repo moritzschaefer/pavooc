@@ -148,9 +148,6 @@ def build_gene_document(gene, check_exists=True):
         logging.fatal('Couldn\'t load guides file for {}: {}'
                       .format(gene_id, e))
         return None
-    # TODO, we can get transcription-ids here (as in preprocessing.py)
-    unique_exons = exons.groupby('exon_id').first().reset_index()[
-        ['start', 'end', 'exon_id']]
 
     guides['exon_id'] = guides['contig'].apply(lambda v: v.split(';')[0])
 
@@ -230,7 +227,7 @@ def build_gene_document(gene, check_exists=True):
         'strand': strand,
         'pdbs': list(pdbs_for_gene(gene_id).T.to_dict().values()),
         'chromosome': exons.iloc[0]['seqname'],
-        'exons': list(unique_exons.T.to_dict().values()),
+        'exons': list(exons.reset_index()[['start', 'end', 'exon_id']].T.to_dict().values()),
         'domains': domains,
         'guides': guides_list
     }

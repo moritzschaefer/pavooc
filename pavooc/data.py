@@ -112,7 +112,7 @@ def read_gencode():
 @buffer_return_value
 def celllines():
     with open(os.path.join(BASEDIR, 'pavooc/server/celllines.txt')) as f:
-        return [line.strip() for line in f.readlines()][:100]
+        return [line.strip() for line in f.readlines()]
 
 
 def load_protein_mapping():
