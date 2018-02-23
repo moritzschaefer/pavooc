@@ -2,6 +2,7 @@ import * as React from "react";
 import * as dalliance from "dalliance";
 
 interface State {
+  validClick: boolean;
   genome: string;
   genes: string;
   viewStart: number;
@@ -38,7 +39,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       viewStart: -1,
       viewEnd: -1,
       viewChromosome: "",
-      browser: undefined
+      browser: undefined,
+      validClick: true
     };
   }
 
@@ -332,8 +334,10 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     );
     browser.addViewListener(
-      (viewChromosome: string, viewStart: number, viewEnd: number) =>
-        this.setState({ viewChromosome, viewStart, viewEnd })
+      (viewChromosome: string, viewStart: number, viewEnd: number) => {
+
+        this.setState({ viewChromosome, viewStart, viewEnd, validClick: false });
+      }
     );
     browser.addInitListener(() => {
       browser.setLocation(chr, geneStart - 1000, geneEnd + 1000)
@@ -343,15 +347,19 @@ export default class SequenceViewer extends React.Component<any, State> {
         // // TODO add hovering
         // Tier 0 is the genome
         //
-        browser.tiers[0].viewport.addEventListener("click", this._genomeClick);
+        browser.tiers[0].viewport.addEventListener("mousedown", () => this.setState({ validClick: true }));
+        browser.tiers[0].viewport.addEventListener("mouseup", this._genomeClick);
       }
     });
     this.setState({ browser });
   }
 
   _genomeClick = (event: any) => {
-    const { viewStart, viewEnd } = this.state;
+    const { validClick, viewStart, viewEnd } = this.state;
     const { editPositionChanged } = this.props;
+    if (!validClick) {
+      return;
+    }
     const clickPosition = event.x;
     const browserWidth = event.target.parentElement.parentElement.offsetWidth;
 

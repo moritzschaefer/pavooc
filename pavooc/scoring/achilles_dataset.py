@@ -6,8 +6,6 @@ from pavooc.config import ACHILLES_GUIDE_ACTIVITY_SCORES_FILE, \
     ACHILLES_GUIDE_MAPPING, CHROMOSOME_RAW_FILE, GENCODE_HG38_FILE
 from pavooc.scoring.missing_gene_id_mappings import GENE_ID_MAPPING
 
-from IPython.core.debugger import Tracer
-
 
 def _first_or_none(x):
     try:
@@ -58,6 +56,7 @@ def load_dataset(drop_locus=True):
     activity_scores.set_index('Guide', inplace=True)
     df = guide_map.join(activity_scores)
 
+    # TODO why hg38 and not 37
     hg38 = read_gtf_as_dataframe(GENCODE_HG38_FILE)
     hg38 = hg38.loc[(hg38.feature == 'gene')]
     # remove duplicate gene names (chrX, chrY) by using first one
