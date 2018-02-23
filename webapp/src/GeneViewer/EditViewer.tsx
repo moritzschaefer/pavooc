@@ -68,6 +68,24 @@ class EditViewer extends React.Component<Props, State> {
     };
   }
 
+  _setAaEditPosition = (aa: number) => {
+    const { exons, strand } = this.props;
+    let nucleotides = aa * 3;
+    for (let exon of exons) {
+      let length = exon.end - exon.start;
+      if (nucleotides < length ) {
+        if (strand === "+") {
+          this._setEditPosition(nucleotides + exon.start);
+        } else {
+          this._setEditPosition(exon.end - nucleotides - 1);
+        }
+        return;
+      } else {
+        nucleotides -= length;
+      }
+    };
+  };
+
   _setEditPosition = (editPosition: number) => {
     const { geneId } = this.props;
     const { padding } = this.state;
@@ -205,6 +223,7 @@ class EditViewer extends React.Component<Props, State> {
       <ProteinViewer
         className="proteinViewer"
         highlightPositions={highlightPositions}
+        aaClicked={this._setAaEditPosition}
         pdb={pdbs[selectedPdb]}
       />
     );
@@ -300,8 +319,8 @@ const mapStateToProps = (
     geneStart: gene.start,
     geneEnd: gene.end,
     geneId,
-    exons: state.io.editData.exons,
     chromosome: gene.chromosome,
+    exons: gene.exons,
     // pdbs: state.io.editData.pdbs || []
     pdbs: gene.pdbs || []
     // geneData: {

@@ -55,6 +55,12 @@ pdb_field = fields.Nested({
     'mappings': fields.Raw,
 })
 
+exon_field = fields.Nested({
+            'start': fields.Integer,
+            'end': fields.Integer,
+            'exon_id': fields.String,
+        })
+
 edit_input = api.model('EditInput', {
     'gene_id': fields.String,
     'edit_position': fields.Integer,
@@ -85,12 +91,7 @@ knockout_output = api.model('KnockoutGuides', {
     'gene_symbol': fields.String,
     'chromosome': fields.String,
     'cns': fields.List(fields.String),
-    'exons': fields.List(
-        fields.Nested({
-            'start': fields.Integer,
-            'end': fields.Integer,
-            'exon_id': fields.String,
-        })),
+    'exons': fields.List(exon_field),
     'domains': fields.List(
         fields.Nested({
             'name': fields.String,
@@ -104,6 +105,7 @@ knockout_output = api.model('KnockoutGuides', {
 initial_output = api.model('InitialData', {
     'genes': fields.List(fields.Nested({
         'pdbs': fields.List(pdb_field, default=[]),  # TODO is this too much?
+        'exons': fields.List(exon_field),
         'gene_id': fields.String,
         'gene_symbol': fields.String,
         'chromosome': fields.String,
@@ -124,7 +126,7 @@ class InitialData(Resource):
     @api.marshal_with(initial_output)
     def get(self):
         fields = ['gene_id', 'gene_symbol',
-                  'chromosome', 'start', 'end', 'strand', 'pdbs']
+                  'chromosome', 'start', 'end', 'strand', 'pdbs', 'exons']
         genes = guide_collection.aggregate([
             {"$unwind": "$exons"},
             {"$group": {
@@ -132,6 +134,7 @@ class InitialData(Resource):
                 "gene_id": {"$first": "$gene_id"},
                 "pdbs": {"$first": "$pdbs"},
                 "gene_symbol": {"$first": "$gene_symbol"},
+                "exons": {"$push": "$exons"},
                 "strand": {"$first": "$strand"},
                 "start": {"$min": "$exons.start"},
                 "chromosome": {"$first": "$chromosome"},

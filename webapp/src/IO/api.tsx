@@ -24,6 +24,7 @@ export const fetchInitialApi = () => {
     .then(response => {
       // TODO convert gene_id to geneId and
       response.genes = response.genes.map((g: any) => ({
+        exons: g.exons,
         pdbs: g.pdbs,
         strand: g.strand,
         geneId: g.gene_id,

@@ -14,6 +14,7 @@ interface Props {
   className: string;
   pdb: any;
   hoveredGuide?: number | undefined;
+  aaClicked?: (aa: number) => void;
   setHoveredGuide?: (hoveredGuide: number | undefined) => void;
   highlightPositions: Array<{ aa_cut_position: number; selected: boolean }>;
 }
@@ -150,6 +151,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
     }
   }
 
+
   componentDidMount() {
     // set up ngl
     const stage = new NGL.Stage(viewport);
@@ -181,6 +183,19 @@ export default class ProteinViewer extends React.Component<Props, State> {
       }
       // Mouse left hovering area or hovers a non-guide atom
     });
+    const { aaClicked } = this.props;
+    if (aaClicked) {
+      stage.signals.clicked.add((pickingProxy: any) => {
+        const { pdb } = this.props;
+        if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
+          let { resno, chainid } = pickingProxy.atom;
+          if (chainid !== pdb.chain) {
+            return;
+          }
+          aaClicked(pdb.mappings[resno]);
+        }
+      });
+    }
 
     elementResizeEvent(viewport, () => {
       stage.handleResize();
