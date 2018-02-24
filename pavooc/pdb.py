@@ -13,10 +13,10 @@ def pdb_mappings(pdb, chain, swissprot_id):
     ret = {}
     try:
         # read xml
-        fi = GzipFile(SIFTS_FILE.format(
-            '{}.xml.gz'.format(pdb.lower()), 'r'))
+        fi = SIFTS_FILE.format(
+            '{}.xml.gz'.format(pdb.lower()))
         # parse xml
-        tree = ET.fromstring(fi.read())
+        tree = ET.fromstring(GzipFile(fi).read())
     except (EOFError, ParseError) as e:
         logging.error(f'File {fi}.xml.gz corrupt: {e}')
         return {}
@@ -68,6 +68,6 @@ def pdb_mappings(pdb, chain, swissprot_id):
                                   ret[uniprot_rn], (pdb_rn, pdb_aa))
                             #raise Exception("Fix this! 1")
                         #ret[uniprot_rn] = (pdb_rn, pdb_aa)
-                        ret[pdb_rn] = uniprot_rn-1  # make uniprot rn 0-based
+                        ret[pdb_rn] = uniprot_rn - 1  # make uniprot rn 0-based
                         # ret[uniprot_rn] = pdb_rn  # <- old mapping direction
     return ret
