@@ -6,11 +6,10 @@ import { MenuItem } from "material-ui/Menu";
 import TextField from "material-ui/TextField";
 import "./AutoComplete.css";
 
-import { Gene } from "../IO/reducer";
 
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
-  dataSource: Map<string, Gene>;
+  dataSource: Map<string, string>;
   dataSourceReverse: Map<string, string> | undefined;
   floatingLabelText: string;
   openOnFocus: boolean;
@@ -37,7 +36,7 @@ export default class AutoComplete extends React.Component<Props, State> {
   }
 
   renderSuggestion(
-    item: [string, Gene],
+    item: [string, string],
     selected: boolean,
     highlighted: boolean,
     itemProps: object
@@ -49,7 +48,7 @@ export default class AutoComplete extends React.Component<Props, State> {
         component="div"
         key={item[0]}
       >
-        <div>{item[1].geneSymbol}</div>
+        <div>{item[1]}</div>
       </MenuItem>
     );
   }
@@ -182,7 +181,7 @@ export default class AutoComplete extends React.Component<Props, State> {
                       e =>
                         !inputValue ||
                         e[0].includes(inputValue.toUpperCase()) ||
-                        e[1].geneSymbol.includes(inputValue.toUpperCase())
+                        e[1].includes(inputValue.toUpperCase())
                     )
                     .map((item, index) =>
                       this.renderSuggestion(

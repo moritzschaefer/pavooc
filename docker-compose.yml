@@ -10,6 +10,7 @@ volumes:
 services:
   apiserver:
     environment:
+      DEBUG: 0
       MONGO_HOST: "mongo:27017"
     image: moritzs/pavooc:latest
     # build: .
@@ -21,6 +22,8 @@ services:
     networks:
       - main
   nginx:
+    environment:
+      DEBUG: 0
     build:
       context: ./nginx
     ports:
@@ -42,8 +45,8 @@ services:
     image: moritzs/pavooc:latest
     # build: .
     environment:
-      JAVA_RAM: '40'
-      COMPUTATION_CORES: '14'
+      JAVA_RAM: '1'
+      COMPUTATION_CORES: '1'
       MONGO_HOST: "mongo:27017"
       DEBUG: 0
     command: ["python", "-m", "pavooc.pipeline"]
@@ -60,3 +63,4 @@ services:
     working_dir: /usr/app/webapp
     volumes:
       - webapp:/usr/app/webapp/build
+      - data:/usr/app/data

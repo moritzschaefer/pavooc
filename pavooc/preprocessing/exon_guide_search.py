@@ -1,7 +1,6 @@
 import subprocess
 import logging
 import os
-import pickle
 import re
 from tqdm import tqdm
 from multiprocessing import Pool
@@ -15,7 +14,8 @@ from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
     GUIDES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
 from pavooc.data import read_gencode, exon_interval_trees, chromosomes, \
     azimuth_model
-from pavooc.scoring import azimuth, flashfry
+from pavooc.preprocessing.guides_to_db import guide_mutations
+from pavooc.scoring import flashfry
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -121,8 +121,8 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
     seq_file.write(bytes(seq, 'ascii'))
     seq_file.close()
 
-    guides = generate_guides(gene_id, seq_file.name,
-                             target_file.name, check_in_exon=False)
+    generate_guides(gene_id, seq_file.name,
+                    target_file.name, check_in_exon=False)
     os.remove(seq_file.name)
 
     # TODO from here on DRY with guides_to_db:build_gene_document
@@ -170,10 +170,12 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
 
     # TODO does the index really match????
     for index, guide in guides.iterrows():
-        converted = {**guide, 'scores': {
-            'azimuth': azimuth_score.loc[index],
-            **flashfry_scores.loc[index][[
-                'Doench2016CFDScore', 'Hsu2013']].to_dict()}}
+        converted = {**guide,
+                     'mutations': guide_mutations(chromosome, guide['start']),
+                     'scores': {
+                         'azimuth': azimuth_score.loc[index],
+                         **flashfry_scores.loc[index][[
+                             'Doench2016CFDScore', 'Hsu2013']].to_dict()}}
         if guide.cut_position < edit_position:
             before_guides.append(converted)
         else:

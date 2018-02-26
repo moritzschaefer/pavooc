@@ -19,7 +19,7 @@ class App extends React.Component {
           <Route exact={true} path="/" component={Initial} />
           <Route path="/knockout" component={KnockoutList} />
           <Route path="/geneviewer/:geneId" component={KnockoutViewer} />
-          <Route path="/edit/:geneId" component={EditViewer} />
+          <Route path="/edit" component={EditViewer} />
           <Messages />
         </div>
     </MuiThemeProvider>

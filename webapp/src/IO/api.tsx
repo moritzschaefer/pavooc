@@ -20,21 +20,7 @@ export const fetchKnockoutsApi = (geneIds: any) => {
 export const fetchInitialApi = () => {
   const request = fetch("/api/initial", { method: "GET" })
     .then(handleFetchErrors)
-    .then(response => response.json())
-    .then(response => {
-      // TODO convert gene_id to geneId and
-      response.genes = response.genes.map((g: any) => ({
-        exons: g.exons,
-        pdbs: g.pdbs,
-        strand: g.strand,
-        geneId: g.gene_id,
-        geneSymbol: g.gene_symbol,
-        start: g.start,
-        end: g.end,
-        chromosome: g.chromosome
-      }));
-      return response;
-    });
+    .then(response => response.json());
   return Observable.from(request);
 };
 
@@ -49,6 +35,20 @@ const renameAttribute = (obj: any, oldName: string, newName: string) => {
   );
   delete obj[oldName];
 }
+
+export const fetchDetailsApi = (
+  geneId: string
+) => {
+  const request = fetch("/api/details", {
+    method: "POST",
+    body: JSON.stringify({
+      gene_id: geneId,
+    })
+  })
+    .then(handleFetchErrors)
+    .then(response => response.json());
+  return Observable.from(request);
+};
 
 export const fetchEditApi = (
   geneId: string,

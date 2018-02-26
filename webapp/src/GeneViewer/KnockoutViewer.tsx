@@ -20,6 +20,7 @@ import { Exon } from "./EditViewer";
 
 export interface GeneData {
   domains: Array<any>;
+  cns: Array<string>;
   gene_id: string;
   guides: Array<any>;
   pdbs: Array<any>;
@@ -146,6 +147,7 @@ class KnockoutViewer extends React.Component<Props, State> {
           <SequenceViewer
             cellline={cellline}
             hoveredGuide={hoveredGuide}
+            cns={geneData.cns}
             guides={geneData.guides}
             onGuideHovered={this.setHoveredGuide}
             pdb={geneData.pdbs[selectedPdb] && geneData.pdbs[selectedPdb].pdb}

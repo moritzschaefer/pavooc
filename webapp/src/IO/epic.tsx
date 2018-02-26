@@ -3,6 +3,9 @@ import {
   fetchKnockoutsFailure,
   FetchKnockouts,
   FetchEdit,
+  FetchDetails,
+  fetchDetailsSuccess,
+  fetchDetailsFailure,
   fetchEditSuccess,
   fetchEditFailure,
   initialLoadSuccess,
@@ -11,13 +14,15 @@ import {
 import {
   FETCH_KNOCKOUTS,
   FETCH_KNOCKOUTS_SUCCESS,
+  FETCH_DETAILS_SUCCESS,
+  FETCH_DETAILS,
   FETCH_EDIT,
   INITIAL_LOAD
 } from "./actionTypes";
 import { Observable } from "rxjs/Observable";
 import { combineEpics } from "redux-observable";
 import { push } from "react-router-redux";
-import { fetchKnockoutsApi, fetchInitialApi, fetchEditApi } from "./api";
+import { fetchDetailsApi, fetchKnockoutsApi, fetchInitialApi, fetchEditApi } from "./api";
 
 const fetchEditEpic = (action$: any) =>
   action$.ofType(FETCH_EDIT).mergeMap((action: FetchEdit) =>
@@ -40,6 +45,20 @@ const fetchKnockoutsSuccessEpic = (action$: any) =>
         push("/knockout")
     );
 
+const fetchDetailsEpic = (action$: any) =>
+  action$.ofType(FETCH_DETAILS).mergeMap((action: FetchDetails) =>
+    fetchDetailsApi(action.geneId)
+      .map(fetchDetailsSuccess)
+      .catch((error: string) => Observable.of(fetchDetailsFailure(error)))
+  );
+
+const fetchDetailsSuccessEpic = (action$: any) =>
+  action$
+    .ofType(FETCH_DETAILS_SUCCESS)
+    .map(() =>
+        push(`/edit`)
+);
+
 const initialLoadEpic = (action$: any) =>
   action$.ofType(INITIAL_LOAD).mergeMap(() =>
     fetchInitialApi()
@@ -50,6 +69,8 @@ const initialLoadEpic = (action$: any) =>
 export default combineEpics(
   fetchKnockoutsEpic,
   fetchEditEpic,
+  fetchDetailsEpic,
   fetchKnockoutsSuccessEpic,
+  fetchDetailsSuccessEpic,
   initialLoadEpic
 );

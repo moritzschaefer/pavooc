@@ -1,5 +1,4 @@
 import * as t from "./actionTypes";
-import { Gene } from "./reducer";
 
 export interface FetchKnockouts {
   type: typeof t.FETCH_KNOCKOUTS;
@@ -80,7 +79,41 @@ export const fetchEditSuccess = (
   data: payload
 });
 
+export interface FetchDetails {
+  type: typeof t.FETCH_DETAILS;
+  geneId: string;
+}
 
+export const fetchDetails = (
+  geneId: string,
+): FetchDetails => ({
+  type: t.FETCH_DETAILS,
+  geneId
+});
+
+export interface FetchDetailsFailure {
+  type: typeof t.FETCH_DETAILS_FAILURE;
+  error: string;
+}
+
+export const fetchDetailsFailure = (
+  error: string
+): FetchDetailsFailure => ({
+  type: t.FETCH_DETAILS_FAILURE,
+  error
+});
+
+export interface FetchDetailsSuccess {
+  type: typeof t.FETCH_DETAILS_SUCCESS;
+  data: object;
+}
+
+export const fetchDetailsSuccess = (
+  payload: object
+): FetchDetailsSuccess => ({
+  type: t.FETCH_DETAILS_SUCCESS,
+  data: payload
+});
 
 export interface InitialLoad {
   type: typeof t.INITIAL_LOAD;
@@ -92,7 +125,7 @@ export const initialLoad = (): InitialLoad => ({
 
 export interface InitialLoadSuccess {
   type: typeof t.INITIAL_LOAD_SUCCESS;
-  genes: Array<Gene>;
+  genes: Array<{gene_id: string, gene_symbol: string}>;
   celllines: Array<string>;
 }
 

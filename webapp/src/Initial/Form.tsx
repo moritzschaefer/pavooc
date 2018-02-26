@@ -6,13 +6,12 @@ import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
 import "./Form.css";
 import CelllineSelector from "../util/CelllineSelector";
-import { Gene } from "../IO/reducer";
 
 export interface Props {
   goKnockout: (geneSelection: Array<string>) => {};
   goEdit: (geneId: string) => {};
   initialLoad: () => {};
-  genes: Map<string, Gene>;
+  genes: Map<string, string>;
   className: string;
   onMessage: (message: string) => {};
 }
@@ -44,9 +43,9 @@ export default class Form extends React.Component<Props, State> {
       return false;
     }
     const geneSelection = new Map(this.state.geneSelection);
-    const gene = genes.get(geneId);
-    if (gene) {
-      geneSelection.set(geneId, gene.geneSymbol);
+    const geneSymbol = genes.get(geneId);
+    if (geneSymbol) {
+      geneSelection.set(geneId, geneSymbol);
     }
     this.setState({ geneSelection });
     return true;
@@ -92,8 +91,8 @@ export default class Form extends React.Component<Props, State> {
       reversedGenes =
         genes &&
         new Map<string, string>(
-          Array.from(genes.entries()).map(([key, value]: [string, Gene]): [string, string] => ([
-            value.geneSymbol,
+          Array.from(genes.entries()).map(([key, value]: [string, string]): [string, string] => ([
+            value,
             key
           ]))
         );

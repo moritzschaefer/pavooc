@@ -14,6 +14,7 @@ interface State {
 interface Props {
   cellline: string;
   chromosome: string;
+  cns?: Array<string>;
   geneStart: number;
   geneEnd: number;
   guidesUrl?: string;
@@ -80,13 +81,26 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     }
 
-    if (prevProps.cellline !== cellline) {
-      // TODO only delete if existed..
-      browser.removeTier(this.cnsConfig(prevProps.cellline));
-      browser.removeTier(this.snpConfig(prevProps.cellline));
+    if (prevProps.cellline !== cellline || prevProps.guidesUrl !== guidesUrl) {
+      let oldCns = this.cnsConfig(prevProps.cellline);
+      let oldSnp = this.snpConfig(prevProps.cellline);
 
-      browser.addTier(this.cnsConfig(cellline));
-      browser.addTier(this.snpConfig(cellline));
+      let newCns = this.cnsConfig(cellline);
+      let newSnp = this.snpConfig(cellline);
+
+      if (oldCns) {
+        browser.removeTier(oldCns);
+      }
+      if (oldSnp) {
+        browser.removeTier(oldCns);
+      }
+
+      if (newCns) {
+        browser.addTier(newCns);
+      }
+      if (newSnp) {
+        browser.addTier(newSnp);
+      }
     }
 
     if (prevProps.guidesUrl !== guidesUrl) {
@@ -144,6 +158,11 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   cnsConfig(cellline: string) {
+    const { cns } = this.props;
+    // only show BED if it exists
+    if (!cns || !cns.includes(cellline)) {
+      return undefined;
+    }
     return {
       name: `${cellline} CNSs`,
       desc: `copy number segmentation data for cellline ${cellline}`,
@@ -167,6 +186,11 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   snpConfig(cellline: string) {
+    const { guides } = this.props;
+    // only show BED if it exists
+    if (!guides.find((g: any) => g.mutations.includes(cellline))) {
+      return undefined;
+    }
     return {
       name: `${cellline} SNPs`,
       desc: `mutations for cellline ${cellline}`,
@@ -258,8 +282,6 @@ export default class SequenceViewer extends React.Component<any, State> {
         twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
         tier_type: "sequence"
       },
-      this.cnsConfig(cellline),
-      this.snpConfig(cellline),
       this.guidesConfig(guidesUrl),
       {
         name: "Genes",
@@ -282,6 +304,17 @@ export default class SequenceViewer extends React.Component<any, State> {
         collapseSuperGroups: true
       }
     ];
+    //
+    let cnsConfig = this.cnsConfig(cellline);
+    if (cnsConfig) {
+      sources.push(cnsConfig);
+    }
+
+    let snpConfig = this.snpConfig(cellline);
+    if (snpConfig) {
+      sources.push(snpConfig);
+    }
+
     if (pdb) {
       sources.push(this.pdbConfig(pdb));
     }

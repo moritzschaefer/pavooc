@@ -208,6 +208,7 @@ def build_gene_document(gene, check_exists=True):
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
+    __import__('ipdb').set_trace()  # TODO test if gene_start + row['start'] is necessary. I think NOT
     guides_list = [{
         **row[
             ['exon_id', 'start', 'orientation', 'otCount', 'target',

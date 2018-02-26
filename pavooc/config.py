@@ -7,6 +7,10 @@ try:
     os.mkdir(DATADIR)
 except FileExistsError:
     pass
+try:
+    os.mkdir(os.path.join(DATADIR, 'pdbs'))
+except FileExistsError:
+    pass
 
 S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \

@@ -1,6 +1,5 @@
 import InitialForm from './Form';
-import { push } from "react-router-redux";
-import { fetchKnockouts, initialLoad } from '../IO/actions';
+import { fetchKnockouts, fetchDetails, initialLoad } from '../IO/actions';
 import { showMessage } from '../Messages/actions';
 // import * as actions from '../actions/';
 import { connect } from 'react-redux';
@@ -17,7 +16,7 @@ export function mapDispatchToProps(dispatch: any, ownProps: any) {
       dispatch(fetchKnockouts(geneIds));
     },
     goEdit: (geneId: string) => {
-      dispatch(push(`/edit/${geneId}`));
+      dispatch(fetchDetails(geneId));
     },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message)),

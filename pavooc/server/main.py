@@ -56,10 +56,10 @@ pdb_field = fields.Nested({
 })
 
 exon_field = fields.Nested({
-            'start': fields.Integer,
-            'end': fields.Integer,
-            'exon_id': fields.String,
-        })
+    'start': fields.Integer,
+    'end': fields.Integer,
+    'exon_id': fields.String,
+})
 
 edit_input = api.model('EditInput', {
     'gene_id': fields.String,
@@ -71,15 +71,9 @@ edit_output = api.model('EditGuides', {
     'bed_url': fields.String,
     'guides_before': fields.List(guide_field),
     'guides_after': fields.List(guide_field),
+    'mutations': fields.List(fields.String, default=[]),
     'sequence': fields.String,
     'edit_position': fields.Integer,
-    # 'pdbs': fields.List(pdb_field, default=[]),
-    'exons': fields.List(fields.Nested({
-        'start': fields.Integer,
-        'end': fields.Integer,
-        'exon_id': fields.String
-    })
-    )
 })
 
 knockout_input = api.model('KnockoutInput', {
@@ -90,6 +84,7 @@ knockout_output = api.model('KnockoutGuides', {
     'gene_id': fields.String,
     'gene_symbol': fields.String,
     'chromosome': fields.String,
+    'strand': fields.String,
     'cns': fields.List(fields.String),
     'exons': fields.List(exon_field),
     'domains': fields.List(
@@ -102,16 +97,29 @@ knockout_output = api.model('KnockoutGuides', {
     'guides': fields.List(guide_field)
 })
 
+
+gene_details_input = api.model('GeneDetailsInput', {
+    'gene_id': fields.String
+})
+
+
+gene_details = api.model('GeneDetails', {
+    'gene_id': fields.String,
+    'gene_symbol': fields.String,
+    'pdbs': fields.List(pdb_field, default=[]),
+    'exons': fields.List(exon_field),
+    'cns': fields.List(fields.String, default=[]),
+    'chromosome': fields.String,
+    'strand': fields.String,
+    'start': fields.Integer,
+    'end': fields.Integer,
+})
+
+
 initial_output = api.model('InitialData', {
     'genes': fields.List(fields.Nested({
-        'pdbs': fields.List(pdb_field, default=[]),  # TODO is this too much?
-        'exons': fields.List(exon_field),
         'gene_id': fields.String,
         'gene_symbol': fields.String,
-        'chromosome': fields.String,
-        'strand': fields.String,
-        'start': fields.Integer,
-        'end': fields.Integer,
     })),
     'celllines': fields.List(fields.String)
 })
@@ -125,23 +133,25 @@ class InitialData(Resource):
 
     @api.marshal_with(initial_output)
     def get(self):
-        fields = ['gene_id', 'gene_symbol',
-                  'chromosome', 'start', 'end', 'strand', 'pdbs', 'exons']
-        genes = guide_collection.aggregate([
-            {"$unwind": "$exons"},
-            {"$group": {
-                "_id": "$_id",
-                "gene_id": {"$first": "$gene_id"},
-                "pdbs": {"$first": "$pdbs"},
-                "gene_symbol": {"$first": "$gene_symbol"},
-                "exons": {"$push": "$exons"},
-                "strand": {"$first": "$strand"},
-                "start": {"$min": "$exons.start"},
-                "chromosome": {"$first": "$chromosome"},
-                "end": {"$max": "$exons.end"}}}])
-        genes = [{field: v[field] for field in fields} for v in genes]
+        # fields = ['gene_id', 'gene_symbol',
+                  # 'chromosome', 'start', 'end', 'strand', 'pdbs', 'exons']
+        # genes = guide_collection.aggregate([
+        #     {"$unwind": "$exons"},
+        #     {"$group": {
+        #         "_id": "$_id",
+        #         "gene_id": {"$first": "$gene_id"},
+        #         "pdbs": {"$first": "$pdbs"},
+        #         "gene_symbol": {"$first": "$gene_symbol"},
+        #         "exons": {"$push": "$exons"},
+        #         "strand": {"$first": "$strand"},
+        #         "start": {"$min": "$exons.start"},
+        #         "chromosome": {"$first": "$chromosome"},
+        #         "end": {"$max": "$exons.end"}}}], allowDiskUse=True)
+        # genes = [{field: v[field] for field in fields} for v in genes]
 
-        return {'genes': genes, 'celllines': celllines()}
+        genes = guide_collection.find({}, projection=['gene_id', 'gene_symbol'])
+
+        return {'genes': list(genes), 'celllines': celllines()}
 
 
 # TODO make sure only JSON gets accepted
@@ -179,13 +189,40 @@ class KnockoutGuides(Resource):
         result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)
 
+@ns.route('/details')
+class Details(Resource):
+    @api.expect(gene_details_input)
+    @api.marshal_with(gene_details)
+    def post(self):
+        data = request.get_json(force=True)
+        gene_id = data['gene_id']
+
+        if not gene_id:  # TODO improve
+            raise BadRequest('gene_id not set')
+
+        gene_data = guide_collection.aggregate([
+            {"$match": {"gene_id": gene_id}},
+            {"$unwind": "$exons"},
+            {"$group": {
+                "_id": "$_id",
+                "gene_id": {"$first": "$gene_id"},
+                "gene_symbol": {"$first": "$gene_symbol"},
+                "pdbs": {"$first": "$pdbs"},
+                "cns": {"$first": "$cns"},
+                "exons": {"$push": "$exons"},
+                "strand": {"$first": "$strand"},
+                "start": {"$min": "$exons.start"},
+                "chromosome": {"$first": "$chromosome"},
+                "end": {"$max": "$exons.end"}}}])
+
+        # gene_data = [{field: v[field] for field in fields} for v in genes]
+
+        return next(gene_data)
+
 
 # TODO make sure only JSON gets accepted
 @ns.route('/edit')
 class EditGuides(Resource):
-    '''
-    Access to the recommendations of all guides
-    '''
     @api.expect(edit_input)
     @api.marshal_with(edit_output)
     def post(self):
@@ -203,9 +240,6 @@ class EditGuides(Resource):
         output['sequence'], output['guides_before'], output['guides_after'] = \
             generate_edit_guides(
             gene_id, gene_data['chromosome'], edit_position)
-
-        output['pdbs'] = gene_data['pdbs']
-        output['exons'] = gene_data['exons']
 
         bed_url = f'{time.time()}.guides.bed'
         guides_to_bed(output['guides_before'] + output['guides_after'],

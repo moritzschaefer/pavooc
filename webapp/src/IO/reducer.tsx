@@ -4,18 +4,21 @@ export type State = {
   readonly isFetching: boolean;
   readonly error: string | undefined;
   readonly knockoutData: any | undefined;
-  readonly genes: Map<string, Gene>;
+  readonly genes: Map<string, string>;
   readonly celllines: Array<string>;
   readonly editData: any;
+  readonly detailsData: any;
 };
 
 export interface Gene {
-  geneId: string;
-  geneSymbol: string;
+  gene_id: string;
+  gene_symbol: string;
   strand: string;
   start: number;
   end: number;
   chromosome: string;
+  pdbs: Array<any>;
+  exons: Array<any>;
 }
 
 const INITIAL_STATE: State = {
@@ -23,7 +26,8 @@ const INITIAL_STATE: State = {
   error: undefined,
   knockoutData: undefined,
   editData: {},
-  genes: new Map<string, Gene>(),
+  detailsData: {},
+  genes: new Map<string, string>(),
   celllines: []
 };
 
@@ -48,6 +52,17 @@ export default (state: State = INITIAL_STATE, action: any) => {
       };
     case t.FETCH_KNOCKOUTS_FAILURE:
       return { ...state, isFetching: false, error: action.error };
+    case t.FETCH_DETAILS:
+      return { ...state, isFetching: true, error: undefined };
+    case t.FETCH_DETAILS_SUCCESS:
+      return {
+        ...state,
+        isFetching: false,
+        error: undefined,
+        detailsData: action.data
+      };
+    case t.FETCH_DETAILS_FAILURE:
+      return { ...state, isFetching: false, error: action.error };
     case t.FETCH_EDIT:
       return { ...state, isFetching: true, error: undefined };
     case t.FETCH_EDIT_SUCCESS:
@@ -67,7 +82,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
         isFetching: false,
         error: undefined,
         genes: new Map(
-          action.genes.map((g: Gene) => [g.geneId, g])
+          action.genes.map((g: any) => [g.gene_id, g.gene_symbol])
         ),
         celllines: action.celllines,
         editData: {}

@@ -306,11 +306,8 @@ class EditViewer extends React.Component<Props, State> {
   }
 }
 
-const mapStateToProps = (
-  state: any,
-  { match: { params: { geneId } } }: { match: { params: { geneId: string } } }
-) => {
-  let gene = (state.io.genes.get && state.io.genes.get(geneId)) || {};
+const mapStateToProps = (state: any) => {
+  let gene = state.io.detailsData;
   return {
     ...state.io.editData, // guides{Before,After)}, sequence, pdbs
     isFetching: state.io.isFetching,
@@ -318,7 +315,7 @@ const mapStateToProps = (
     strand: gene.strand,
     geneStart: gene.start,
     geneEnd: gene.end,
-    geneId,
+    geneId: gene.gene_id,
     chromosome: gene.chromosome,
     exons: gene.exons,
     // pdbs: state.io.editData.pdbs || []

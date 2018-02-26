@@ -17,7 +17,6 @@ import createHistory from "history/createBrowserHistory";
 
 import registerServiceWorker from "./registerServiceWorker";
 import "./index.css";
-import { Gene } from "./IO/reducer";
 
 import App from "./App";
 import Loading from "./util/Loading";
@@ -50,13 +49,13 @@ const middleware = applyMiddleware(
 const mapTransform = createTransform(
   (inboundState: any, key: any) => {
     // convert Map to Array
-    let genes = new Array<Gene>();
-    inboundState.genes.forEach((value: Gene) => genes.push(value));
+    let genes = new Array<any>();
+    inboundState.genes.forEach((gene_symbol: string, gene_id: string) => genes.push({ gene_id, gene_symbol }));
     return { ...inboundState, genes };
   },
   // transform state being rehydrated
   (outboundState: any, key: any) => {
-    let genes = new Map(outboundState.genes.map((g: Gene) => [g.geneId, g]))
+    let genes = new Map(outboundState.genes.map((g: any) => [g.gene_id, g.gene_symbol]))
     return { ...outboundState, genes };
   },
   // define which reducers this transform gets called for.
