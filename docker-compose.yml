@@ -6,6 +6,7 @@ networks:
 volumes:
   data:
   webapp:
+  mongodata:
 
 services:
   apiserver:
@@ -37,6 +38,8 @@ services:
       - apiserver
 
   mongo:
+    volumes:
+      - mongodata:/data/db
     image: mongo:latest
     networks:
       - main

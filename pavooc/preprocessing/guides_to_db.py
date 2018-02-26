@@ -208,12 +208,11 @@ def build_gene_document(gene, check_exists=True):
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
-    __import__('ipdb').set_trace()  # TODO test if gene_start + row['start'] is necessary. I think NOT
     guides_list = [{
         **row[
             ['exon_id', 'start', 'orientation', 'otCount', 'target',
                 'cut_position', 'aa_cut_position']].to_dict(),
-        'mutations': guide_mutations(chromosome, gene_start + row['start']),
+        'mutations': guide_mutations(chromosome, row['start']),
         'scores': {**flashfry_scores.loc[index][
             ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
