@@ -51,15 +51,18 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.clearHighlights();
     }
     let guideStart = guide.start + 1;
-    browser.highlightRegion(
-      chromosome,
-      guideStart,
-      guideStart + 23
-    );
+    browser.highlightRegion(chromosome, guideStart, guideStart + 23);
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, cellline, pdb, editPosition, guidesUrl } = this.props;
+    const {
+      hoveredGuide,
+      guides,
+      cellline,
+      pdb,
+      editPosition,
+      guidesUrl
+    } = this.props;
     const { browser, viewStart } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
@@ -78,6 +81,7 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
 
     if (prevProps.cellline !== cellline) {
+      // TODO only delete if existed..
       browser.removeTier(this.cnsConfig(prevProps.cellline));
       browser.removeTier(this.snpConfig(prevProps.cellline));
 
@@ -233,7 +237,6 @@ export default class SequenceViewer extends React.Component<any, State> {
           }
         ]
       };
-
     }
   }
 
@@ -287,7 +290,8 @@ export default class SequenceViewer extends React.Component<any, State> {
 
   // TODO we can use trix to speed up the browser
   componentDidMount() {
-    let { // const
+    let {
+      // const
       chromosome,
       geneStart,
       geneEnd,
@@ -323,8 +327,9 @@ export default class SequenceViewer extends React.Component<any, State> {
             onGuideHovered(undefined);
           }
         }
-      }
-    , {immediate: true});
+      },
+      { immediate: true }
+    );
     browser.addFeatureListener(
       (event: any, feature: any, hit: any, tier: any) => {
         if (tier.dasSource.name === "PDB") {
@@ -335,20 +340,35 @@ export default class SequenceViewer extends React.Component<any, State> {
     );
     browser.addViewListener(
       (viewChromosome: string, viewStart: number, viewEnd: number) => {
-
-        this.setState({ viewChromosome, viewStart, viewEnd, validClick: false });
+        if (
+          this.state.viewChromosome !== viewChromosome ||
+          this.state.viewStart !== viewStart ||
+          this.state.viewEnd !== viewEnd
+        ) {
+          this.setState({
+            viewChromosome,
+            viewStart,
+            viewEnd,
+            validClick: false
+          });
+        }
       }
     );
     browser.addInitListener(() => {
-      browser.setLocation(chr, geneStart - 1000, geneEnd + 1000)
+      browser.setLocation(chr, geneStart - 1000, geneEnd + 1000);
 
       if (editPositionChanged) {
         // TODO only for gene editing
         // // TODO add hovering
         // Tier 0 is the genome
         //
-        browser.tiers[0].viewport.addEventListener("mousedown", () => this.setState({ validClick: true }));
-        browser.tiers[0].viewport.addEventListener("mouseup", this._genomeClick);
+        browser.tiers[0].viewport.addEventListener("mousedown", () =>
+          this.setState({ validClick: true })
+        );
+        browser.tiers[0].viewport.addEventListener(
+          "mouseup",
+          this._genomeClick
+        );
       }
     });
     this.setState({ browser });
@@ -363,9 +383,11 @@ export default class SequenceViewer extends React.Component<any, State> {
     const clickPosition = event.x;
     const browserWidth = event.target.parentElement.parentElement.offsetWidth;
 
-    const nucleotidePosition = Math.floor(viewStart + (clickPosition / browserWidth) * (viewEnd - viewStart));
+    const nucleotidePosition = Math.floor(
+      viewStart + clickPosition / browserWidth * (viewEnd - viewStart)
+    );
     editPositionChanged(nucleotidePosition);
-  }
+  };
 
   render() {
     return (
