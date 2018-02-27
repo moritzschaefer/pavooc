@@ -18,6 +18,7 @@ import Table, {
 } from "material-ui/Table";
 import Paper from "material-ui/Paper";
 import "./style.css";
+import { downloadCSV } from "../util/functions";
 
 export interface Props {
   guideCount: number;
@@ -32,55 +33,6 @@ class KnockoutList extends React.Component<Props, object> {
     this.updateGuideSelection(this.props.guideCount);
   }
 
-  downloadCSV() {
-    const exportFilename = "pavoocExport.csv";
-
-    // TODO orientation->guideOrientation, geneStrand, delete selected, start->startInGene, add exonStart
-    const data = [].concat(
-      // flatten array of arrays
-      ...this.props.knockoutData.map((gene: any) =>
-        gene.guides
-          .filter((guide: any) => guide.selected) // only return selected guides
-          .map((guide: any) => ({ gene_id: gene.gene_id, ...guide }))
-      )
-    );
-
-    const columnDelimiter = ",";
-    const lineDelimiter = "\n";
-
-    let keys = Object.keys(data[0]);
-
-    let result = "";
-    result += keys.join(columnDelimiter);
-    result += lineDelimiter;
-
-    data.forEach(function(item: any) {
-      let ctr = 0;
-      keys.forEach(function(key: string) {
-        if (ctr > 0) {
-          result += columnDelimiter;
-        }
-
-        result += item[key];
-        ctr++;
-      });
-      result += lineDelimiter;
-    });
-    // now generate a link
-    var csvData = new Blob([result], { type: "text/csv;charset=utf-8;" });
-    //IE11 & Edge
-    if (navigator.msSaveBlob) {
-      navigator.msSaveBlob(csvData, exportFilename);
-    } else {
-      // TODO In FF link must be added to DOM to be clicked
-      var link = document.createElement("a");
-      link.href = window.URL.createObjectURL(csvData);
-      link.setAttribute("download", exportFilename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  }
 
   updateGuideSelection(guideCount: number) {
     const { knockoutData } = this.props;
@@ -193,7 +145,9 @@ class KnockoutList extends React.Component<Props, object> {
             </TableRow>
           </TableHead>
           <TableBody>
-            {knockoutData.map((geneGuides: any) => this.renderTableRow(geneGuides))}
+            {knockoutData.map((geneGuides: any) =>
+              this.renderTableRow(geneGuides)
+            )}
           </TableBody>
         </Table>
       </Paper>
@@ -213,7 +167,7 @@ class KnockoutList extends React.Component<Props, object> {
               <Button
                 raised={true}
                 style={{ flex: 1, margin: 10 }}
-                onClick={() => this.downloadCSV()}
+                onClick={() => downloadCSV(this.props.knockoutData, "pavoocKnockout.csv")}
               >
                 &darr; CSV
               </Button>

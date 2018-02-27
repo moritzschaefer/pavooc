@@ -154,12 +154,23 @@ export interface SetGuideSelection {
   guideSelection: number[];
 }
 
-export const setGuideSelection = (geneId: string, guideSelection: number[]) : SetGuideSelection => ({
+export const setGuideSelection = (geneId: string, guideSelection: number[]): SetGuideSelection => ({
   type: t.SET_GUIDE_SELECTION,
   geneId,
   guideSelection
 });
 
+export interface SetEditSelection {
+  type: typeof t.SET_EDIT_SELECTION;
+  beforeNotAfter: boolean;
+  guideSelection: number[];
+}
+
+export const setEditSelection = (beforeNotAfter: boolean, guideSelection: number[]): SetEditSelection => ({
+  type: t.SET_EDIT_SELECTION,
+  beforeNotAfter,
+  guideSelection
+});
 
 export interface ToggleGuideSelection {
   type: typeof t.TOGGLE_GUIDE_SELECTION;
@@ -167,7 +178,7 @@ export interface ToggleGuideSelection {
   guideIndex: number;
 }
 
-export const toggleGuideSelection = (geneId: string, guideIndex: number) : ToggleGuideSelection => ({
+export const toggleGuideSelection = (geneId: string, guideIndex: number): ToggleGuideSelection => ({
   type: t.TOGGLE_GUIDE_SELECTION,
   geneId,
   guideIndex

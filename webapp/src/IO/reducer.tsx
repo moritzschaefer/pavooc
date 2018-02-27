@@ -87,6 +87,31 @@ export default (state: State = INITIAL_STATE, action: any) => {
         celllines: action.celllines,
         editData: {}
       };
+    case t.SET_EDIT_SELECTION:
+      let { guidesBefore, guidesAfter } = state.editData;
+      if (action.beforeNotAfter) {
+        guidesBefore = guidesBefore;
+      }
+      return {
+        ...state,
+        editData: {
+          ...state.editData,
+          guidesBefore: guidesBefore.map((guide: any, index: number) => ({
+            ...guide,
+            selected:
+              (action.beforeNotAfter &&
+                action.guideSelection.includes(index)) ||
+              (!action.beforeNotAfter && guide.selected)
+          })),
+          guidesAfter: guidesAfter.map((guide: any, index: number) => ({
+            ...guide,
+            selected:
+              (!action.beforeNotAfter &&
+                action.guideSelection.includes(index)) ||
+              (action.beforeNotAfter && guide.selected)
+          }))
+        }
+      };
     case t.SET_GUIDE_SELECTION:
       // TODO slow?
       return {
@@ -96,8 +121,9 @@ export default (state: State = INITIAL_STATE, action: any) => {
           guides: gene.guides.map((guide: any, index: number) => ({
             ...guide,
             selected:
-              ((gene.gene_id === action.geneId) && action.guideSelection.includes(index)) ||
-              ((guide.selected && (gene.gene_id !== action.geneId)))
+              (gene.gene_id === action.geneId &&
+                action.guideSelection.includes(index)) ||
+              (guide.selected && gene.gene_id !== action.geneId)
           }))
         }))
       };

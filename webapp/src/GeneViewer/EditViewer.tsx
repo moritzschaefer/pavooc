@@ -8,16 +8,12 @@ import CelllineSelector from "../util/CelllineSelector";
 import PdbSelectionDialog from "./PdbSelectionDialog";
 
 import { showMessage } from "../Messages/actions";
-import {
-  toggleGuideSelection,
-  setGuideSelection,
-  markGeneEdit,
-  fetchEdit
-} from "../IO/actions";
+import { setEditSelection, markGeneEdit, fetchEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
+import { downloadCSV } from "../util/functions";
 import "./style.css";
 
 export interface Exon {
@@ -32,13 +28,13 @@ interface Props {
   chromosome: string;
   geneStart: number;
   geneEnd: number;
+  geneCns: boolean;
   bedUrl: string;
   strand: string;
   sequence: string;
   push: (route: string) => {};
   markGeneEdit: (geneId: string) => {};
-  toggleGuideSelection: (geneId: string, guideIndex: number) => {};
-  setGuideSelection: (geneId: string, guideSelection: number[]) => {};
+  setEditSelection: (beforeNotAfter: boolean, guideSelection: number[]) => {};
   fetchEdit: (geneId: string, editPosition: number, padding: number) => {};
   guidesBefore: Array<any>;
   guidesAfter: Array<any>;
@@ -49,6 +45,7 @@ interface Props {
 }
 
 interface State {
+  template: string;
   editPosition: number;
   selectedPdb: number;
   hoveredGuide: number | undefined;
@@ -60,6 +57,7 @@ class EditViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      template: "",
       selectedPdb: 0,
       hoveredGuide: undefined,
       pdbSelectionOpened: false,
@@ -73,7 +71,7 @@ class EditViewer extends React.Component<Props, State> {
     let nucleotides = aa * 3;
     for (let exon of exons) {
       let length = exon.end - exon.start;
-      if (nucleotides < length ) {
+      if (nucleotides < length) {
         if (strand === "+") {
           this._setEditPosition(nucleotides + exon.start);
         } else {
@@ -83,7 +81,7 @@ class EditViewer extends React.Component<Props, State> {
       } else {
         nucleotides -= length;
       }
-    };
+    }
   };
 
   _setEditPosition = (editPosition: number) => {
@@ -108,10 +106,6 @@ class EditViewer extends React.Component<Props, State> {
     } else {
       this.setState({ pdbSelectionOpened: false });
     }
-  };
-
-  _lineupSetGuideSelection = (guideSelection: number[]): void => {
-    this.props.setGuideSelection(this.props.geneId, guideSelection);
   };
 
   _findAA() {
@@ -173,7 +167,8 @@ class EditViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             cellline={cellline}
             setHoveredGuide={this.setHoveredGuide}
-            setGuideSelection={this._lineupSetGuideSelection}
+            setGuideSelection={(guideSelection: number[]) =>
+              this.props.setEditSelection(true, guideSelection)}
             guides={guidesBefore}
             className="guideTable"
           />
@@ -189,7 +184,8 @@ class EditViewer extends React.Component<Props, State> {
               typeof _hoveredGuide === "undefined"
                 ? this.setHoveredGuide(undefined)
                 : this.setHoveredGuide(_hoveredGuide + guidesBefore.length)}
-            setGuideSelection={this._lineupSetGuideSelection}
+            setGuideSelection={(guideSelection: number[]) =>
+              this.props.setEditSelection(false, guideSelection)}
             guides={guidesAfter}
             className="guideTable"
           />
@@ -214,7 +210,10 @@ class EditViewer extends React.Component<Props, State> {
     try {
       const { aaPosition } = this._findAA();
       if (aaPosition) {
-        highlightPositions.push({ aa_cut_position: aaPosition, selected: true });
+        highlightPositions.push({
+          aa_cut_position: aaPosition,
+          selected: true
+        });
       }
     } catch (e) {
       highlightPositions = []; // TODO set highlight here
@@ -228,7 +227,6 @@ class EditViewer extends React.Component<Props, State> {
       />
     );
   }
-
 
   _renderSequenceViewer() {
     const {
@@ -248,12 +246,12 @@ class EditViewer extends React.Component<Props, State> {
     const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
     const pdb = pdbs[selectedPdb] && pdbs[selectedPdb].pdb;
     return (
-      <div style={{position: "relative" }}>
-        { isFetching ?
+      <div style={{ position: "relative" }}>
+        {isFetching ? (
           <div className="busyOverlay">
             <div className="spinner" />
-          </div> : null
-        }
+          </div>
+        ) : null}
         <SequenceViewer
           cellline={cellline}
           editPosition={editPosition}
@@ -273,10 +271,30 @@ class EditViewer extends React.Component<Props, State> {
     );
   }
 
+  _csvData() {
+    const { geneId, geneCns, guidesBefore, guidesAfter } = this.props;
+    const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
+
+    // TODO exon_id and aa_cut_position are not included
+    return [
+      {
+        guides: allGuides.map((g: any) => ({
+          selected: g.selected,
+          otCount: g.otCount,
+          start: g.start,
+          orientation: g.orientation,
+          cut_position: g.cut_position,
+          scores: g.scores
+        })),
+        gene_id: geneId,
+        cns: geneCns
+      }
+    ];
+  }
+
   render() {
-    // TODO: in the beginning show the sequenceviewer only. after guide loading show the rest (pdb and guideslist)
-    const { geneId, pdbs, sequence } = this.props;
-    const { pdbSelectionOpened } = this.state;
+    const { geneId, pdbs, sequence, guidesBefore, guidesAfter } = this.props;
+    const { pdbSelectionOpened, template } = this.state;
     return (
       <div className="mainContainer">
         <PdbSelectionDialog
@@ -297,10 +315,30 @@ class EditViewer extends React.Component<Props, State> {
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
             <CelllineSelector />
-            <Button raised={true}>&darr; CSV</Button>
+            <Button
+              raised={true}
+              disabled={
+                guidesBefore.reduce(
+                  (accumulator, currentValue) =>
+                    accumulator && !currentValue.selected,
+                  true
+                ) ||
+                guidesAfter.reduce(
+                  (accumulator, currentValue) =>
+                    accumulator && !currentValue.selected,
+                  true
+                )
+              }
+              onClick={() =>
+                downloadCSV(this._csvData(), "pavoocEdit.csv", template)}
+            >
+              &darr; CSV
+            </Button>
           </div>
         </div>
-        {sequence ? this._renderMainContainer() : this._renderPreviewContainer()}
+        {sequence
+          ? this._renderMainContainer()
+          : this._renderPreviewContainer()}
       </div>
     );
   }
@@ -316,6 +354,7 @@ const mapStateToProps = (state: any) => {
     geneStart: gene.start,
     geneEnd: gene.end,
     geneId: gene.gene_id,
+    geneCns: gene.cns.includes(state.app.cellline),
     chromosome: gene.chromosome,
     exons: gene.exons,
     // pdbs: state.io.editData.pdbs || []
@@ -333,10 +372,8 @@ const mapDispatchToProps = (dispatch: any) => ({
   fetchEdit: (geneId: string, editPosition: number, padding: number) =>
     dispatch(fetchEdit(geneId, editPosition, padding)),
   push: (route: string) => dispatch(push(route)),
-  toggleGuideSelection: (geneId: string, guideIndex: number) =>
-    dispatch(toggleGuideSelection(geneId, guideIndex)),
-  setGuideSelection: (geneId: string, guideSelection: number[]) =>
-    dispatch(setGuideSelection(geneId, guideSelection)),
+  setEditSelection: (beforeNotAfter: boolean, guideSelection: number[]) =>
+    dispatch(setEditSelection(beforeNotAfter, guideSelection)),
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId)),
   onMessage: (message: string) => dispatch(showMessage(message))
 });

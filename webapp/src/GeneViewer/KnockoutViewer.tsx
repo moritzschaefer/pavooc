@@ -121,7 +121,6 @@ class KnockoutViewer extends React.Component<Props, State> {
           <h2 className="heading">{geneId}</h2>
           <div className="topControls">
             <CelllineSelector />
-            <Button raised={true}>&darr; CSV</Button>
           </div>
         </div>
         <div className="containerCenter">
