@@ -18,6 +18,7 @@ export interface Props {
 
 export interface State {
   geneSelection: Map<string, string>;
+  editGene: [string, string];
   experimentType: string;
 }
 
@@ -25,6 +26,7 @@ export default class Form extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      editGene: ["", ""],
       experimentType: "knockout",
       geneSelection: new Map()
     };
@@ -38,33 +40,43 @@ export default class Form extends React.Component<Props, State> {
   };
 
   addGene = (geneId: string) => {
+    const { experimentType } = this.state;
     const { genes } = this.props;
     if (this.state.geneSelection.has(geneId)) {
       return false;
     }
-    const geneSelection = new Map(this.state.geneSelection);
     const geneSymbol = genes.get(geneId);
+
     if (geneSymbol) {
-      geneSelection.set(geneId, geneSymbol);
+      if (experimentType === "knockout") {
+        const geneSelection = new Map(this.state.geneSelection);
+        geneSelection.set(geneId, geneSymbol);
+        this.setState({ geneSelection });
+      } else {
+        this.setState({ editGene: [geneId, geneSymbol] });
+      }
     }
-    this.setState({ geneSelection });
-    return true;
+    return true; // TODO this return might be wrong...
   };
 
   _goButtonClick = () => {
-    const { experimentType, geneSelection } = this.state;
+    const { experimentType, geneSelection, editGene } = this.state;
     if (experimentType === "knockout") {
       this.props.goKnockout(Array.from(geneSelection.keys()));
     } else if (experimentType === "edit") {
-      this.props.goEdit(Array.from(geneSelection.keys())[0]);
-
+      this.props.goEdit(editGene[0]);
     }
   };
 
   removeGene = (geneId: string) => {
-    const geneSelection = new Map(this.state.geneSelection);
-    geneSelection.delete(geneId);
-    this.setState({ geneSelection });
+    const { experimentType } = this.state;
+    if (experimentType === "knockout") {
+      const geneSelection = new Map(this.state.geneSelection);
+      geneSelection.delete(geneId);
+      this.setState({ geneSelection });
+    } else {
+      this.setState({ editGene: ["", ""] });
+    }
   };
 
   renderChip([geneId, geneSymbol]: [string, string]) {
@@ -80,7 +92,7 @@ export default class Form extends React.Component<Props, State> {
 
   render() {
     const { genes, className, onMessage } = this.props;
-    const { geneSelection } = this.state;
+    const { geneSelection, experimentType, editGene } = this.state;
     let classes = "initialForm ";
     if (className) {
       classes += className;
@@ -91,10 +103,10 @@ export default class Form extends React.Component<Props, State> {
       reversedGenes =
         genes &&
         new Map<string, string>(
-          Array.from(genes.entries()).map(([key, value]: [string, string]): [string, string] => ([
-            value,
-            key
-          ]))
+          Array.from(genes.entries()).map(([key, value]: [string, string]): [
+            string,
+            string
+          ] => [value, key])
         );
     } catch (e) {}
     return (
@@ -131,14 +143,19 @@ export default class Form extends React.Component<Props, State> {
         />
         <br />
         <div className="chipWrapper">
-          {Array.from(this.state.geneSelection.entries()).map(
-            this.renderChip,
-            this
-          )}
+          {experimentType === "knockout"
+            ? Array.from(this.state.geneSelection.entries()).map(
+                this.renderChip,
+                this
+              )
+            : editGene[0] !== "" ? this.renderChip(editGene) : null}
         </div>
         <Button
           onClick={this._goButtonClick}
-          disabled={!geneSelection.size}
+          disabled={
+            (experimentType === "knockout" && !geneSelection.size) ||
+            (experimentType === "edit" && editGene[0] === "")
+          }
           raised={true}
           className="formButton"
         >
