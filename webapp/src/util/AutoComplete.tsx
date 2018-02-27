@@ -183,6 +183,7 @@ export default class AutoComplete extends React.Component<Props, State> {
                         e[0].includes(inputValue.toUpperCase()) ||
                         e[1].includes(inputValue.toUpperCase())
                     )
+                    .slice(0, 20)
                     .map((item, index) =>
                       this.renderSuggestion(
                         item,
