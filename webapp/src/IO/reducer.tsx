@@ -21,11 +21,17 @@ export interface Gene {
   exons: Array<any>;
 }
 
+const INITIAL_EDIT_DATA = {
+  guidesBefore: [],
+  guidesAfter: [],
+}
+
+
 const INITIAL_STATE: State = {
   isFetching: false,
   error: undefined,
   knockoutData: undefined,
-  editData: {},
+  editData: INITIAL_EDIT_DATA,
   detailsData: {},
   genes: new Map<string, string>(),
   celllines: []
@@ -85,7 +91,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
           action.genes.map((g: any) => [g.gene_id, g.gene_symbol])
         ),
         celllines: action.celllines,
-        editData: {}
+        editData: INITIAL_EDIT_DATA
       };
     case t.SET_EDIT_SELECTION:
       let { guidesBefore, guidesAfter } = state.editData;
