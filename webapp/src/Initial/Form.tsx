@@ -42,14 +42,14 @@ export default class Form extends React.Component<Props, State> {
   addGene = (geneId: string) => {
     const { experimentType } = this.state;
     const { genes } = this.props;
-    if (this.state.geneSelection.has(geneId)) {
-      return false;
-    }
     const geneSymbol = genes.get(geneId);
 
     if (geneSymbol) {
       if (experimentType === "knockout") {
         const geneSelection = new Map(this.state.geneSelection);
+        if (this.state.geneSelection.has(geneId)) {
+          return false;
+        }
         geneSelection.set(geneId, geneSymbol);
         this.setState({ geneSelection });
       } else {
