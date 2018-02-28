@@ -64,10 +64,10 @@ def read_gencode():
         (df['seqname'].isin(CHROMOSOMES))]
     # drop all transcripts and exons that have no protein_id
     df.drop(df.index[(df.protein_id == '') & (
-        df.feature.isin(['exon', 'transcript']))], inplace=True)
+        df.feature.isin(['exon', 'transcript', 'UTR']))], inplace=True)
 
     # only take exons and transcripts which contain a basic-tag
-    non_basic_transcripts = (df['feature'].isin(['transcript', 'exon'])) & \
+    non_basic_transcripts = (df['feature'].isin(['transcript', 'exon', 'UTR'])) & \
         ~(df['tag'].str.contains('basic'))
     df.drop(df.index[non_basic_transcripts], inplace=True)
 
@@ -92,7 +92,7 @@ def read_gencode():
     df.start -= 1
 
     # drop alternative_3or5_UTR transcripts
-    df = df.drop(df.index[df.tag.str.contains('alternative_')])
+    # df = df.drop(df.index[df.tag.str.contains('alternative_')])
 
     # drop all genes which have no transcripts
     valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
@@ -157,9 +157,14 @@ def compute_canonical_exons(gene):
 
     df = pd.DataFrame(result_exons)
     # df.index.name = 'exon_id'
-    return df.reset_index()[[
-        'seqname', 'start', 'end', 'strand', 'transcript_id',
-        'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+    try:
+        return df.reset_index()[[
+            'seqname', 'start', 'end', 'strand', 'transcript_id',
+            'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+    except KeyError:
+        logging.error(
+            f'fixme at data.py canonical_exons: {gene.iloc[0].gene_id}')
+        return
 
 
 @buffer_return_value
