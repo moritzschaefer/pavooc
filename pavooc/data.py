@@ -5,6 +5,7 @@ import os
 import pickle
 import logging
 
+from itertools import chain
 import numpy as np
 import pandas as pd
 from gtfparse import read_gtf_as_dataframe
@@ -21,6 +22,26 @@ logging.basicConfig(level=logging.INFO)
 # TODO 'ENSG00000101464.6' for example has a CDS-feature with a protein_id
 # but its exon-feature has no protein_id assigned. Is it good to filter it
 # out though?
+
+
+def _filter_best_transcript(gene):
+    appris_values = set(chain.from_iterable(gene.tag.apply(
+        lambda v: [x for x in v.split(',') if 'appris' in x]).values))
+    for appris_type in ['appris_principal',
+                        'appris_candidate_longest',
+                        'appris_candidate']:
+        if appris_type in appris_values:
+            transcript_id = gene[gene.tag.str.contains(
+                appris_type)].iloc[0].transcript_id
+            break
+    else:
+        transcript_id = gene[gene.feature == 'transcript'].transcript_id
+        # if len(transcript_id) > 1:
+        #     print(gene.gene_id.iloc[0])
+        transcript_id = transcript_id.iloc[0]
+
+    return gene[(gene.feature == 'gene') |
+                (gene.transcript_id == transcript_id)]
 
 
 @buffer_return_value
@@ -70,29 +91,8 @@ def read_gencode():
     # fix indexing
     df.start -= 1
 
-    # TODO Note that this deletes some genes
-    # use the first APPRIS transcript
-    # first_apprises = read_appris().groupby('gene_id').first()
-    logging.debug('# of genes: {}'.format(
-        len(df.gene_id.drop_duplicates())))
-    df = df[(df.feature == 'gene') | (df.tag.str.contains('appris_principal'))]
-    # df = df[df.transcript_id.map(
-    #     lambda tid: tid[:15]).isin(first_apprises.transcript_id)]
-    # TODO shouldnt have changed... so it doesnt make sense here
-    logging.debug('# of genes after selecting for appris transcript_id: {}'
-                  .format(len(df.gene_id.drop_duplicates())))
-
-    # make sure there is only one transcript
-    first_transcripts = df[df.feature == 'transcript'].groupby(
-        'gene_id').first().transcript_id
-    invalid_elements = df.feature.isin(['transcript', 'exon', 'UTR']) & \
-        ~(df.transcript_id).isin(first_transcripts)
-    logging.debug(f'{invalid_elements.sum()} elements to delete because '
-                  f'not in first transcript')
-    df.drop(df.index[invalid_elements], inplace=True)
-    logging.debug(
-        f'# of genes after deleting secondary transcripts: '
-        f'{len(df.gene_id.drop_duplicates())}')
+    # drop alternative_3or5_UTR transcripts
+    df = df.drop(df.index[df.tag.str.contains('alternative_')])
 
     # drop all genes which have no transcripts
     valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
@@ -100,6 +100,10 @@ def read_gencode():
     assert set(valid_genes) == \
         set(df[df['feature'] == 'exon'].gene_id.drop_duplicates())
     df.drop(df.index[~df.gene_id.isin(valid_genes)], inplace=True)
+
+    # select best transcript
+    df = df.groupby('gene_id').apply(_filter_best_transcript)
+    df.reset_index(level=0, drop=True, inplace=True)
 
     return df[[
         'feature', 'gene_id', 'transcript_id',
