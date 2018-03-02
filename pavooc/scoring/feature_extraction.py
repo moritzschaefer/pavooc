@@ -8,6 +8,7 @@ from azimuth.util import concatenate_feature_sets
 
 # TODO refactor!
 
+
 def extract_features(Xdf, Y, gene_position, conservation_scores, order=2):
     learn_options = {
         'nuc_features': True,
@@ -65,9 +66,9 @@ def normalize_features(X_train, X_test=None):
     # transform test based on training fit only!
     if isinstance(X_test, (np.ndarray, list)):
         X_test = scaler.transform(X_test)
-        return X_train, X_test
+        return X_train, X_test, scaler
     else:
-        return X_train
+        return X_train, scaler
 
 
 def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42, joint_scaling=False):
@@ -80,14 +81,14 @@ def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42,
 
     # now split features in training/validation and test set
     if joint_scaling:
-        copied = normalize_features(combined_features.copy())  # dont apply different scaling on X_test
+        copied, scaler = normalize_features(combined_features.copy())  # dont apply different scaling on X_test
     else:
         copied = combined_features
     X_train, X_test, y_train, y_test = train_test_split(
         copied, y, test_size=test_size, random_state=random_state)
 
     if not joint_scaling:
-        X_train, X_test = normalize_features(X_train, X_test)
+        X_train, X_test, scaler = normalize_features(X_train, X_test)
 
     # 25% of 80% are 20% of 100%
     np.random.seed(42)
@@ -97,7 +98,7 @@ def split_test_train_valid(combined_features, y, test_size=0.2, random_state=42,
     validation_fold = np.zeros(X_train.shape[0], dtype=bool)
     validation_fold[validation_indices] = True
 
-    return X_train, X_test, y_train, y_test, validation_fold
+    return X_train, X_test, y_train, y_test, validation_fold, scaler
 
 # def combine_and_normalize_features(features, select_features=None,
 #                                    normalize_features=True):

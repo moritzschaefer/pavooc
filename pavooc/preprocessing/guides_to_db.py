@@ -11,11 +11,11 @@ import pandas as pd
 
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES, DEBUG
 from pavooc.pdb import pdb_mappings
-from pavooc.util import normalize_pid
+from pavooc.util import normalize_pid, aa_cut_position, percent_peptide
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
     read_gencode, cellline_mutation_trees, cns_trees
-from pavooc.scoring import azimuth, flashfry
+from pavooc.scoring import azimuth, flashfry, pavooc
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -44,30 +44,6 @@ def guide_mutations(chromosome, position):
     mutations = [mut[2]['cellline'] for mut in
                  cellline_mutation_trees()[chromosome][position:position + 23]]
     return mutations
-
-
-def aa_cut_position(guide, canonical_exons):
-    '''
-    iterate over canonical exons, incrementing AA counter, looking for
-    whether the cut_position is inside one of them or not.
-    :returns: either the AA cut-position ith the canonical exon sequence
-        or -1
-
-    '''
-    bp_position = 0
-    for index, canonical_exon in canonical_exons.iterrows():
-        if guide.cut_position >= canonical_exon['start'] and \
-                guide.cut_position < canonical_exon['end']:
-            if canonical_exon.strand == '+':
-                return (bp_position +
-                        (guide.cut_position - canonical_exon['start'])) // 3
-            else:
-                return (bp_position +
-                        (canonical_exon['end'] - guide.cut_position)) // 3
-
-        exon_length_bp = (canonical_exon['end'] - canonical_exon['start'])
-        bp_position += exon_length_bp
-    return -1
 
 
 def pdbs_for_gene(gene_id):
@@ -112,7 +88,8 @@ def pdbs_for_gene(gene_id):
     return gene_pdbs
 
 
-def _absolute_position(row):
+# TODO DRY with azimuth.py:20
+def _absolute_position(row, chromosome):
     try:
         exon = gencode_exons().loc[row.exon_id]
     except KeyError:
@@ -120,8 +97,10 @@ def _absolute_position(row):
         raise
 
     if isinstance(exon, pd.DataFrame):
+        exon = exon[exon.seqname == chromosome]
         if len(exon.start.unique()) != 1:
             logging.error(f'same exon_id with different starts {exon}')
+
         exon = exon.iloc[0]
 
     return exon.start + row['start']
@@ -156,7 +135,8 @@ def build_gene_document(gene, check_exists=True):
     guides['in_exon_start'] = guides['start']
 
     try:
-        guides['start'] = guides.apply(_absolute_position, axis=1)
+        guides['start'] = guides.apply(
+            lambda row: _absolute_position(row, chromosome), axis=1)
         guides['cut_position'] = guides.apply(
             lambda row: row['start'] +
             (7 if row['orientation'] == 'RVS' else 16),
@@ -169,34 +149,49 @@ def build_gene_document(gene, check_exists=True):
         logging.warn('. gene: {}'.format(e, gene_id))
         return None
 
+    # AA number of canonical transcript cut position for each guide
+    # TODO we should check early if no guides exist and just return None or so.
+    try:
+        guides['aa_cut_position'] = guides.apply(
+            lambda row: aa_cut_position(row, exons), axis=1)
+    except ValueError:  # guides is empty and apply returned a DataFrame
+        guides['aa_cut_position'] = []
+
+    gene_start = exons['start'].min()
+    gene_end = exons['end'].max()
+    try:
+        guides['percent_peptide'] = guides.apply(
+            lambda row: percent_peptide(row, gene_start, gene_end, strand),
+            axis=1)
+    except ValueError:  # guides is empty and apply returned a DataFrame
+        guides['percent_peptide'] = []
+
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:
-        azimuth_score = pd.Series(azimuth.score(guides), index=guides.index)
+        azimuth_score = pd.Series(azimuth.score(
+            guides, chromosome), index=guides.index)
     except ValueError as e:
         guides.to_csv(f'{gene_id}.csv')
         logging.error(
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
         azimuth_score = pd.Series(0, index=guides.index)
-    # TODO add amino acid cut position and percent peptides
-    logging.info(
-        'Insert gene {} with its data into mongodb'.format(gene_id))
+    logging.info('calculating pavooc score for {}'.format(gene_id))
+    pavooc_score = pd.Series(pavooc.score(
+        gene_id, guides), index=guides.index)
+    # try:
+    # except ValueError as e:
+    #     guides.to_csv(f'{gene_id}.csv')
+    #     logging.error(
+    #         f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
+    #     pavooc_score = pd.Series(0, index=guides.index, dtype=np.float64)
 
     domain_tree = domain_interval_trees()[chromosome]
-    gene_start = exons['start'].min()
-    gene_end = exons['end'].max()
 
     interval_domains = domain_tree[gene_start:gene_end]
     # filter for domains in the correct direction
     domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
                for domain in interval_domains
                if domain[2][1] == strand]
-
-    # AA number of canonical transcript cut position for each guide
-    try:
-        guides['aa_cut_position'] = guides.apply(
-            lambda row: aa_cut_position(row, exons), axis=1)
-    except ValueError:  # guides is empty and apply returned a DataFrame
-        guides['aa_cut_position'] = []
 
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
@@ -205,6 +200,9 @@ def build_gene_document(gene, check_exists=True):
     # delete all guides with scores below 0.57
     # TODO use something more sophisticated
     guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
+
+    logging.info(
+        'Insert gene {} with its data into mongodb'.format(gene_id))
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
@@ -217,7 +215,8 @@ def build_gene_document(gene, check_exists=True):
             ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
              'dangerous_in_genome', 'Hsu2013']].to_dict(),
-            'azimuth': azimuth_score.loc[index]}
+            'azimuth': azimuth_score.loc[index],
+            'pavooc': pavooc_score.loc[index]}
     } for index, row in guides.iterrows() if index in flashfry_scores.index]
 
     return {

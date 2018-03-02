@@ -1,3 +1,23 @@
+'''
+Issue: We only have hg38 conservations so we have to search the guide in the
+corresponding gene and from there extract the conservation scores
+In other words:
+Problem: Ich weiß nicht an welcher Stelle die sgRNA ist!
+
+Lösung:
+- use only http://www.gencodegenes.org/releases/current.html
+- Cut out the chromosomes semi-manually. Delete newlines etc.
+- for each sgRNA, pick the right chromosome, search for the 30mer context
+     - if antisense, reverse_complement the context
+- make sure it found only one location
+- make sure the location is in the range of the targeted gene
+- if antisense, add 4
+- if sense, add 16
+- assert the pam position == GG or CC (in case of antisense)
+- once we have the cut position, we can search the phyloP or phast for conservation scores.
+- suggestion: use several features: 3bp-conservations to the left, 3bp-conservations to the right, median conservation, median, max, min of these
+-
+'''
 import os
 import re
 
@@ -8,23 +28,15 @@ import numpy as np
 import pandas as pd
 
 from pavooc.config import DATADIR, CONSERVATION_FEATURES_FILE, \
-        ACHILLES_CONSERVATION_FEATURES_FILE, GENCODE_HG38_FILE, \
-        GENCODE_MM10_FILE
+        GENCODE_HG38_FILE, GENCODE_MM10_FILE, MOUSE_CHROMOSOMES
 from pavooc.util import buffer_return_value
 from pavooc.scoring.azimuth_dataset import load_dataset as azimuth_dataset
-from pavooc.scoring.achilles_dataset import load_dataset as achilles_dataset
+# from pavooc.scoring.achilles_dataset import load_dataset as achilles_dataset
 
 HUMAN_CHROMOSOMES = ['chr{}'.format(v)
                      for v in range(1, 23)] + ['chrX', 'chrY']
-MOUSE_CHROMOSOMES = ['chr{}'.format(v)
-                     for v in range(1, 20)] + ['chrX', 'chrY']
 # MOUSE_GENES = ('CD5', 'CD28', 'H2-K', 'CD45', 'THY1', 'CD43')
 MOUSE_GENES = ('Cd5', 'Cd28', 'H2-K1', 'Ptprc', 'Thy1', 'Spn')
-
-# TODO improve by using mouse genes as well! here is the data:
-# http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/
-# http://www.gencodegenes.org/mouse_releases/current.html
-# these are the genes. (Cd5, Cd28, H2-K, Cd45, Thy1, Cd43), 949 rows.
 
 
 def cut_chromosomes(species='hg38'):
@@ -141,7 +153,7 @@ def find_guide_context(gene, context, sense):
         df = read_hg38()
 
     try:
-        gene_data = df[(df.gene_name == gene) & (
+        gene_data = df[((df.gene_name == gene) | (df.gene_id.map(lambda g: g[:15]) == gene[:15])) & (
             df.feature == 'gene')].iloc[0].copy()
     except IndexError:
         print(f'didnot find context {context} in gene {gene}. Sense: {sense}')
@@ -187,12 +199,14 @@ def pickle_return_value(func):
     return wrapper
 
 
-@pickle_return_value
+@buffer_return_value
+@pickle_return_value  # delete me later?
 def index_phast_mm10():
     return _index_phast(MOUSE_CHROMOSOMES, '.phastCons60way.wigFix')
 
 
-@pickle_return_value
+@buffer_return_value
+@pickle_return_value  # delete me later?
 def index_phast_hg38():
     return _index_phast(HUMAN_CHROMOSOMES, '.phastCons100way.wigFix')
 
@@ -235,7 +249,7 @@ def _index_phast(chromosome_names, filename_suffix):
     return trees
 
 
-def get_conservation_score_features(trees, species, chromosome, position):
+def get_conservation_score_features(species, chromosome, position):
     '''
     The lookup seems a bit complicated. This comes from the fact, that the
     phast data comes in a somewhat difficult format..
@@ -253,9 +267,10 @@ def get_conservation_score_features(trees, species, chromosome, position):
 
     with open(os.path.join(DATADIR, filename)) as f:
         for offset in range(-3, 4, 1):
-            lookup = trees[species][chromosome][position + offset]
+            tree = index_phast_hg38() if species == 'hg38' else index_phast_mm10()
+            lookup = tree[chromosome][position + offset]
             if len(lookup) != 1:
-                print(f'found {len(trees[species][chromosome][position+offset])} positions for offset {chromosome}_{position}_{offset}')
+                print(f'found {len(tree[chromosome][position+offset])} positions for offset {chromosome}_{position}_{offset}')
                 return None
             start, end, start_file_pos = lookup.pop()
 
@@ -268,14 +283,13 @@ def get_conservation_score_features(trees, species, chromosome, position):
     return features + [np.median(features[1:-1]), np.min(features[1:-1]), np.max(features[1:-1])]
 
 
-def process_dataframe(Xdf, cut_positions, trees):
+def process_dataframe(cut_positions):
     '''
     Calculate conservation scores for a given dataset
     '''
 
     scores = cut_positions.apply(lambda chromosome_cut_position:
                                  get_conservation_score_features(
-                                     trees,
                                      *chromosome_cut_position)
                                  )
     scores_df = pd.DataFrame.from_items(zip(scores.index, scores.values)).T
@@ -294,7 +308,7 @@ def process_dataframe(Xdf, cut_positions, trees):
     return scores_df
 
 
-def azimuth_scores(trees):
+def azimuth_scores():
     # first azimuth data
     Xdf, Y, gene_position, target_genes = azimuth_dataset()
 
@@ -319,52 +333,29 @@ def azimuth_scores(trees):
     cut_positions = Xdf.apply(lambda row: find_guide_context(
         row['Target'], row['30mer'], row['Strand'] == 'sense'), axis=1)
 
-    scores_df = process_dataframe(Xdf, cut_positions, trees)
+    scores_df = process_dataframe(cut_positions)
     scores_df.to_csv(CONSERVATION_FEATURES_FILE)
 
 
-def achilles_scores(trees):
-    # now achilles dataset
-    Xdf, Y, gene_position, target_genes = achilles_dataset(drop_locus=False)
+# def achilles_scores():
+#     # now achilles dataset
+#     Xdf, Y, gene_position, target_genes = achilles_dataset(drop_locus=False)
+#
+#     del Y, gene_position, target_genes  # don't use them without manipulation
+#     Xdf = Xdf.reset_index()
+#
+#     cut_positions = Xdf.apply(lambda row: (
+#         'hg38',
+#         row['Locus'].split('_')[0],
+#         int(row['Locus'].split('_')[1])), axis=1)
+#
+#     scores_df = process_dataframe(Xdf, cut_positions)
+#     scores_df.to_csv(ACHILLES_CONSERVATION_FEATURES_FILE)
 
-    del Y, gene_position, target_genes  # don't use them without manipulation
-    Xdf = Xdf.reset_index()
 
-    cut_positions = Xdf.apply(lambda row: (
-        'hg38',
-        row['Locus'].split('_')[0],
-        int(row['Locus'].split('_')[1])), axis=1)
-
-    scores_df = process_dataframe(Xdf, cut_positions, trees)
-    scores_df.to_csv(ACHILLES_CONSERVATION_FEATURES_FILE)
+def main():
+    azimuth_scores()
 
 
 if __name__ == "__main__":
-    trees = {
-        'hg38': index_phast_hg38(),
-        'mm10': index_phast_mm10()
-    }
-    azimuth_scores(trees)
-    achilles_scores(trees)
-
-    # TODO: what is this??
-    # chromosome, cut_position = find_guide_context(
-    #     'MED12', 'GAATGCGCTTTATGCGCTGCCGCTGGGGGT', False)
-    # print(get_conservation_score_features(trees, chromosome, cut_position))
-
-
-# Problem: Ich weiß nicht an welcher Stelle die sgRNA ist!
-#
-# Lösung:
-# - use only http://www.gencodegenes.org/releases/current.html
-# - Cut out the chromosomes semi-manually. Delete newlines etc.
-# - for each sgRNA, pick the right chromosome, search for the 30mer context
-#      - if antisense, reverse_complement the context
-# - make sure it found only one location
-# - make sure the location is in the range of the targeted gene
-# - if antisense, add 4
-# - if sense, add 16
-# - assert the pam position == GG or CC (in case of antisense)
-# - once we have the cut position, we can search the phyloP or phast for conservation scores.
-# - suggestion: use several features: 3bp-conservations to the left, 3bp-conservations to the right, median conservation, median, max, min of these
-# -
+    main()

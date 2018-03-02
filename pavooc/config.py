@@ -16,9 +16,11 @@ S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 if DEBUG:
-    CHROMOSOMES = ['chr22']
+    CHROMOSOMES = ['chrY', 'chrX']
 else:
     CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
+MOUSE_CHROMOSOMES = ['chr{}'.format(v)
+                     for v in range(1, 20)] + ['chrX', 'chrY']
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 SIFTS_FILE = os.path.join(DATADIR, 'sifts', '{}')
 SIFTS_TARBALL = os.path.join(DATADIR, 'sifts.tar')
@@ -57,6 +59,7 @@ ACHILLES_GUIDE_MAPPING = os.path.join(DATADIR, 'sgRNA_mapping.tsv')
 HAEUSSLER_SCORES_FILE = os.path.join(DATADIR,
                                      '13059_2016_1012_MOESM14_ESM.tsv')
 WEIGHTS_DIR = os.path.join(DATADIR, 'weights')
+SCALER_FILE = os.path.join(DATADIR, 'scaler.pkl')
 
 FLASHFRY_EXE = 'FlashFry-assembly-1.7.5.jar'
 JAVA_RAM = os.environ.get('JAVA_RAM', '3')

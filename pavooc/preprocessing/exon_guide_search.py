@@ -13,9 +13,10 @@ from azimuth.model_comparison import predict as azimuth_predict
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
     GUIDES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
 from pavooc.data import read_gencode, exon_interval_trees, chromosomes, \
-    azimuth_model
+    azimuth_model, gencode_exons
 from pavooc.preprocessing.guides_to_db import guide_mutations
 from pavooc.scoring import flashfry
+from pavooc.util import aa_cut_position, percent_peptide
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -121,6 +122,8 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
     seq_file.write(bytes(seq, 'ascii'))
     seq_file.close()
 
+    exons = gencode_exons()[gencode_exons().gene_id == gene_id]
+
     generate_guides(gene_id, seq_file.name,
                     target_file.name, check_in_exon=False)
     os.remove(seq_file.name)
@@ -141,13 +144,24 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
     guides = guides[guides.context.apply(len) == 35]
     guides['start'] += seq_start
 
+    gene_start = exons['start'].min()
+    gene_end = exons['end'].max()
+    strand = exons.strand.iloc[0]
+
     try:
         guides['cut_position'] = guides.apply(
             lambda row: row['start'] +
             (7 if row['orientation'] == 'RVS' else 16), axis=1)
+        guides['aa_cut_position'] = guides.apply(
+            lambda row: aa_cut_position(row, exons), axis=1)
+        guides['percent_peptide'] = guides.apply(
+            lambda row: percent_peptide(row, gene_start, gene_end, strand),
+            axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
         logging.warn('no guides: {}'.format(e))
         guides['cut_position'] = []
+        guides['aa_cut_position'] = []
+        guides['percent_peptide'] = []
 
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:

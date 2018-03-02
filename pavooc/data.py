@@ -4,17 +4,20 @@ Buffered data loading
 import os
 import pickle
 import logging
-
 from itertools import chain
+
+import torch
 import numpy as np
 import pandas as pd
 from gtfparse import read_gtf_as_dataframe
 import azimuth
 from intervaltree import IntervalTree
+from sklearn.externals import joblib
 
+from pavooc.scoring.models import CNN38
 from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
     DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE, \
-    MUTATIONS_FILE, CNS_FILE, BASEDIR
+    MUTATIONS_FILE, CNS_FILE, BASEDIR, SCALER_FILE
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
@@ -264,7 +267,12 @@ def chromosomes():
 
 
 @buffer_return_value
-def azimuth_model(nopos=True):
+def feature_scaler():
+    return joblib.load(SCALER_FILE)
+
+
+@buffer_return_value
+def azimuth_model(nopos=False):
     azimuth_saved_model_dir = os.path.join(
         os.path.dirname(azimuth.__file__),
         'saved_models')
@@ -312,7 +320,14 @@ def domain_interval_trees():
 
     return trees
 
+@buffer_return_value
+def cnn38_model():
+    model = CNN38(160)
+    model.load_state_dict(torch.load(os.path.join(DATADIR, 'cnn38.torch')))
+    return model
 
+
+# TODO delete
 @buffer_return_value
 def read_appris():
     return pd.read_csv(

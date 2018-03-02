@@ -12,19 +12,20 @@ from multiprocessing.dummy import Queue, Process
 import time
 import tarfile
 
-from pavooc.config import CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
+from pavooc.config import MOUSE_CHROMOSOMES, CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
     BASEDIR, S3_BUCKET_URL
 
-# http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/
-# filename = 'GRCh38.p10.genome.fa' human
-# filename = 'GRCm38.p5.genome.fa' mouse
-# http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/chr{}.phastCons100way.wigFix.gz
+# needed so we download all conservation scores and training doesnt fail..
+ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
+
 URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
+    S3_BUCKET_URL.format('cnn38.torch'),
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz',  # noqa
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/gencode.v27.basic.annotation.gtf.gz',  # noqa
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/gencode.vM16.basic.annotation.gtf.gz', # noqa
+
     'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
     'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
     'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/ucscGenePfam.txt.gz',  # noqa
@@ -37,7 +38,11 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv',  # noqa
     'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz',  # noqa # NOTE that this is based on GRCh38!!
-]
+    # for conservation scores:
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz',
+] + ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/chr{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
+        'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
 
 logging.basicConfig(level=logging.INFO)
 

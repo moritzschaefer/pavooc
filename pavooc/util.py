@@ -60,3 +60,34 @@ def normalize_pid(pid):
         return pid[:dash_position]
     else:
         return pid
+
+
+def percent_peptide(guide, gene_start, gene_end, strand):
+    if strand == '+':
+        return 100.0 * (guide.start - gene_start) / (gene_end - gene_start)
+    else:
+        return 100.0 * (gene_end - guide.start) / (gene_end - gene_start)
+
+
+def aa_cut_position(guide, canonical_exons):
+    '''
+    iterate over canonical exons, incrementing AA counter, looking for
+    whether the cut_position is inside one of them or not.
+    :returns: either the AA cut-position ith the canonical exon sequence
+        or -1
+
+    '''
+    bp_position = 0
+    for index, canonical_exon in canonical_exons.iterrows():
+        if guide.cut_position >= canonical_exon['start'] and \
+                guide.cut_position < canonical_exon['end']:
+            if canonical_exon.strand == '+':
+                return (bp_position +
+                        (guide.cut_position - canonical_exon['start'])) // 3
+            else:
+                return (bp_position +
+                        (canonical_exon['end'] - guide.cut_position)) // 3
+
+        exon_length_bp = (canonical_exon['end'] - canonical_exon['start'])
+        bp_position += exon_length_bp
+    return -1

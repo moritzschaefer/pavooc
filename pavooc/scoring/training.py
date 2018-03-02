@@ -193,10 +193,8 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
                 # only save weights if there was no better experiment before
                 if spearman == max(spearmans):
-                    with open('{}/{}_weights.pkl'.format(
-                            WEIGHTS_DIR, tensorboard_experiment.xp_name),
-                            'wb') as f:
-                        pickle.dump(model.state_dict(), f)
+                    torch.save(model.state_dict(), '{}/{}_weights.torch'.format(
+                        WEIGHTS_DIR, tensorboard_experiment.xp_name))
 
     best_model.eval()
     return losses, spearmans, best_model

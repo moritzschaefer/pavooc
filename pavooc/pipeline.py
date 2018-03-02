@@ -12,6 +12,8 @@ from pavooc.preprocessing.prepare_flashfry import main as main_ff
 # from pavooc.preprocessing.sgrna_finder import main as main_sgrna
 from pavooc.preprocessing.exon_guide_search import main as main_guide_search
 from pavooc.preprocessing.guides_to_db import main as main_guides_to_db
+from pavooc.preprocessing.extract_conservation_scores import main as \
+        main_extract_conservation_scores
 
 from pavooc.preprocessing.generate_pdb_bed import main as generate_pdb_bed
 from pavooc.preprocessing.generate_exon_bed import main as generate_exon_bed
@@ -35,7 +37,7 @@ def generate_bed_files(skip_generation=False):
     cns_bedfiles = glob.glob(CNS_BED_FILE.format('*'))
     bedfiles.extend(mutation_bedfiles)
     bedfiles.extend(cns_bedfiles)
-    for bedfile in bedfiles:
+    for bedfile in bedfiles:  # TODO is bigbed necessary here??
         with open(SORTED_TMP_FILE, 'w') as sorted_file:
             result = subprocess.run(
                 ['sort', '-k1,1', '-k2,2n', bedfile],
@@ -56,6 +58,7 @@ def generate_bed_files(skip_generation=False):
 if __name__ == "__main__":
     main_downloader()
     main_preprocessing()
+    main_extract_conservation_scores()
     main_ff()
     main_guide_search()  # ff search
     main_guides_to_db()
