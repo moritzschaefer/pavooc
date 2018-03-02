@@ -67,4 +67,4 @@ def score(gene_id, guides):
 
     result = cnn38_model()(Variable(torch.from_numpy(
         transformed_features))).cpu().data.numpy()
-    return result
+    return result.reshape(-1)

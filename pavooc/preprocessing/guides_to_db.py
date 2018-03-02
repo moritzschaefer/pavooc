@@ -176,8 +176,8 @@ def build_gene_document(gene, check_exists=True):
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
         azimuth_score = pd.Series(0, index=guides.index)
     logging.info('calculating pavooc score for {}'.format(gene_id))
-    pavooc_score = pd.Series(pavooc.score(
-        gene_id, guides), index=guides.index)
+    # pavooc_score = pd.Series(pavooc.score(
+    #     gene_id, guides), index=guides.index, dtype=np.float64)
     # try:
     # except ValueError as e:
     #     guides.to_csv(f'{gene_id}.csv')
@@ -215,8 +215,8 @@ def build_gene_document(gene, check_exists=True):
             ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
              'dangerous_in_genome', 'Hsu2013']].to_dict(),
-            'azimuth': azimuth_score.loc[index],
-            'pavooc': pavooc_score.loc[index]}
+            'azimuth': azimuth_score.loc[index]}
+            # 'pavooc': pavooc_score.loc[index]}
     } for index, row in guides.iterrows() if index in flashfry_scores.index]
 
     return {
