@@ -7,6 +7,7 @@ import { connect } from 'react-redux';
 export function mapStateToProps(state: any) {
   return {
     genes: state.io.genes,
+    cellline: state.app.cellline
   }
 }
 
@@ -20,7 +21,7 @@ export function mapDispatchToProps(dispatch: any, ownProps: any) {
     },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message)),
-    className: ownProps.className
+    className: ownProps.className,
   }
 }
 

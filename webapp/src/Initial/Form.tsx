@@ -6,6 +6,8 @@ import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
 import "./Form.css";
 import CelllineSelector from "../util/CelllineSelector";
+import { observable } from "mobx";
+import { observer } from "mobx-react";
 
 export interface Props {
   goKnockout: (geneSelection: Array<string>) => {};
@@ -14,22 +16,25 @@ export interface Props {
   genes: Map<string, string>;
   className: string;
   onMessage: (message: string) => {};
+  cellline: string;
 }
 
 export interface State {
-  geneSelection: Map<string, string>;
   editGene: [string, string];
   experimentType: string;
 }
-
+@observer
 export default class Form extends React.Component<Props, State> {
+  @observable geneSelection: Map<string, string>; /* MobX managed instance state */
   constructor(props: Props) {
     super(props);
     this.state = {
       editGene: ["", ""],
       experimentType: "knockout",
-      geneSelection: new Map()
     };
+    // TODO
+    // Using ES6 Map constructor you can initialize observable map using observable(new Map()) or for class properties using the decorator @observable map = new Map().
+    this.geneSelection = new Map();
   }
   componentDidMount() {
     this.props.initialLoad();
@@ -46,12 +51,10 @@ export default class Form extends React.Component<Props, State> {
 
     if (geneSymbol) {
       if (experimentType === "knockout") {
-        const geneSelection = new Map(this.state.geneSelection);
-        if (this.state.geneSelection.has(geneId)) {
+        if (this.geneSelection.has(geneId)) {
           return false;
         }
-        geneSelection.set(geneId, geneSymbol);
-        this.setState({ geneSelection });
+        this.geneSelection.set(geneId, geneSymbol);
       } else {
         this.setState({ editGene: [geneId, geneSymbol] });
       }
@@ -60,9 +63,9 @@ export default class Form extends React.Component<Props, State> {
   };
 
   _goButtonClick = () => {
-    const { experimentType, geneSelection, editGene } = this.state;
+    const { experimentType, editGene } = this.state;
     if (experimentType === "knockout") {
-      this.props.goKnockout(Array.from(geneSelection.keys()));
+      this.props.goKnockout(Array.from(this.geneSelection.keys()));
     } else if (experimentType === "edit") {
       this.props.goEdit(editGene[0]);
     }
@@ -71,9 +74,7 @@ export default class Form extends React.Component<Props, State> {
   removeGene = (geneId: string) => {
     const { experimentType } = this.state;
     if (experimentType === "knockout") {
-      const geneSelection = new Map(this.state.geneSelection);
-      geneSelection.delete(geneId);
-      this.setState({ geneSelection });
+      this.geneSelection.delete(geneId);
     } else {
       this.setState({ editGene: ["", ""] });
     }
@@ -91,8 +92,8 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { genes, className, onMessage } = this.props;
-    const { geneSelection, experimentType, editGene } = this.state;
+    const { genes, className, onMessage, cellline } = this.props;
+    const { experimentType, editGene } = this.state;
     let classes = "initialForm ";
     if (className) {
       classes += className;
@@ -144,7 +145,7 @@ export default class Form extends React.Component<Props, State> {
         <br />
         <div className="chipWrapper">
           {experimentType === "knockout"
-            ? Array.from(this.state.geneSelection.entries()).map(
+            ? Array.from(this.geneSelection.entries()).map(
                 this.renderChip,
                 this
               )
@@ -153,8 +154,9 @@ export default class Form extends React.Component<Props, State> {
         <Button
           onClick={this._goButtonClick}
           disabled={
-            (experimentType === "knockout" && !geneSelection.size) ||
-            (experimentType === "edit" && editGene[0] === "")
+            !cellline ||
+            ((experimentType === "knockout" && !this.geneSelection.size) ||
+            (experimentType === "edit" && editGene[0] === ""))
           }
           raised={true}
           className="formButton"
