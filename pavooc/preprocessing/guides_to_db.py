@@ -4,6 +4,7 @@ into mongoDB
 '''
 import logging
 from multiprocessing import Pool
+import mygene
 
 from tqdm import tqdm
 import numpy as np
@@ -14,11 +15,15 @@ from pavooc.pdb import pdb_mappings
 from pavooc.util import normalize_pid, aa_cut_position, percent_peptide
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
-    read_gencode, cellline_mutation_trees, cns_trees
+    read_gencode, cellline_mutation_trees, cns_trees, pfam_mapping
 from pavooc.scoring import azimuth, flashfry, pavooc
+
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
+
+
+mg = mygene.MyGeneInfo()
 
 
 def cns_affection(exons):
@@ -106,6 +111,37 @@ def _absolute_position(row, chromosome):
     return exon.start + row['start']
 
 
+def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
+    domain_tree = domain_interval_trees()[chromosome]
+
+    interval_domains = domain_tree[gene_start:gene_end]
+
+    try:
+        mygene_domains = mg.get_gene(gene_id[:15], 'pfam')['pfam']
+    except TypeError:
+        print(f'No MyGene information for {gene_id}')
+        mygene_domains = None
+    except KeyError:
+        # wildcard
+        mygene_domains = [domain[2][0] for domain in interval_domains]
+    else:
+        if type(mygene_domains) != list:
+            mygene_domains = [mygene_domains]
+
+        pfam_names = set(
+            [pfam_mapping().loc[pfam_acc].PFAM_Name
+                for pfam_acc in mygene_domains
+                if pfam_acc in pfam_mapping().index])
+
+    # filter for domains in the correct direction
+    domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
+               for domain in interval_domains
+               if domain[2][1] == strand
+               and domain[2][0] in pfam_names]
+
+    return domains
+
+
 def build_gene_document(gene, check_exists=True):
     '''
     Compute all necessary data (scores for example) and return a document for
@@ -185,21 +221,13 @@ def build_gene_document(gene, check_exists=True):
     #         f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
     #     pavooc_score = pd.Series(0, index=guides.index, dtype=np.float64)
 
-    domain_tree = domain_interval_trees()[chromosome]
-
-    interval_domains = domain_tree[gene_start:gene_end]
-    # filter for domains in the correct direction
-    domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
-               for domain in interval_domains
-               if domain[2][1] == strand]
-
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
 
-    # delete all guides with scores below 0.57
+    # delete all guides with scores below 0.55
     # TODO use something more sophisticated
-    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
+    guides.drop(guides.index[azimuth_score < 0.55], inplace=True)
 
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -216,7 +244,7 @@ def build_gene_document(gene, check_exists=True):
              'dangerous_GC', 'dangerous_polyT',
              'dangerous_in_genome', 'Hsu2013']].to_dict(),
             'azimuth': azimuth_score.loc[index]}
-            # 'pavooc': pavooc_score.loc[index]}
+        # 'pavooc': pavooc_score.loc[index]}
     } for index, row in guides.iterrows() if index in flashfry_scores.index]
 
     return {
@@ -226,8 +254,10 @@ def build_gene_document(gene, check_exists=True):
         'strand': strand,
         'pdbs': list(pdbs_for_gene(gene_id).T.to_dict().values()),
         'chromosome': exons.iloc[0]['seqname'],
-        'exons': list(exons.reset_index()[['start', 'end', 'exon_id']].T.to_dict().values()),
-        'domains': domains,
+        'exons': list(exons.reset_index()[['start', 'end', 'exon_id']]
+                      .T.to_dict().values()),
+        'domains': get_domains(chromosome, strand, gene_id, gene_start,
+                               gene_end),
         'guides': guides_list
     }
 
