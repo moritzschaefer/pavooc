@@ -177,7 +177,7 @@ def generate_edit_guides(gene_id, chromosome, edit_position, offset=200):
 
     # delete all guides with scores below 0.57
     # TODO use something more sophisticated
-    guides.drop(guides.index[azimuth_score < 0.57], inplace=True)
+    guides.drop(guides.index[azimuth_score < 0.45], inplace=True)
 
     before_guides = []
     after_guides = []

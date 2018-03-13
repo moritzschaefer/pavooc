@@ -29,6 +29,7 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
     'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
     'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/ucscGenePfam.txt.gz',  # noqa
+    'ftp://ftp.ebi.ac.uk/pub/databases/Pfam/mappings/pdb_pfam_mapping.txt',
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot_varsplic.fasta.gz',  # noqa
     # 'http://apprisws.bioinfo.cnio.es/pub/current_release/datafiles/homo_sapiens/GRCh37/appris_data.principal.txt',  # noqa

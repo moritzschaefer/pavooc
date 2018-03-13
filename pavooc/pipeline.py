@@ -2,8 +2,9 @@ import os
 import stat
 import subprocess
 import glob
+import logging
 
-from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, \
+from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
     EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE
 from pavooc.data import celllines
 from pavooc.data_integration.downloader import main as main_downloader
@@ -13,13 +14,15 @@ from pavooc.preprocessing.prepare_flashfry import main as main_ff
 from pavooc.preprocessing.exon_guide_search import main as main_guide_search
 from pavooc.preprocessing.guides_to_db import main as main_guides_to_db
 from pavooc.preprocessing.extract_conservation_scores import main as \
-        main_extract_conservation_scores
+    main_extract_conservation_scores
 
 from pavooc.preprocessing.generate_pdb_bed import main as generate_pdb_bed
 from pavooc.preprocessing.generate_exon_bed import main as generate_exon_bed
 from pavooc.preprocessing.generate_guide_bed import main as generate_guide_bed
 from pavooc.preprocessing.generate_snp_bed import main as generate_snp_bed
 from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
+
+logging.basicConfig(level=logging.INFO)
 
 
 def generate_bed_files(skip_generation=False):
@@ -32,12 +35,13 @@ def generate_bed_files(skip_generation=False):
 
     SORTED_TMP_FILE = os.path.join(DATADIR, 'sorted.bed')
     os.chmod(BIG_BED_EXE, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-    bedfiles = [EXON_BED_FILE, GUIDE_BED_FILE]
+    bedfiles = [EXON_BED_FILE, GUIDE_BED_FILE, PDB_BED_FILE]
     mutation_bedfiles = glob.glob(MUTATION_BED_FILE.format('*'))
     cns_bedfiles = glob.glob(CNS_BED_FILE.format('*'))
     bedfiles.extend(mutation_bedfiles)
     bedfiles.extend(cns_bedfiles)
     for bedfile in bedfiles:  # TODO is bigbed necessary here??
+        logging.info(f'Bed->BB for {bedfile}')
         with open(SORTED_TMP_FILE, 'w') as sorted_file:
             result = subprocess.run(
                 ['sort', '-k1,1', '-k2,2n', bedfile],
@@ -46,10 +50,12 @@ def generate_bed_files(skip_generation=False):
                 raise RuntimeError(
                     'sort failed for some reason: {}'.format(result.stderr))
         base, _ = os.path.splitext(bedfile)
-        result = subprocess.run(
-            [BIG_BED_EXE, SORTED_TMP_FILE,
-                CHROM_SIZES_FILE, '{}.bb'.format(base)],
-            stderr=subprocess.PIPE)
+        arguments = [BIG_BED_EXE, SORTED_TMP_FILE,
+                     CHROM_SIZES_FILE, '{}.bb'.format(base)]
+        if bedfile == EXON_BED_FILE:
+            arguments.extend(
+                ["-as=pavooc/preprocessing/bigGenePred.as", "-type=bed12+8"])
+        result = subprocess.run(arguments, stderr=subprocess.PIPE)
         if result.returncode != 0:
             raise RuntimeError('{} failed for some reason: {}'.format(
                 BIG_BED_EXE, result.stderr))

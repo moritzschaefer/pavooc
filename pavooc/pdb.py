@@ -23,6 +23,7 @@ def pdb_mappings(pdb, chain, swissprot_id):
     except FileNotFoundError as e:
         logging.error(f'File {fi}.xml.gz not found: {e}')
         return {}
+    failed_aas = 0
     for i in range(len(tree)):
         if tree[i].tag.split('}')[-1] != 'entity':
             continue
@@ -63,11 +64,14 @@ def pdb_mappings(pdb, chain, swissprot_id):
                     if pdb_rn is not None and uniprot_rn is not None:
                         # should not happen; otherwise: redundant maps
                         if uniprot_rn in ret and ret[uniprot_rn] != pdb_rn:
-                            print(pdb, chain,
-                                  swissprot_id,
-                                  ret[uniprot_rn], (pdb_rn, pdb_aa))
+                            failed_aas += 1
+                            # print(pdb, chain,
+                            #       swissprot_id,
+                            #       ret[uniprot_rn], (pdb_rn, pdb_aa))
                             #raise Exception("Fix this! 1")
                         #ret[uniprot_rn] = (pdb_rn, pdb_aa)
                         ret[pdb_rn] = uniprot_rn - 1  # make uniprot rn 0-based
                         # ret[uniprot_rn] = pdb_rn  # <- old mapping direction
+    if failed_aas > 0:
+        logging.warn(f'{pdb}:{chain} {swissprot_id} had {failed_aas} failed residues')
     return ret

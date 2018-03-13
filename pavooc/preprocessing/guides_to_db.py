@@ -120,10 +120,10 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
         mygene_domains = mg.get_gene(gene_id[:15], 'pfam')['pfam']
     except TypeError:
         print(f'No MyGene information for {gene_id}')
-        mygene_domains = None
-    except KeyError:
         # wildcard
         mygene_domains = [domain[2][0] for domain in interval_domains]
+    except KeyError:
+        mygene_domains = []
     else:
         if type(mygene_domains) != list:
             mygene_domains = [mygene_domains]

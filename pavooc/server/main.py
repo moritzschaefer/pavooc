@@ -149,7 +149,8 @@ class InitialData(Resource):
         #         "end": {"$max": "$exons.end"}}}], allowDiskUse=True)
         # genes = [{field: v[field] for field in fields} for v in genes]
 
-        genes = guide_collection.find({}, projection=['gene_id', 'gene_symbol'])
+        genes = guide_collection.find(
+            {}, projection=['gene_id', 'gene_symbol'])
 
         return {'genes': list(genes), 'celllines': celllines()}
 
@@ -188,6 +189,7 @@ class KnockoutGuides(Resource):
         ]
         result = guide_collection.aggregate(aggregation_pipeline)
         return list(result)
+
 
 @ns.route('/details')
 class Details(Resource):
@@ -239,7 +241,10 @@ class EditGuides(Resource):
         # TODO sequence to upper case in generate_edit_guides?
         output['sequence'], output['guides_before'], output['guides_after'] = \
             generate_edit_guides(
-            gene_id, gene_data['chromosome'], edit_position)
+            gene_id,
+            gene_data['chromosome'],
+            edit_position,
+            offset=data['padding'])
 
         bed_url = f'{time.time()}.guides.bed'
         guides_to_bed(output['guides_before'] + output['guides_after'],

@@ -4,6 +4,7 @@ Create a bed file for each pdb
 import os
 import logging
 from tqdm import tqdm
+import numpy as np
 
 from pavooc.config import PDB_BED_FILE
 from pavooc.util import normalize_pid
@@ -88,8 +89,12 @@ def pdb_coordinates(pdb, pdb_exons):
     else:
         pdb_start += zero
         pdb_end += zero
+    chromosome = pdb_exons.iloc[0]['seqname']
+    if pdb_end <= pdb_start or np.any([r[1] <= r[0] for r in pdb_ranges]):
+        raise ValueError(f'PDB {pdb.PDB} has negative ranges.'
+                         f'start, end: {pdb_start}, {pdb_end} {chromosome}')
 
-    return [[pdb_exons.iloc[0]['seqname']][0],
+    return [chromosome,
             pdb_start,
             pdb_end,
             pdb.PDB,
@@ -112,38 +117,37 @@ def main():
     exons = exons.loc[exons.swissprot_id.map(
         lambda spid: type(spid) == str)].copy()
     exons.swissprot_id = exons.swissprot_id.map(normalize_pid)
+    with open(PDB_BED_FILE, 'w') as f:
+        for _, pdb in tqdm(pdb_list().iterrows(), total=len(pdb_list())):
+            # find the transcript, that corresponds to the pdb
+            gene_id = exons.loc[exons.swissprot_id
+                                == pdb.SP_PRIMARY].gene_id.drop_duplicates()
+            if len(gene_id) == 0:
+                continue
 
-    for _, pdb in tqdm(pdb_list().iterrows(), total=len(pdb_list())):
-        # find the transcript, that corresponds to the pdb
-        gene_id = exons.loc[exons.swissprot_id
-                            == pdb.SP_PRIMARY].gene_id.drop_duplicates()
-        if len(gene_id) == 0:
-            continue
+            if len(gene_id) != 1:
+                logging.warn(f'PDB shouldnt correspond to multiple geneids: '
+                             f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
 
-        if len(gene_id) != 1:
-            logging.warn(f'PDB should corresponds to multiple geneids: '
-                         f'{gene_id}, pdb: {pdb.SP_PRIMARY}')
+            gene_id = gene_id.iloc[0]
 
-        gene_id = gene_id.iloc[0]
+            pdb_exons = exons.loc[
+                exons.gene_id == gene_id].copy().sort_values('exon_number')
 
-        pdb_exons = exons.loc[
-            exons.gene_id == gene_id].copy().sort_values('exon_number')
-
-        try:
-            data = pdb_coordinates(pdb, pdb_exons)
-        except ValueError as e:
-            logging.warning(gene_id)
-            logging.warning(e)
-            continue
-        else:
-            with open(PDB_BED_FILE.format(pdb.PDB), 'w') as f:
+            try:
+                data = pdb_coordinates(pdb, pdb_exons)
+            except ValueError as e:
+                logging.warning(gene_id)
+                logging.warning(e)
+                continue
+            else:
                 f.write('\t'.join([str(v) for v in data]))
                 f.write('\n')
 
 
 if __name__ == "__main__":
-    try:
-        os.makedirs(os.path.dirname(PDB_BED_FILE))
-    except FileExistsError:
-        pass
+    # try:
+    #     os.makedirs(os.path.dirname(PDB_BED_FILE))
+    # except FileExistsError:
+    #     pass
     main()

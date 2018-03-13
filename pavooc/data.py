@@ -48,6 +48,20 @@ def _filter_best_transcript(gene):
 
 
 @buffer_return_value
+def pfam_mapping():
+    df = pd.read_csv(os.path.join(DATADIR, 'pdb_pfam_mapping.txt'), sep='\t')
+    df = df[['PFAM_ACC', 'PFAM_Name']].drop_duplicates()
+    df.index = df['PFAM_ACC'].apply(lambda row: row[:7])
+    return df
+
+
+@buffer_return_value
+def pfam_pdb_mapping():
+    df = pd.read_csv(os.path.join(DATADIR, 'pdb_pfam_mapping.txt'), sep='\t')
+    return df
+
+
+@buffer_return_value
 def read_gencode():
     '''
     Buffered gencode read with HAVANA/ENSEMBL merged
