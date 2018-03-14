@@ -1,6 +1,7 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
 // import shallowCompare from "react-addons-shallow-compare";
+import { codonToAA } from "../util/functions";
 
 export interface SeqEditData {
   start: number;
@@ -155,7 +156,9 @@ export default class SequenceViewer extends React.Component<any, State> {
       const features = [];
       // chrX	99885797	99891691	ENSG00000000003.10	0	-	99885797	99891691	255,0,0
       for (var i = 0, len = editData.sequence.length;  i < len; i += 3) {
-        features.push(`${chromosome.slice(3, 5)} ${editData.start + i} ${editData.start + i + 3} ${editData.sequence.slice(i, i+3)}`);
+        let aa = codonToAA(editData.sequence.slice(i, i + 3), editData.strand);
+
+        features.push(`${chromosome.slice(3, 5)} ${editData.start + i} ${editData.start + i + 3} ${aa}`);
       }
       return {
         index: undefined,
@@ -301,6 +304,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         name: "Canonical transcripts",
         bwgURI: "/exome.bb",
         tier_type: "translation",
+        subtierMax: 1,
         // stylesheet_uri: "/gencode.xml",
         style: [
           {
@@ -312,7 +316,8 @@ export default class SequenceViewer extends React.Component<any, State> {
               HEIGHT: "12",
               BGITEM: true,
               STROKECOLOR: "green",
-              FGCOLOR: "black"
+              FGCOLOR: "black",
+              BUMP: false,
             }
           }
         ],
@@ -365,10 +370,6 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     ];
 
-    let editConfig = this.editConfig(editData);
-    if (editConfig) {
-      sources.push(editConfig);
-    }
 
     let cnsConfig = this.cnsConfig(cellline);
     if (cnsConfig) {
@@ -378,6 +379,10 @@ export default class SequenceViewer extends React.Component<any, State> {
     let snpConfig = this.snpConfig(cellline);
     if (snpConfig) {
       sources.push(snpConfig);
+    }
+    let editConfig = this.editConfig(editData);
+    if (editConfig) {
+      sources.push(editConfig);
     }
 
     return sources;

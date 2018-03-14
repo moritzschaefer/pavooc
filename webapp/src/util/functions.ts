@@ -1,4 +1,8 @@
-export const downloadCSV = (geneData: Array<any>, exportFilename: string, template: string | undefined = undefined) => {
+export const downloadCSV = (
+  geneData: Array<any>,
+  exportFilename: string,
+  template: string | undefined = undefined
+) => {
   // TODO orientation->guideOrientation, geneStrand
   const data = [].concat(
     // flatten array of arrays
@@ -6,19 +10,18 @@ export const downloadCSV = (geneData: Array<any>, exportFilename: string, templa
       gene.guides
         .filter((guide: any) => guide.selected) // only return selected guides
         .map((guide: any) => ({
-            cns: gene.cns,
-            gene_id: gene.gene_id,
-            exon_id: guide.exon_id,
-            target: guide.target,
-            on_target_score: guide.scores.azimuth,  // TODO change to my score!
-            off_target_score: guide.scores.Doench2016CFDScore,
-            start: guide.start,
-            cut_position: guide.cut_position,
-            aa_cut_position: guide.aa_cut_position,
-            otCount: guide.otCount,
-            orientation: guide.orientation
-          })
-        )
+          cns: gene.cns,
+          gene_id: gene.gene_id,
+          exon_id: guide.exon_id,
+          target: guide.target,
+          on_target_score: guide.scores.azimuth, // TODO change to my score!
+          off_target_score: guide.scores.Doench2016CFDScore,
+          start: guide.start,
+          cut_position: guide.cut_position,
+          aa_cut_position: guide.aa_cut_position,
+          otCount: guide.otCount,
+          orientation: guide.orientation
+        }))
     )
   );
 
@@ -64,4 +67,83 @@ export const downloadCSV = (geneData: Array<any>, exportFilename: string, templa
     link.click();
     document.body.removeChild(link);
   }
-}
+};
+
+export const reverseComplement = (sequence: string) => {
+  const dict = new Map([["A", "T"], ["T", "A"], ["C", "G"], ["G", "C"]]);
+  let outSeq = [];
+  for (var c of sequence
+    .toUpperCase()
+    .split("")
+    .reverse()) {
+    outSeq.push(dict.get(c));
+  }
+  return outSeq.join("");
+};
+
+export const codonToAA = (codon: string, strand: string = "+") => {
+  let processedCodon;
+  if (strand === "+") {
+    processedCodon = codon.toUpperCase();
+  } else {
+    processedCodon = reverseComplement(codon);
+  }
+
+  const threeLetterCodes = new Map([
+    ["A", "ALA"],
+    ["R", "ARG"],
+    ["N", "ASN"],
+    ["D", "ASP"],
+    ["B", "ASX"],
+    ["C", "CYS"],
+    ["E", "GLU"],
+    ["Q", "GLN"],
+    ["Z", "GLX"],
+    ["G", "GLY"],
+    ["H", "HIS"],
+    ["I", "ILE"],
+    ["L", "LEU"],
+    ["K", "LYS"],
+    ["M", "MET"],
+    ["F", "PHE"],
+    ["P", "PRO"],
+    ["S", "SER"],
+    ["T", "THR"],
+    ["W", "TRP"],
+    ["Y", "TYR"],
+    ["V", "VAL"]
+  ]);
+  const codonMap = new Map([
+    ["A", ["GCA", "GCC", "GCG", "GCT"]],
+    ["C", ["TGC", "TGT"]],
+    ["D", ["GAC", "GAT"]],
+    ["E", ["GAA", "GAG"]],
+    ["F", ["TTC", "TTT"]],
+    ["G", ["GGA", "GGC", "GGG", "GGT"]],
+    ["H", ["CAC", "CAT"]],
+    ["I", ["ATA", "ATC", "ATT"]],
+    ["K", ["AAA", "AAG"]],
+    ["L", ["CTA", "CTC", "CTG", "CTT", "TTA", "TTG"]],
+    ["M", ["ATG"]],
+    ["N", ["AAC", "AAT"]],
+    ["P", ["CCA", "CCC", "CCG", "CCT"]],
+    ["Q", ["CAA", "CAG"]],
+    ["R", ["AGA", "AGG", "CGA", "CGC", "CGG", "CGT"]],
+    ["S", ["AGC", "AGT", "TCA", "TCC", "TCG", "TCT"]],
+    ["T", ["ACA", "ACC", "ACG", "ACT"]],
+    ["V", ["GTA", "GTC", "GTG", "GTT"]],
+    ["W", ["TGG"]],
+    ["Y", ["TAC", "TAT"]]
+  ]);
+  const invertedMap = new Map();
+  for (var [key, value] of Array.from(codonMap)) {
+    for (var c of value) {
+      invertedMap.set(c, key);
+    }
+  }
+  try {
+    return threeLetterCodes.get(invertedMap.get(processedCodon));
+  } catch (e) {
+    return "";
+  }
+};

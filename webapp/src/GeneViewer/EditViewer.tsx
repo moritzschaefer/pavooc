@@ -1,4 +1,5 @@
-// TODO if we change "padding" after gathering data, everything fails!
+// TODO if we change "padding" after gathering data, everything fails! possible solution: gather new
+// guides after padding change so everything resets
 // TODO incorporate cellline data
 import * as React from "react";
 import { connect } from "react-redux";
@@ -53,7 +54,6 @@ interface Props {
 }
 
 interface State {
-  template: string;
   selectedPdb: number;
   hoveredGuide: number | undefined;
   pdbSelectionOpened: boolean;
@@ -66,11 +66,11 @@ class EditViewer extends React.Component<Props, State> {
     super(props);
     this.state = {
       editedSequence: "",
-      template: "",
       selectedPdb: 0,
       hoveredGuide: undefined,
       pdbSelectionOpened: false,
       codonEditProps: {
+        strand: "+",
         originalCodon: "",
         editedCodon: "",
         position: -1,
@@ -358,7 +358,7 @@ class EditViewer extends React.Component<Props, State> {
 
   _onEditCodonClicked = (editCodonPosition: number) => {
     // get sequence:
-    const { sequence, editPosition, padding } = this.props;
+    const { sequence, editPosition, padding, strand } = this.props;
 
     const sequenceStart = editPosition - padding;
     const inSequencePosition = editCodonPosition - sequenceStart;
@@ -371,6 +371,7 @@ class EditViewer extends React.Component<Props, State> {
     this.setState({
       codonEditProps: {
         ...this.state.codonEditProps,
+        strand,
         opened: true,
         position: editCodonPosition,
         originalCodon
@@ -451,8 +452,8 @@ class EditViewer extends React.Component<Props, State> {
     const {
       pdbSelectionOpened,
       codonEditProps,
-      template,
-      selectedPdb
+      selectedPdb,
+      editedSequence
     } = this.state;
     return (
       <div className="mainContainer">
@@ -482,7 +483,7 @@ class EditViewer extends React.Component<Props, State> {
               raised={true}
               disabled={!this._editRange()}
               onClick={() =>
-                downloadCSV(this._csvData(), "pavoocEdit.csv", template)}
+                downloadCSV(this._csvData(), "pavoocEdit.csv", editedSequence)}
             >
               &darr; CSV
             </Button>
