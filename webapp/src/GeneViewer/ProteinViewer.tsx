@@ -13,9 +13,9 @@ interface State {
 interface Props {
   className: string;
   pdb: any;
-  hoveredGuide?: number | undefined;
+  hoveredPosition?: number | undefined;
   aaClicked?: (aa: number) => void;
-  setHoveredGuide?: (hoveredGuide: number | undefined) => void;
+  setHoveredPosition?: (hoveredPosition: number | undefined) => void;
   highlightPositions: Array<{ aa_cut_position: number; selected: boolean }>;
 }
 
@@ -40,41 +40,41 @@ export default class ProteinViewer extends React.Component<Props, State> {
     ) {
       this.atomColor = (atom: any) => {
         // the residue index is zero-based, same order as in the loaded file
-        const { hoveredGuide, highlightPositions, pdb } = thisB.props;
+        const { hoveredPosition, highlightPositions, pdb } = thisB.props;
         const { hovered } = thisB.state;
         let { resno, chainid, chainname } = atom;
         if (chainid !== chainname) {
           console.log(`chainid is not chainname!: ${chainid} !== ${chainname}`);
         }
         if (chainid !== pdb.chain) {
-          return 0x505050;
+          return 0xd0d0d0;
         }
-        if (typeof hoveredGuide !== "undefined") {
+        if (typeof hoveredPosition !== "undefined") {
           try {
             if (
-              highlightPositions[hoveredGuide].aa_cut_position ===
+              highlightPositions[hoveredPosition].aa_cut_position ===
               pdb.mappings[resno]
             ) {
-              if (highlightPositions[hoveredGuide].selected) {
-                return 0xffff00;
+              if (highlightPositions[hoveredPosition].selected) {
+                return 0x2222aa;
               } else {
-                return 0xff0000;
+                return 0x22aaaa;
               }
             } else {
-              return 0x77A7A7;
+              return 0xaa3737;
             }
           } catch (e) {
             console.log(
-              "ProteinViewer highlightPositions[hoveredGuide] is undefined!!"
+              "ProteinViewer highlightPositions[hoveredPosition] is undefined!!"
             );
-            console.log(hoveredGuide);
+            console.log(hoveredPosition);
             console.log(highlightPositions.length);
-            console.log(highlightPositions[hoveredGuide]);
-            return 0x0000ff;
+            console.log(highlightPositions[hoveredPosition]);
+            return 0xdddd22;
           }
         }
         if (hovered && resno === hovered) {
-          return 0xF9F9F9;
+          return 0x99bfff;
         }
         // TODO Map<aa_cut_position-pdb.start, guide> for fast lookup
         const guide = highlightPositions.find(
@@ -82,12 +82,12 @@ export default class ProteinViewer extends React.Component<Props, State> {
         );
         if (guide) {
           if (guide.selected) {
-            return 0xbbbb00;
+            return 0xee9944;
           } else {
-            return 0x990000;
+            return 0x66dddd;
           }
         } else {
-          return 0x99B9B9;
+          return 0x3370b0;
         }
       };
     });
@@ -140,8 +140,9 @@ export default class ProteinViewer extends React.Component<Props, State> {
         this.loadPdb();
       } else if (
         this.state.representation &&
-        (prevProps.hoveredGuide !== this.props.hoveredGuide || selectionChanged ||
-        prevState.hovered !== this.state.hovered)
+        (prevProps.hoveredPosition !== this.props.hoveredPosition ||
+          selectionChanged ||
+          prevState.hovered !== this.state.hovered)
       ) {
         this.state.representation.setColor(this.generateScheme());
         // this.state.representation.update({color: true})
@@ -151,14 +152,13 @@ export default class ProteinViewer extends React.Component<Props, State> {
     }
   }
 
-
   componentDidMount() {
     // set up ngl
     const stage = new NGL.Stage(viewport);
     stage.setParameters({ backgroundColor: "white" });
     // listen to `hovered` signal to move tooltip around and change its text
     stage.signals.hovered.add((pickingProxy: any) => {
-      const { setHoveredGuide, highlightPositions, pdb } = this.props;
+      const { setHoveredPosition, highlightPositions, pdb } = this.props;
       if (pickingProxy && (pickingProxy.atom || pickingProxy.bond)) {
         let { resno, chainid } = pickingProxy.atom;
         if (chainid !== pdb.chain) {
@@ -167,17 +167,17 @@ export default class ProteinViewer extends React.Component<Props, State> {
         const guideIndex = highlightPositions.findIndex(
           (guide: any) => pdb.mappings[resno] === guide.aa_cut_position
         );
-        if (setHoveredGuide) {
+        if (setHoveredPosition) {
           if (guideIndex >= 0) {
-            setHoveredGuide(guideIndex);
+            setHoveredPosition(guideIndex);
           } else {
-            setHoveredGuide(undefined);
+            setHoveredPosition(undefined);
           }
         }
         this.setState({ hovered: resno });
       } else {
-        if (setHoveredGuide) {
-          setHoveredGuide(undefined);
+        if (setHoveredPosition) {
+          setHoveredPosition(undefined);
         }
         this.setState({ hovered: undefined });
       }

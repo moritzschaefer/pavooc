@@ -97,20 +97,55 @@ class EditViewer extends React.Component<Props, State> {
     }
   }
 
-  _setAaEditPosition = (aa: number) => {
-    const { exons, strand } = this.props;
-    let nucleotides = aa * 3;
-    for (let exon of exons) {
-      let length = exon.end - exon.start;
-      if (nucleotides < length) {
-        if (strand === "+") {
-          this._setEditPosition(nucleotides + exon.start);
+  _pdbAaClicked = (aa: number) => {
+    const { exons, strand, guidesBefore, guidesAfter } = this.props;
+    // if there are no guides, fetch guides
+    if (guidesBefore.length === 0) {
+      let nucleotides = aa * 3;
+      for (let exon of exons) {
+        // TODO does this work for reverse as well?
+        let length = exon.end - exon.start;
+        if (nucleotides < length) {
+          if (strand === "+") {
+            this._setEditPosition(nucleotides + exon.start);
+          } else {
+            this._setEditPosition(exon.end - nucleotides - 1);
+          }
+          return;
         } else {
-          this._setEditPosition(exon.end - nucleotides - 1);
+          nucleotides -= length;
         }
-        return;
+      }
+    } else {
+      const seqEditData = this._editRange();
+      // if we clicked in the editable region, edit the selected AA
+      if (seqEditData && seqEditData.aaStart) {
+        if (
+          aa >= seqEditData.aaStart &&
+          aa < seqEditData.aaStart + seqEditData.sequence.length / 3
+        ) {
+          let aaNucleotideOffset = (aa - seqEditData.aaStart) * 3;
+
+          if (strand === "-") {
+            aaNucleotideOffset =
+              seqEditData.sequence.length - aaNucleotideOffset - 3;
+          }
+          this._onEditCodonClicked(seqEditData.start + aaNucleotideOffset);
+        }
       } else {
-        nucleotides -= length;
+        // else, see if we selected a cut position so we can select a guide
+        var beforeIndex = guidesBefore.findIndex(
+          (guide: any) => guide.aa_cut_position === aa
+        );
+        if (beforeIndex >= 0) {
+          this.props.setEditSelection(true, [beforeIndex]);
+        }
+        var afterIndex = guidesAfter.findIndex(
+          (guide: any) => guide.aa_cut_position === aa
+        );
+        if (afterIndex >= 0) {
+          this.props.setEditSelection(false, [afterIndex]);
+        }
       }
     }
   };
@@ -233,25 +268,67 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _renderProteinViewer() {
-    const { pdbs } = this.props;
-    const { selectedPdb } = this.state;
-    let highlightPositions = [];
-    try {
-      const { aaPosition } = this._findAA();
-      if (aaPosition) {
+    const {
+      pdbs,
+      guidesBefore,
+      guidesAfter,
+      sequence,
+      editPosition,
+      padding,
+      strand
+    } = this.props;
+    const { selectedPdb, editedSequence } = this.state;
+    let highlightPositions: Array<{
+      aa_cut_position: number;
+      selected: boolean;
+    }> = [];
+
+    const seqEditData = this._editRange();
+    if (seqEditData && typeof seqEditData.aaStart !== "undefined") {
+      for (var i = 0, len = seqEditData.sequence.length / 3; i < len; i++) {
+        // TODO enable selected, if this one has been edited
+        const sequenceStart = editPosition - padding;
+        let inSeqPosition;
+        if (strand === "+") {
+          inSeqPosition = seqEditData.start + i * 3 - sequenceStart;
+        } else {
+          inSeqPosition = seqEditData.start + (seqEditData.sequence.length - i * 3 - 3) - sequenceStart;
+        }
+        const selected =
+          sequence.slice(inSeqPosition, inSeqPosition + 3) !==
+          editedSequence.slice(inSeqPosition, inSeqPosition + 3);
         highlightPositions.push({
-          aa_cut_position: aaPosition,
-          selected: true
+          aa_cut_position: seqEditData.aaStart + i,
+          selected
         });
       }
-    } catch (e) {
-      highlightPositions = []; // TODO set highlight here
+    } else {
+      // show guide cut positions
+      highlightPositions = guidesBefore
+        .concat(guidesAfter)
+        .map((guide: any) => ({
+          aa_cut_position: guide.aa_cut_position,
+          selected: guide.selected
+        }));
     }
+
+    // TODO delete along with _findAA
+    // try {
+    //   const { aaPosition } = this._findAA();
+    //   if (aaPosition) {
+    //     highlightPositions.push({
+    //       aa_cut_position: aaPosition,
+    //       selected: true
+    //     });
+    //   }
+    // } catch (e) {
+    //   highlightPositions = []; // TODO set highlight here
+    // }
     return (
       <ProteinViewer
         className="proteinViewer"
         highlightPositions={highlightPositions}
-        aaClicked={this._setAaEditPosition}
+        aaClicked={this._pdbAaClicked}
         pdb={pdbs[selectedPdb]}
       />
     );
@@ -330,7 +407,6 @@ class EditViewer extends React.Component<Props, State> {
     const sequenceStart = editPosition - padding;
     const inSequencePosition = position - sequenceStart;
 
-
     this.setState({
       editedSequence:
         editedSequence.slice(0, inSequencePosition) +
@@ -354,7 +430,7 @@ class EditViewer extends React.Component<Props, State> {
       inSequencePosition + 3
     );
     return editedCodon;
-  }
+  };
 
   _onEditCodonClicked = (editCodonPosition: number) => {
     // get sequence:
@@ -390,7 +466,12 @@ class EditViewer extends React.Component<Props, State> {
       editPosition,
       padding
     } = this.props;
-    if (!editedSequence || !editPosition || !guidesBefore || editPosition === -1) {
+    if (
+      !editedSequence ||
+      !editPosition ||
+      !guidesBefore ||
+      editPosition === -1
+    ) {
       return undefined;
     }
 
@@ -411,6 +492,7 @@ class EditViewer extends React.Component<Props, State> {
     let nucleotideCount = 0;
     const exons = this.props.exons.slice();
     if (strand === "-") {
+      // -strand exons need to be reversed even though the first (rightmost) exon is first in array
       exons.reverse();
     }
     // we dont have to take care of strand because the frame fits from both sides..
@@ -420,13 +502,15 @@ class EditViewer extends React.Component<Props, State> {
         if (start < exon.start) {
           start = exon.start;
         }
-        // check for offset
+        // check for offset, TODO sure we should ADD and not SUBTRACT
         const offset = (nucleotideCount + (start - exon.start)) % 3;
         if (offset === 1) {
           start += 2;
         } else if (offset === 2) {
           start += 1;
         }
+        let aaStart = (nucleotideCount + (start - exon.start)) / 3;
+
         // we only treat one exon so this has to be the same exon for 'end'
         if (end > exon.end) {
           end = exon.end;
@@ -435,8 +519,16 @@ class EditViewer extends React.Component<Props, State> {
         const l = end - start;
         const localStart = start - (editPosition - padding);
 
+        if (strand === "-") {
+          let totalNucleotides = exons
+            .map((exon: any) => exon.end - exon.start)
+            .reduce((a: number, b: number) => a + b, 0);
+          aaStart = (totalNucleotides - l) / 3 - aaStart;
+        }
+
         return {
           start,
+          aaStart,
           sequence: editedSequence.slice(localStart, localStart + l),
           strand
         };
@@ -462,7 +554,10 @@ class EditViewer extends React.Component<Props, State> {
           opened={pdbSelectionOpened}
           selectIndex={this._selectPdb}
         />
-        <CodonEditDialog {...codonEditProps} editedCodon={this._editedCodon()} />
+        <CodonEditDialog
+          {...codonEditProps}
+          editedCodon={this._editedCodon()}
+        />
         <div className="containerTop">
           <div className="geneViewerHeader">
             <Button

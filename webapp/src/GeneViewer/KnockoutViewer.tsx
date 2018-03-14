@@ -129,8 +129,8 @@ class KnockoutViewer extends React.Component<Props, State> {
         </div>
         <div className="containerCenter">
           <ProteinViewer
-            hoveredGuide={hoveredGuide}
-            setHoveredGuide={this.setHoveredGuide}
+            hoveredPosition={hoveredGuide}
+            setHoveredPosition={this.setHoveredGuide}
             aaClicked={this._aaClicked}
             className="proteinViewer"
             highlightPositions={geneData.guides}

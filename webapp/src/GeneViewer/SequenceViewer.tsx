@@ -7,6 +7,7 @@ export interface SeqEditData {
   start: number;
   sequence: string;
   strand: string;
+  aaStart?: number;
 }
 
 interface State {
