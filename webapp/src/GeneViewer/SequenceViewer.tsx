@@ -1,5 +1,12 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
+// import shallowCompare from "react-addons-shallow-compare";
+
+export interface SeqEditData {
+  start: number;
+  sequence: string;
+  strand: string;
+}
 
 interface State {
   validClick: boolean;
@@ -22,12 +29,14 @@ interface Props {
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number | undefined) => void;
-  pdb: string | undefined;
   editPosition: number;
   editPositionChanged?: ((editPosition: number) => void);
   onPdbClicked: () => void;
+  editData?: SeqEditData;
+  onEditCodonClicked?: (codon: number) => void;
 }
 
+const EDIT_CONFIG_NAME = "Edit Template";
 let viewport: HTMLDivElement | undefined = undefined;
 
 export default class SequenceViewer extends React.Component<any, State> {
@@ -60,9 +69,9 @@ export default class SequenceViewer extends React.Component<any, State> {
       hoveredGuide,
       guides,
       cellline,
-      pdb,
       editPosition,
-      guidesUrl
+      guidesUrl,
+      editData
     } = this.props;
     const { browser, viewStart } = this.state;
     if (!browser) {
@@ -78,6 +87,22 @@ export default class SequenceViewer extends React.Component<any, State> {
         guides.filter((guide: any) => guide.selected).forEach((guide: any) => {
           this._highlightGuide(guide);
         });
+      }
+    }
+
+    if (((typeof prevProps.editData === "undefined") !== (typeof editData === "undefined")) ||
+      (prevProps.editData && editData && prevProps.editData.sequence !== editData.sequence)) {
+      // TODO this will NOT track change of object keys/values
+      let oldEdit = this.editConfig(prevProps.editData);
+      let newEdit = this.editConfig(editData);
+      if (oldEdit) {
+        // the source is local, which is why removeTier can't find the correct tier without help
+        oldEdit.index = browser.tiers.findIndex((tier: any) => tier.dasSource.name === EDIT_CONFIG_NAME);
+        // delete prevprops.editData
+        browser.removeTier(oldEdit);
+      }
+      if (newEdit) {
+        browser.addTier(newEdit);
       }
     }
 
@@ -108,14 +133,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.addTier(this.guidesConfig(guidesUrl));
     }
 
-    if (prevProps.pdb !== pdb) {
-      if (prevProps.pdb) {
-        browser.removeTier(this.pdbConfig(prevProps.pdb));
-      }
-      if (pdb) {
-        browser.addTier(this.pdbConfig(pdb));
-      }
-    }
+    // TODO improve check on this one!
+
     if (
       prevProps.editPosition !== editPosition ||
       prevState.viewStart !== viewStart
@@ -129,32 +148,28 @@ export default class SequenceViewer extends React.Component<any, State> {
     info._inhibitPopup = true;
   };
 
-  pdbConfig(pdb: string) {
-    return {
-      name: "PDB",
-      desc: "PDB mapped to gene coordinates",
-      uri: `/pdbs/${pdb}.bed`,
-      tier_type: "memstore",
-      payload: "bed",
-      noSourceFeatureInfo: true,
-      disableDefaultFeaturePopup: true, // TODO try maybe
-      featureInfoPlugin: this._test,
-      style: [
-        {
-          type: "default",
-          style: {
-            glyph: "ANCHORED_ARROW",
-            LABEL: true,
-            HEIGHT: "10",
-            BGITEM: true,
-            STROKECOLOR: "black",
-            BUMP: true,
-            FGCOLOR: "black"
-          }
-        }
-      ],
-      collapseSuperGroups: true
-    };
+
+  editConfig(editData: SeqEditData | undefined) {
+    const { chromosome } = this.props;
+    if (editData && editData.sequence !== "") {
+      const features = [];
+      // chrX	99885797	99891691	ENSG00000000003.10	0	-	99885797	99891691	255,0,0
+      for (var i = 0, len = editData.sequence.length;  i < len; i += 3) {
+        features.push(`${chromosome.slice(3, 5)} ${editData.start + i} ${editData.start + i + 3} ${editData.sequence.slice(i, i+3)}`);
+      }
+      return {
+        index: undefined,
+        name: EDIT_CONFIG_NAME,
+        tier_type: "memstore",
+        type: "codon",
+        payload: "bed",
+        uri: URL.createObjectURL(
+          new Blob([features.join("\n")])
+        )
+      };
+    } else {
+      return undefined;
+    }
   }
 
   cnsConfig(cellline: string) {
@@ -275,16 +290,37 @@ export default class SequenceViewer extends React.Component<any, State> {
     // TODO find perfect position and draw!
   }
   _initialSources() {
-    const { pdb, cellline, guidesUrl } = this.props;
+    const { cellline, guidesUrl, editData } = this.props;
     let sources: Array<any> = [
       {
         name: "Genome",
         twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
         tier_type: "sequence"
       },
+      {
+        name: "Canonical transcripts",
+        bwgURI: "/exome.bb",
+        tier_type: "translation",
+        // stylesheet_uri: "/gencode.xml",
+        style: [
+          {
+            type: "translation",
+            style: {
+              ZINDEX: 5,
+              glyph: "BOX",
+              LABEL: true,
+              HEIGHT: "12",
+              BGITEM: true,
+              STROKECOLOR: "green",
+              FGCOLOR: "black"
+            }
+          }
+        ],
+        collapseSuperGroups: false
+      },
       this.guidesConfig(guidesUrl),
       {
-        name: "Genes",
+        name: "Genes", // TODO we just use this to show the direction of the gene
         // style: [
         //   {
         //     type: "default",
@@ -302,9 +338,38 @@ export default class SequenceViewer extends React.Component<any, State> {
         bwgURI: "/exome.bb",
         stylesheet_uri: "/gencode.xml",
         collapseSuperGroups: true
+      },
+      {
+        name: "PDB",
+        desc: "PDBs mapped to gene coordinates",
+        bwgURI: "/pdbs.bb",
+        noSourceFeatureInfo: true,
+        disableDefaultFeaturePopup: true,
+        featureInfoPlugin: this._test,
+        subtierMax: 3,
+        style: [
+          {
+            type: "default",
+            style: {
+              glyph: "ANCHORED_ARROW",
+              LABEL: true,
+              HEIGHT: "10",
+              BGITEM: true,
+              STROKECOLOR: "black",
+              BUMP: true,
+              FGCOLOR: "black"
+            }
+          }
+        ],
+        collapseSuperGroups: true
       }
     ];
-    //
+
+    let editConfig = this.editConfig(editData);
+    if (editConfig) {
+      sources.push(editConfig);
+    }
+
     let cnsConfig = this.cnsConfig(cellline);
     if (cnsConfig) {
       sources.push(cnsConfig);
@@ -315,9 +380,6 @@ export default class SequenceViewer extends React.Component<any, State> {
       sources.push(snpConfig);
     }
 
-    if (pdb) {
-      sources.push(this.pdbConfig(pdb));
-    }
     return sources;
   }
 
@@ -330,14 +392,16 @@ export default class SequenceViewer extends React.Component<any, State> {
       geneEnd,
       onPdbClicked,
       onGuideHovered,
-      editPositionChanged
+      editPositionChanged,
+      onEditCodonClicked,
     } = this.props;
 
     let chr = chromosome;
+    const padding = Math.floor((geneEnd - geneStart) / 7);
     let browser = new dalliance.Browser({
       chr,
-      viewStart: geneStart,
-      viewEnd: geneEnd,
+      viewStart: geneStart - padding,
+      viewEnd: geneEnd + padding,
       defaultSubtierMax: 3,
 
       coordSystem: {
@@ -366,8 +430,11 @@ export default class SequenceViewer extends React.Component<any, State> {
     browser.addFeatureListener(
       (event: any, feature: any, hit: any, tier: any) => {
         if (tier.dasSource.name === "PDB") {
-          // delete current track, add new one
           onPdbClicked();
+        }
+        if (tier.dasSource.name === EDIT_CONFIG_NAME && onEditCodonClicked) {
+          onEditCodonClicked(feature.min - 1); // make 0-based
+
         }
       }
     );
@@ -388,7 +455,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     );
     browser.addInitListener(() => {
-      browser.setLocation(chr, geneStart - 1000, geneEnd + 1000);
+      browser.setLocation(chr, geneStart - padding, geneEnd + padding);
 
       if (editPositionChanged) {
         // TODO only for gene editing
@@ -421,6 +488,14 @@ export default class SequenceViewer extends React.Component<any, State> {
     );
     editPositionChanged(nucleotidePosition);
   };
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    if (this.state.validClick !== nextState.validClick) {
+      return false;
+    }
+    return true;
+    // return shallowCompare(this, nextProps, nextState);
+  }
 
   render() {
     return (

@@ -70,7 +70,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
     case t.FETCH_DETAILS_FAILURE:
       return { ...state, isFetching: false, error: action.error };
     case t.FETCH_EDIT:
-      return { ...state, isFetching: true, error: undefined };
+      return { ...state, isFetching: true, error: undefined, editData: INITIAL_EDIT_DATA };
     case t.FETCH_EDIT_SUCCESS:
       return {
         ...state,

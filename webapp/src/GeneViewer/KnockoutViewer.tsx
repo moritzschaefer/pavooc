@@ -22,6 +22,7 @@ export interface GeneData {
   domains: Array<any>;
   cns: Array<string>;
   gene_id: string;
+  gene_symbol: string;
   guides: Array<any>;
   pdbs: Array<any>;
   exons: Array<Exon>;
@@ -64,9 +65,9 @@ class KnockoutViewer extends React.Component<Props, State> {
     this.setState({ pdbSelectionOpened: true });
   };
 
-  _selectPdb = (index: number): void => {
+  _selectPdb = (index: number | undefined): void => {
     // TODO show selection dialog
-    if (index >= 0) {
+    if (typeof index !== "undefined" && index >= 0) {
       this.setState({ selectedPdb: index, pdbSelectionOpened: false });
     } else {
       this.setState({ pdbSelectionOpened: false });
@@ -99,7 +100,7 @@ class KnockoutViewer extends React.Component<Props, State> {
   }
 
   render() {
-    const { geneData, geneId, cellline } = this.props;
+    const { geneData, cellline } = this.props;
     const { selectedPdb, hoveredGuide, pdbSelectionOpened  } = this.state;
     return (
       <div className="mainContainer">
@@ -118,7 +119,10 @@ class KnockoutViewer extends React.Component<Props, State> {
               Back
             </Button>
           </div>
-          <h2 className="heading">{geneId}</h2>
+          <h2 className="heading">
+            {geneData.gene_symbol}&nbsp;
+            PDB: {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
+          </h2>
           <div className="topControls">
             <CelllineSelector />
           </div>

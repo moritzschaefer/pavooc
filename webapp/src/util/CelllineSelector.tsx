@@ -25,6 +25,7 @@ class CelllineSelector extends React.Component<Props, State> {
     return (
       <div className="cellline-selector">
         <VirtualizedSelect
+          clearable={false}
           options={celllines.map((c: string) => ({ label: c, value: c }))}
           onChange={(cellline: any) => this.props.setCellline(cellline.value)}
           value={{ label: cellline, value: cellline }}

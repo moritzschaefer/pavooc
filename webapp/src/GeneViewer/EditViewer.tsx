@@ -1,3 +1,4 @@
+// TODO if we change "padding" after gathering data, everything fails!
 // TODO incorporate cellline data
 import * as React from "react";
 import { connect } from "react-redux";
@@ -6,11 +7,13 @@ import { push } from "react-router-redux";
 import Button from "material-ui/Button";
 import CelllineSelector from "../util/CelllineSelector";
 import PdbSelectionDialog from "./PdbSelectionDialog";
+import CodonEditDialog, { Props as CodonEditProps } from "./CodonEditDialog";
 
+import { setEditPosition /* , setPadding */ } from "../App/actions";
 import { showMessage } from "../Messages/actions";
 import { setEditSelection, markGeneEdit, fetchEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
-import SequenceViewer from "./SequenceViewer";
+import SequenceViewer, { SeqEditData } from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
 import { downloadCSV } from "../util/functions";
@@ -25,6 +28,7 @@ export interface Exon {
 interface Props {
   cellline: string;
   geneId: string;
+  geneSymbol: string;
   chromosome: string;
   geneStart: number;
   geneEnd: number;
@@ -42,28 +46,55 @@ interface Props {
   exons: Array<any>;
   onMessage: (message: string) => {};
   isFetching: boolean;
+  editPosition: number;
+  padding: number; // how far to look for guides
+  setEditPosition: (editPosition: number) => void;
+  setPadding: (padding: number) => void;
 }
 
 interface State {
   template: string;
-  editPosition: number;
   selectedPdb: number;
   hoveredGuide: number | undefined;
   pdbSelectionOpened: boolean;
-  padding: number; // how far to look for guides
+  codonEditProps: CodonEditProps;
+  editedSequence: string;
 }
 
 class EditViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = {
+      editedSequence: "",
       template: "",
       selectedPdb: 0,
       hoveredGuide: undefined,
       pdbSelectionOpened: false,
-      editPosition: -1,
-      padding: 100
+      codonEditProps: {
+        originalCodon: "",
+        editedCodon: "",
+        position: -1,
+        setEditedCodon: this._setEditedCodon,
+        onClose: () =>
+          this.setState({
+            codonEditProps: {
+              ...this.state.codonEditProps,
+              opened: false
+            }
+          }),
+        opened: false
+      }
     };
+  }
+  componentDidMount() {
+    this.setState({ editedSequence: this.props.sequence });
+  }
+
+  componentDidUpdate(prevProps: Props, prevState: State) {
+    if (prevProps.sequence !== this.props.sequence) {
+      // reset editedSequence!
+      this.setState({ editedSequence: this.props.sequence });
+    }
   }
 
   _setAaEditPosition = (aa: number) => {
@@ -85,9 +116,8 @@ class EditViewer extends React.Component<Props, State> {
   };
 
   _setEditPosition = (editPosition: number) => {
-    const { geneId } = this.props;
-    const { padding } = this.state;
-    this.setState({ editPosition });
+    const { geneId, padding } = this.props;
+    this.props.setEditPosition(editPosition);
     this.props.fetchEdit(geneId, editPosition, padding);
   };
 
@@ -99,9 +129,9 @@ class EditViewer extends React.Component<Props, State> {
     this.setState({ pdbSelectionOpened: true });
   };
 
-  _selectPdb = (index: number): void => {
+  _selectPdb = (index: number | undefined): void => {
     // TODO show selection dialog
-    if (index >= 0) {
+    if (typeof index !== "undefined" && index >= 0) {
       this.setState({ selectedPdb: index, pdbSelectionOpened: false });
     } else {
       this.setState({ pdbSelectionOpened: false });
@@ -110,8 +140,7 @@ class EditViewer extends React.Component<Props, State> {
 
   _findAA() {
     // count the amino acids until to the editPosition
-    const { exons, sequence, strand } = this.props;
-    const { padding, editPosition } = this.state;
+    const { exons, sequence, strand, padding, editPosition } = this.props;
     let relativePosition = 0;
     let codon = "";
     // let lastExonEnd = 0;
@@ -239,9 +268,10 @@ class EditViewer extends React.Component<Props, State> {
       pdbs,
       chromosome,
       exons,
-      isFetching
+      isFetching,
+      editPosition
     } = this.props;
-    const { selectedPdb, hoveredGuide, editPosition } = this.state;
+    const { selectedPdb, hoveredGuide } = this.state;
 
     const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
     const pdb = pdbs[selectedPdb] && pdbs[selectedPdb].pdb;
@@ -254,6 +284,8 @@ class EditViewer extends React.Component<Props, State> {
         ) : null}
         <SequenceViewer
           cellline={cellline}
+          editData={this._editRange()}
+          onEditCodonClicked={this._onEditCodonClicked}
           editPosition={editPosition}
           editPositionChanged={this._setEditPosition}
           hoveredGuide={hoveredGuide}
@@ -292,9 +324,136 @@ class EditViewer extends React.Component<Props, State> {
     ];
   }
 
+  _setEditedCodon = (position: number, codon: string) => {
+    const { editPosition, padding } = this.props;
+    let { editedSequence } = this.state;
+    const sequenceStart = editPosition - padding;
+    const inSequencePosition = position - sequenceStart;
+
+
+    this.setState({
+      editedSequence:
+        editedSequence.slice(0, inSequencePosition) +
+        codon +
+        editedSequence.slice(inSequencePosition + 3, editedSequence.length)
+    });
+  };
+
+  _editedCodon = () => {
+    const { editPosition, padding } = this.props;
+    const editCodonPosition = this.state.codonEditProps.position;
+    const { editedSequence } = this.state;
+    if (!editedSequence) {
+      return "";
+    }
+
+    const sequenceStart = editPosition - padding;
+    const inSequencePosition = editCodonPosition - sequenceStart;
+    const editedCodon = editedSequence.slice(
+      inSequencePosition,
+      inSequencePosition + 3
+    );
+    return editedCodon;
+  }
+
+  _onEditCodonClicked = (editCodonPosition: number) => {
+    // get sequence:
+    const { sequence, editPosition, padding } = this.props;
+
+    const sequenceStart = editPosition - padding;
+    const inSequencePosition = editCodonPosition - sequenceStart;
+    const originalCodon = sequence.slice(
+      inSequencePosition,
+      inSequencePosition + 3
+    );
+
+    // calculate editedCodon and originalCodon
+    this.setState({
+      codonEditProps: {
+        ...this.state.codonEditProps,
+        opened: true,
+        position: editCodonPosition,
+        originalCodon
+      }
+    });
+  };
+
+  _editRange(): SeqEditData | undefined {
+    // returns left and right IN-FRAME cut positions if left and right
+    // guides are selected or undefined
+    const { editedSequence } = this.state;
+    const {
+      guidesBefore,
+      guidesAfter,
+      strand,
+      editPosition,
+      padding
+    } = this.props;
+    if (!editedSequence || !editPosition || !guidesBefore || editPosition === -1) {
+      return undefined;
+    }
+
+    let start = Math.max(
+      ...guidesBefore
+        .filter(guide => guide.selected)
+        .map(guide => guide.cut_position)
+    );
+    let end = Math.min(
+      ...guidesAfter
+        .filter(guide => guide.selected)
+        .map(guide => guide.cut_position)
+    );
+    if (!Number.isInteger(start) || !Number.isInteger(end)) {
+      return undefined;
+    }
+
+    let nucleotideCount = 0;
+    const exons = this.props.exons.slice();
+    if (strand === "-") {
+      exons.reverse();
+    }
+    // we dont have to take care of strand because the frame fits from both sides..
+    for (let exon of exons) {
+      if (exon.end > start) {
+        // if start is outside an exon, set it to start of next exon
+        if (start < exon.start) {
+          start = exon.start;
+        }
+        // check for offset
+        const offset = (nucleotideCount + (start - exon.start)) % 3;
+        if (offset === 1) {
+          start += 2;
+        } else if (offset === 2) {
+          start += 1;
+        }
+        // we only treat one exon so this has to be the same exon for 'end'
+        if (end > exon.end) {
+          end = exon.end;
+        }
+        end -= (nucleotideCount + (end - exon.start)) % 3;
+        const l = end - start;
+        const localStart = start - (editPosition - padding);
+
+        return {
+          start,
+          sequence: editedSequence.slice(localStart, localStart + l),
+          strand
+        };
+      } else {
+        nucleotideCount += exon.end - exon.start;
+      }
+    }
+    return undefined;
+  }
+
   render() {
-    const { geneId, pdbs, sequence, guidesBefore, guidesAfter } = this.props;
-    const { pdbSelectionOpened, template } = this.state;
+    const { geneSymbol, pdbs } = this.props;
+    const {
+      pdbSelectionOpened,
+      codonEditProps,
+      template,
+      selectedPdb
+    } = this.state;
     return (
       <div className="mainContainer">
         <PdbSelectionDialog
@@ -302,6 +461,7 @@ class EditViewer extends React.Component<Props, State> {
           opened={pdbSelectionOpened}
           selectIndex={this._selectPdb}
         />
+        <CodonEditDialog {...codonEditProps} editedCodon={this._editedCodon()} />
         <div className="containerTop">
           <div className="geneViewerHeader">
             <Button
@@ -312,23 +472,15 @@ class EditViewer extends React.Component<Props, State> {
               Back
             </Button>
           </div>
-          <h2 className="heading">{geneId}</h2>
+          <h2 className="heading">
+            {geneSymbol}&nbsp; PDB:{" "}
+            {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
+          </h2>
           <div className="topControls">
             <CelllineSelector />
             <Button
               raised={true}
-              disabled={
-                guidesBefore.reduce(
-                  (accumulator, currentValue) =>
-                    accumulator && !currentValue.selected,
-                  true
-                ) ||
-                guidesAfter.reduce(
-                  (accumulator, currentValue) =>
-                    accumulator && !currentValue.selected,
-                  true
-                )
-              }
+              disabled={!this._editRange()}
               onClick={() =>
                 downloadCSV(this._csvData(), "pavoocEdit.csv", template)}
             >
@@ -336,23 +488,24 @@ class EditViewer extends React.Component<Props, State> {
             </Button>
           </div>
         </div>
-        {sequence
-          ? this._renderMainContainer()
-          : this._renderPreviewContainer()}
+        {this._renderMainContainer()}
       </div>
     );
   }
 }
 
 const mapStateToProps = (state: any) => {
-  let gene = state.io.detailsData;
+  let gene = state.io.detailsData || {};
   return {
     ...state.io.editData, // guides{Before,After)}, sequence, pdbs
+    editPosition: state.app.editPosition,
+    padding: state.app.padding,
     isFetching: state.io.isFetching,
     cellline: state.app.cellline,
     strand: gene.strand,
     geneStart: gene.start,
     geneEnd: gene.end,
+    geneSymbol: gene.gene_symbol,
     geneId: gene.gene_id,
     geneCns: gene.cns.includes(state.app.cellline),
     chromosome: gene.chromosome,
@@ -375,6 +528,8 @@ const mapDispatchToProps = (dispatch: any) => ({
   setEditSelection: (beforeNotAfter: boolean, guideSelection: number[]) =>
     dispatch(setEditSelection(beforeNotAfter, guideSelection)),
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId)),
+  setEditPosition: (editPosition: number) =>
+    dispatch(setEditPosition(editPosition)),
   onMessage: (message: string) => dispatch(showMessage(message))
 });
 

@@ -212,7 +212,7 @@ export default class ProteinViewer extends React.Component<Props, State> {
           ref={(v: HTMLDivElement) => {
             viewport = v;
           }}
-          style={{ flex: 1 }}
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
     );
