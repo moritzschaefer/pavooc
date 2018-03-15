@@ -389,10 +389,12 @@ class EditViewer extends React.Component<Props, State> {
       {
         guides: allGuides.map((g: any) => ({
           selected: g.selected,
+          target: g.target,
           otCount: g.otCount,
           start: g.start,
           orientation: g.orientation,
           cut_position: g.cut_position,
+          aa_cut_position: g.aa_cut_position,
           scores: g.scores
         })),
         gene_id: geneId,
