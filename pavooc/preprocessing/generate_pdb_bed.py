@@ -1,6 +1,7 @@
 '''
 Create a bed file for each pdb
 '''
+
 import os
 import logging
 from tqdm import tqdm
@@ -93,6 +94,13 @@ def pdb_coordinates(pdb, pdb_exons):
     if pdb_end <= pdb_start or np.any([r[1] <= r[0] for r in pdb_ranges]):
         raise ValueError(f'PDB {pdb.PDB} has negative ranges.'
                          f'start, end: {pdb_start}, {pdb_end} {chromosome}')
+
+    pdb_starts = [r[0] for r in pdb_ranges]
+    if len(np.unique(pdb_starts)) != len(pdb_starts):
+        raise ValueError(f'PDB {pdb.PDB} contains duplicate blocks')
+
+
+    # TODO check for overlaps!
 
     return [chromosome,
             pdb_start,
