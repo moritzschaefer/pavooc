@@ -227,6 +227,7 @@ class EditViewer extends React.Component<Props, State> {
           {this._renderSequenceViewer()}
         </div>
         <div className="centerRight">
+          {this._renderTopContainer()}
           <GuideLineup
             hoveredGuide={hoveredGuide}
             cellline={cellline}
@@ -292,7 +293,10 @@ class EditViewer extends React.Component<Props, State> {
         if (strand === "+") {
           inSeqPosition = seqEditData.start + i * 3 - sequenceStart;
         } else {
-          inSeqPosition = seqEditData.start + (seqEditData.sequence.length - i * 3 - 3) - sequenceStart;
+          inSeqPosition =
+            seqEditData.start +
+            (seqEditData.sequence.length - i * 3 - 3) -
+            sequenceStart;
         }
         const selected =
           sequence.slice(inSeqPosition, inSeqPosition + 3) !==
@@ -541,14 +545,43 @@ class EditViewer extends React.Component<Props, State> {
     return undefined;
   }
 
-  render() {
+  _renderTopContainer() {
+    const { selectedPdb, editedSequence } = this.state;
     const { geneSymbol, pdbs } = this.props;
-    const {
-      pdbSelectionOpened,
-      codonEditProps,
-      selectedPdb,
-      editedSequence
-    } = this.state;
+
+    return (
+      <div className="containerTop">
+        <div className="geneViewerHeader">
+          <Button
+            onClick={() => this.props.push("/")}
+            raised={true}
+            className="backButton"
+          >
+            Back
+          </Button>
+        </div>
+        <h2 className="heading">
+          {geneSymbol}&nbsp; PDB:{" "}
+          {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
+        </h2>
+        <div className="topControls">
+          <CelllineSelector />
+          <Button
+            raised={true}
+            disabled={!this._editRange()}
+            onClick={() =>
+              downloadCSV(this._csvData(), "pavoocEdit.csv", editedSequence)}
+          >
+            &darr; CSV
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  render() {
+    const { pdbs } = this.props;
+    const { pdbSelectionOpened, codonEditProps } = this.state;
     return (
       <div className="mainContainer">
         <PdbSelectionDialog
@@ -560,32 +593,6 @@ class EditViewer extends React.Component<Props, State> {
           {...codonEditProps}
           editedCodon={this._editedCodon()}
         />
-        <div className="containerTop">
-          <div className="geneViewerHeader">
-            <Button
-              onClick={() => this.props.push("/")}
-              raised={true}
-              className="backButton"
-            >
-              Back
-            </Button>
-          </div>
-          <h2 className="heading">
-            {geneSymbol}&nbsp; PDB:{" "}
-            {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
-          </h2>
-          <div className="topControls">
-            <CelllineSelector />
-            <Button
-              raised={true}
-              disabled={!this._editRange()}
-              onClick={() =>
-                downloadCSV(this._csvData(), "pavoocEdit.csv", editedSequence)}
-            >
-              &darr; CSV
-            </Button>
-          </div>
-        </div>
         {this._renderMainContainer()}
       </div>
     );

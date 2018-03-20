@@ -110,15 +110,13 @@ class KnockoutViewer extends React.Component<Props, State> {
           selectIndex={this._selectPdb}
         />
         <div className="containerTop">
-          <div className="geneViewerHeader">
-            <Button
-              onClick={() => this.props.push("/knockout")}
-              raised={true}
-              className="backButton"
-            >
-              Back
-            </Button>
-          </div>
+          <Button
+            onClick={() => this.props.push("/knockout")}
+            raised={true}
+            className="backButton"
+          >
+            Back
+          </Button>
           <h2 className="heading">
             {geneData.gene_symbol}&nbsp;
             PDB: {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
