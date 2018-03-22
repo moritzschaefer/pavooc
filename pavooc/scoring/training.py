@@ -10,6 +10,7 @@ from torch import nn, cuda
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import MultiStepLR
 from pycrayon import CrayonClient
+from tensorboardX import SummaryWriter
 
 import scipy.stats as st
 import numpy as np
@@ -21,7 +22,10 @@ if cuda.is_available():
     import torch.backends.cudnn as cudnn
     cudnn.benchmark = True
 
-crayon = CrayonClient(hostname="localhost", port=8889)
+try:
+    crayon = CrayonClient(hostname="localhost", port=8889)
+except ValueError:
+    crayon = None
 
 try:
     os.mkdir(WEIGHTS_DIR)
@@ -40,6 +44,11 @@ def train_predict(combined_features, y, validation_fold, model_class,
     Train with the provided model and parameters. Validate with the
     validation set
     '''
+    try:
+        experiment_name = tensorboard_experiment.xp_name
+    except AttributeError:
+        experiment_name = tensorboard_experiment
+        writer = SummaryWriter()
     combined_train_features = combined_features[(~validation_fold), :]
 
     validation_tensor = torch.from_numpy(combined_features[validation_fold, :])
@@ -151,50 +160,38 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # Set to training mode (to enable dropout layers)
             model.train()
 
+            info = {
+                'training-spearman': training_spearman,
+                'trainingloss': training_loss,
+                'training-l1': training_l1.item(),
+                'training-l2': training_l2.item(),
+                'validation-spearman': spearman,
+                'validation-l1':  l1.item(),
+                'validation-l2': l2.item()
+            }
+
             if tensorboard_experiment:
                 # (1) Log the scalar values
-                info = {
-                    'training-spearman': training_spearman,
-                    'trainingloss': training_loss,
-                    'training-l1': training_l1.item(),
-                    'training-l2': training_l2.item(),
-                    'validation-spearman': spearman,
-                    'validation-l1':  l1.item(),
-                    'validation-l2': l2.item()
-                }
 
                 for tag, value in info.items():
                     try:
                         tensorboard_experiment.add_scalar_value(
                             tag, value, step=epoch_idx + 1)
+                    except AttributeError:
+                        # tensorboard_experiment is a string and doesnt have
+                        # add_scalar_value. fall back to tensorboard pytorch
+                        writer.add_scalar(tag, value, epoch_idx + 1)
+
                     except Exception as e:
                         logging.fatal('caught exception adding scalar value '
                                       'to crayon: {}'.format(e))
-                best_model = model_class(combined_features.shape[1])
-                best_model.load_state_dict(copy.deepcopy(model.state_dict()))
-
-                # (2) Log values and gradients of the parameters (histogram)
-                network_weights = {}
-                for tag, value in model.named_parameters():
-                    tag = tag.replace('.', '/')
-
-                    try:
-                        tensorboard_experiment.add_histogram_value(
-                            tag, to_np(value).flatten().tolist(), tobuild=True,
-                            step=epoch_idx + 1)
-                        tensorboard_experiment.add_histogram_value(
-                            '{}/grad'.format(tag), to_np(value.grad).flatten().tolist(),
-                            tobuild=True,
-                            step=epoch_idx + 1)
-                    except AttributeError:
-                        pass
-
-                    network_weights[tag] = to_np(value).tolist()
 
                 # only save weights if there was no better experiment before
-                if spearman == max(spearmans):
-                    torch.save(model.state_dict(), '{}/{}_weights.torch'.format(
-                        WEIGHTS_DIR, tensorboard_experiment.xp_name))
+            if spearman == max(spearmans):
+                torch.save(model.state_dict(), '{}/{}_weights.torch'.format(
+                    WEIGHTS_DIR, experiment_name))
+                best_model = model_class(combined_features.shape[1])
+                best_model.load_state_dict(copy.deepcopy(model.state_dict()))
 
     best_model.eval()
     return losses, spearmans, best_model
@@ -219,13 +216,17 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
         experiment_name_i = '{}_cv|{}'.format(experiment_name, i)
         try:
             # TODO back it up instead of deleting
-            crayon.remove_experiment(experiment_name_i)
-            print('Experiment {} already existed. Deleting.'.format(
-                experiment_name_i))
+            if crayon:
+                crayon.remove_experiment(experiment_name_i)
+                print('Experiment {} already existed. Deleting.'.format(
+                    experiment_name_i))
         except ValueError:
             pass
 
-        tensorboard_experiment = crayon.create_experiment(experiment_name_i)
+        if crayon:
+            tensorboard_experiment = crayon.create_experiment(experiment_name_i)
+        else:
+            tensorboard_experiment = experiment_name_i
         losses, spearmans, model = train_predict(
             transformed_features, y, validation_fold, model_class,
             learning_rate, loss, epochs, tensorboard_experiment)

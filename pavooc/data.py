@@ -7,7 +7,6 @@ import logging
 from itertools import chain
 
 import torch
-import numpy as np
 import pandas as pd
 from gtfparse import read_gtf_as_dataframe
 import azimuth

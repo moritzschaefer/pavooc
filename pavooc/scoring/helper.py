@@ -8,7 +8,10 @@ from torch.autograd import Variable
 from pavooc.scoring.training import train_predict
 
 
-crayon = CrayonClient(hostname="localhost", port=8889)
+try:
+    crayon = CrayonClient(hostname="localhost", port=8889)
+except ValueError:
+    crayon = None
 
 
 def run_model(combined_features, y, validation_fold, model_class, loss,
@@ -23,13 +26,17 @@ def run_model(combined_features, y, validation_fold, model_class, loss,
         loss.__class__.__name__, np.sum(feature_selector), postfix)
     try:
         # TODO back it up instead of deleting
-        crayon.remove_experiment(experiment_name)
-        print('Experiment {} already existed. Deleting.'.
-              format(experiment_name))
+        if crayon:
+            crayon.remove_experiment(experiment_name)
+            print('Experiment {} already existed. Deleting.'.
+                  format(experiment_name))
     except ValueError:
         pass
 
-    tensorboard_experiment = crayon.create_experiment(experiment_name)
+    if crayon:
+        tensorboard_experiment = crayon.create_experiment(experiment_name)
+    else:
+        tensorboard_experiment = experiment_name
     losses, spearmans, model = train_predict(
         combined_features[:,
                           feature_selector], y, validation_fold, model_class,
