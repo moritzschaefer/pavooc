@@ -37,6 +37,27 @@ def to_np(x):
     return x.data.cpu().numpy()
 
 
+def _init_model(feature_length, model_class, loss, learning_rate):
+    model = model_class()
+    optimizer_class = torch.optim.Adam
+
+    # Loss and Optimizer
+    criterion = loss
+    if cuda.is_available():
+        model.cuda()
+        criterion = criterion.cuda()
+    if isinstance(learning_rate, dict):
+        optimizer = optimizer_class(model.parameters(),
+                                    lr=learning_rate['initial'])
+        scheduler = MultiStepLR(
+            optimizer, milestones=learning_rate['milestones'],
+            gamma=learning_rate['gamma'])
+    else:
+        optimizer = optimizer_class(model.parameters(), lr=learning_rate)
+        scheduler = None
+
+    return model, criterion, optimizer, scheduler
+
 def train_predict(combined_features, y, validation_fold, model_class,
                   learning_rate, loss, epochs,
                   tensorboard_experiment=None):
@@ -48,7 +69,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
         experiment_name = tensorboard_experiment.xp_name
     except AttributeError:
         experiment_name = tensorboard_experiment
-        writer = SummaryWriter()
+        writer = SummaryWriter(log_dir=f'runs/{experiment_name}')
     combined_train_features = combined_features[(~validation_fold), :]
 
     validation_tensor = torch.from_numpy(combined_features[validation_fold, :])
@@ -80,22 +101,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
     # first converge with normal features
 
-    model = model_class(combined_features.shape[1])
-    optimizer_class = torch.optim.Adam
-
-    # Loss and Optimizer
-    criterion = loss
-    if cuda.is_available():
-        model.cuda()
-        criterion = criterion.cuda()
-    if isinstance(learning_rate, dict):
-        optimizer = optimizer_class(model.parameters(),
-                                    lr=learning_rate['initial'])
-        scheduler = MultiStepLR(
-            optimizer, milestones=learning_rate['milestones'],
-            gamma=learning_rate['gamma'])
-    else:
-        optimizer = optimizer_class(model.parameters(), lr=learning_rate)
+    model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
 
     spearmans = []
     losses = []
@@ -109,12 +115,12 @@ def train_predict(combined_features, y, validation_fold, model_class,
             optimizer.zero_grad()
             outputs = model(Variable(batch_features))
 
-            loss = criterion(outputs, Variable(batch_targets))
-            loss.backward()
+            loss2 = criterion(outputs, Variable(batch_targets))
+            loss2.backward()
             optimizer.step()
         try:
             scheduler.step()
-        except NameError:
+        except (NameError, AttributeError):
             pass
 
         if ((epoch_idx + 1) % 10) == 0:
@@ -129,8 +135,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # validation scores
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
             if not (np.isfinite(predicted_labels).all()):
-                from IPython.core.debugger import set_trace
-                set_trace()
+                logging.error('Model is buggy, reinitialize')
+                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                continue
             l1 = np.abs(predicted_labels - validation_labels).mean()
             l2 = ((predicted_labels - validation_labels)**2).mean()
 
@@ -186,7 +193,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
                         logging.fatal('caught exception adding scalar value '
                                       'to crayon: {}'.format(e))
 
-                # only save weights if there was no better experiment before
+            # only save weights if there was no better experiment before
             if spearman == max(spearmans):
                 torch.save(model.state_dict(), '{}/{}_weights.torch'.format(
                     WEIGHTS_DIR, experiment_name))
