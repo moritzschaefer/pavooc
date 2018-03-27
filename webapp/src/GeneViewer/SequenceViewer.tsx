@@ -346,6 +346,30 @@ export default class SequenceViewer extends React.Component<any, State> {
         collapseSuperGroups: true
       },
       {
+        name: "Domains",
+        desc: "Domains mapped to gene coordinates",
+        bwgURI: "/domains.bb",
+        noSourceFeatureInfo: true,
+        disableDefaultFeaturePopup: true,
+        featureInfoPlugin: this._test,
+        subtierMax: 3,
+        style: [
+          {
+            type: "default",
+            style: {
+              glyph: "ANCHORED_ARROW",
+              LABEL: true,
+              HEIGHT: "10",
+              BGITEM: true,
+              STROKECOLOR: "black",
+              BUMP: true,
+              FGCOLOR: "black"
+            }
+          }
+        ],
+        collapseSuperGroups: true
+      },
+      {
         name: "PDB",
         desc: "PDBs mapped to gene coordinates",
         bwgURI: "/pdbs.bb",
