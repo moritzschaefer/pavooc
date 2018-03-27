@@ -385,7 +385,7 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _csvData() {
-    const { geneId, geneCns, guidesBefore, guidesAfter } = this.props;
+    const { geneId, geneCns, guidesBefore, guidesAfter, chromosome } = this.props;
     const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
 
     // TODO exon_id and aa_cut_position are not included
@@ -402,6 +402,7 @@ class EditViewer extends React.Component<Props, State> {
           scores: g.scores
         })),
         gene_id: geneId,
+        chromosome,
         cns: geneCns
       }
     ];

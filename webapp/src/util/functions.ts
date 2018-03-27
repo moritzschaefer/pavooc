@@ -11,6 +11,7 @@ export const downloadCSV = (
         .filter((guide: any) => guide.selected) // only return selected guides
         .map((guide: any) => ({
           cns: gene.cns,
+          chromosome: gene.chromosome,
           gene_id: gene.gene_id,
           exon_id: guide.exon_id,
           target: guide.target,
@@ -68,6 +69,24 @@ export const downloadCSV = (
     document.body.removeChild(link);
   }
 };
+
+interface Domain {
+  start: number;
+  end: number;
+  name: string;
+}
+
+export const guidesWithDomains = (geneData: any) => {
+  return geneData.guides.map((guide: any) => ({
+    ...guide,
+    domains: geneData.domains
+      .filter(
+        (domain: Domain) =>
+          domain.start < guide.cut_position && domain.end > guide.cut_position
+      )
+      .map((domain: Domain) => domain.name)
+  }));
+}
 
 export const reverseComplement = (sequence: string) => {
   const dict = new Map([["A", "T"], ["T", "A"], ["C", "G"], ["G", "C"]]);

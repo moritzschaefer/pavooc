@@ -17,6 +17,7 @@ import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
 import "./style.css";
 import { Exon } from "./EditViewer";
+import { guidesWithDomains } from "../util/functions";
 
 export interface GeneData {
   domains: Array<any>;
@@ -27,12 +28,6 @@ export interface GeneData {
   pdbs: Array<any>;
   exons: Array<Exon>;
   chromosome: string;
-}
-
-interface Domain {
-  start: number;
-  end: number;
-  name: string;
 }
 
 interface Props {
@@ -82,19 +77,6 @@ class KnockoutViewer extends React.Component<Props, State> {
     }
   }
 
-  _guidesWithDomains() {
-    const { geneData } = this.props;
-    return geneData.guides.map((guide: any) => ({
-      ...guide,
-      domains: geneData.domains
-        .filter(
-          (domain: Domain) =>
-            domain.start < guide.cut_position && domain.end > guide.cut_position
-        )
-        .map((domain: Domain) => domain.name)
-    }));
-  }
-
   _lineupSetGuideSelection = (guideSelection: number[]): void => {
     this.props.setGuideSelection(this.props.geneId, guideSelection);
   }
@@ -140,7 +122,7 @@ class KnockoutViewer extends React.Component<Props, State> {
             showDomain={true}
             setHoveredGuide={this.setHoveredGuide}
             setGuideSelection={this._lineupSetGuideSelection}
-            guides={this._guidesWithDomains()}
+            guides={guidesWithDomains(geneData)}
             className="guideTable"
           />
         </div>

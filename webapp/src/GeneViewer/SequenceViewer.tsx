@@ -352,7 +352,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         noSourceFeatureInfo: true,
         disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
-        subtierMax: 3,
+        subtierMax: 2,
         style: [
           {
             type: "default",
@@ -376,7 +376,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         noSourceFeatureInfo: true,
         disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
-        subtierMax: 3,
+        subtierMax: 2,
         style: [
           {
             type: "default",

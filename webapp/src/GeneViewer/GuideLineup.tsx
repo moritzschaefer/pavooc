@@ -119,19 +119,16 @@ export default class GuideLineup extends React.Component<Props, State> {
           <LineUpStringColumnDesc column="d" label="Label" width={80} />
           <LineUpStringColumnDesc column="Domain" label="Domain" width={60} />
           <LineUpNumberColumnDesc
+            label="On target"
             column="azimuth"
-            domain={[0, 1]}
-            color="red"
-          />
-          <LineUpNumberColumnDesc
-            column="Doench2016CFDScore"
             domain={[0, 1]}
             color="green"
           />
           <LineUpNumberColumnDesc
-            column="Hsu2013"
-            domain={[0, 100]}
-            color="blue"
+            label="Off target"
+            column="Doench2016CFDScore"
+            domain={[0, 1]}
+            color="red"
           />
 
           <LineUpRanking sortBy="Scores:desc">
@@ -139,9 +136,8 @@ export default class GuideLineup extends React.Component<Props, State> {
             <LineUpColumn column="d" />
             <LineUpColumn column="Domain" />
             <LineUpWeightedSumColumn label="Scores">
-              <LineUpWeightedColumn column="azimuth" weight={0.45} />
-              <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.35} />
-              <LineUpWeightedColumn column="Hsu2013" weight={0.2} />
+              <LineUpWeightedColumn column="azimuth" weight={0.6} />
+              <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
             </LineUpWeightedSumColumn>
           </LineUpRanking>
         </LineUp>

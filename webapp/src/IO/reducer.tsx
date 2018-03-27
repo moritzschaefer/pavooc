@@ -124,6 +124,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
         ...state,
         knockoutData: state.knockoutData.map((gene: any) => ({
           ...gene,
+          edited: gene.edited !== (gene.gene_id === action.geneId),
           guides: gene.guides.map((guide: any, index: number) => ({
             ...guide,
             selected:
