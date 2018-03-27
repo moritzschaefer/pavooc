@@ -10,7 +10,7 @@ from pavooc.scoring.training import train_predict
 
 try:
     crayon = CrayonClient(hostname="localhost", port=8889)
-except ValueError:
+except (ValueError, RuntimeError):
     crayon = None
 
 

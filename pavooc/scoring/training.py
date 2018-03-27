@@ -24,7 +24,7 @@ if cuda.is_available():
 
 try:
     crayon = CrayonClient(hostname="localhost", port=8889)
-except ValueError:
+except (ValueError, RuntimeError):
     crayon = None
 
 try:
@@ -38,7 +38,7 @@ def to_np(x):
 
 
 def _init_model(feature_length, model_class, loss, learning_rate):
-    model = model_class()
+    model = model_class(feature_length)
     optimizer_class = torch.optim.Adam
 
     # Loss and Optimizer
@@ -57,6 +57,7 @@ def _init_model(feature_length, model_class, loss, learning_rate):
         scheduler = None
 
     return model, criterion, optimizer, scheduler
+
 
 def train_predict(combined_features, y, validation_fold, model_class,
                   learning_rate, loss, epochs,
