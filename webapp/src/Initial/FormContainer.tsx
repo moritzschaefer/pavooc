@@ -1,5 +1,5 @@
 import InitialForm from './Form';
-import { fetchKnockouts, fetchDetails, initialLoad } from '../IO/actions';
+import { fetchKnockouts, initialLoad } from '../IO/actions';
 import { showMessage } from '../Messages/actions';
 // import * as actions from '../actions/';
 import { connect } from 'react-redux';
@@ -14,10 +14,10 @@ export function mapStateToProps(state: any) {
 export function mapDispatchToProps(dispatch: any, ownProps: any) {
   return {
     goKnockout: (geneIds: Array<string>) => {
-      dispatch(fetchKnockouts(geneIds));
+      dispatch(fetchKnockouts(geneIds, false));
     },
     goEdit: (geneId: string) => {
-      dispatch(fetchDetails(geneId));
+      dispatch(fetchKnockouts([geneId], true));
     },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message)),

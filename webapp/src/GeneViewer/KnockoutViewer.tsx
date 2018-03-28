@@ -1,3 +1,4 @@
+// TODO we can delete all markGeneEdit stuff
 import * as React from "react";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
@@ -49,7 +50,11 @@ interface State {
 class KnockoutViewer extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { selectedPdb: 0, hoveredGuide: undefined, pdbSelectionOpened: false };
+    this.state = {
+      selectedPdb: 0,
+      hoveredGuide: undefined,
+      pdbSelectionOpened: false
+    };
   }
 
   setHoveredGuide = (hoveredGuide: number): void => {
@@ -71,19 +76,26 @@ class KnockoutViewer extends React.Component<Props, State> {
 
   _aaClicked = (aa: number) => {
     const { geneData, geneId } = this.props;
-    const index = geneData.guides.findIndex((guide: any) => guide.aa_cut_position === aa);
+    const index = geneData.guides.findIndex(
+      (guide: any) => guide.aa_cut_position === aa
+    );
     if (index >= 0) {
       this.props.toggleGuideSelection(geneId, index); // warning: two guides on one amino acid? only one is selected
     }
-  }
+  };
+
+  _onGuideClicked = (index: number): void => {
+    const { geneId } = this.props;
+    this.props.toggleGuideSelection(geneId, index);
+  };
 
   _lineupSetGuideSelection = (guideSelection: number[]): void => {
     this.props.setGuideSelection(this.props.geneId, guideSelection);
-  }
+  };
 
   render() {
     const { geneData, cellline } = this.props;
-    const { selectedPdb, hoveredGuide, pdbSelectionOpened  } = this.state;
+    const { selectedPdb, hoveredGuide, pdbSelectionOpened } = this.state;
     return (
       <div className="mainContainer">
         <PdbSelectionDialog
@@ -100,8 +112,8 @@ class KnockoutViewer extends React.Component<Props, State> {
             Back
           </Button>
           <h2 className="heading">
-            {geneData.gene_symbol}&nbsp;
-            PDB: {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
+            {geneData.gene_symbol}&nbsp; PDB:{" "}
+            {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
           </h2>
           <div className="topControls">
             <CelllineSelector />
@@ -132,12 +144,15 @@ class KnockoutViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             cns={geneData.cns}
             guides={geneData.guides}
+            onGuideClicked={this._onGuideClicked}
             onGuideHovered={this.setHoveredGuide}
             pdb={geneData.pdbs[selectedPdb] && geneData.pdbs[selectedPdb].pdb}
             onPdbClicked={this._openPdbSelection}
             chromosome={geneData.chromosome}
             exons={geneData.exons}
-            geneStart={Math.min(...geneData.exons.map((exon: any) => exon.start))}
+            geneStart={Math.min(
+              ...geneData.exons.map((exon: any) => exon.start)
+            )}
             geneEnd={Math.max(...geneData.exons.map((exon: any) => exon.end))}
           />
         </div>
@@ -156,7 +171,7 @@ const mapStateToProps = (
     geneData: {
       ...geneData,
       guides: geneData.guides.filter(
-        (guide: any) => !guide.mutations.includes(state.app.cellline)
+        (guide: any) => !guide.mutations.includes(state.app.cellline) // TODO this filter destroys important indices!!
       )
     },
     geneId

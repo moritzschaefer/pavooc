@@ -18,7 +18,7 @@ import Table, {
 } from "material-ui/Table";
 import Paper from "material-ui/Paper";
 import "./style.css";
-import { downloadCSV } from "../util/functions";
+import { downloadCSV, guidesWithDomains } from "../util/functions";
 
 export interface Props {
   guideCount: number;
@@ -42,7 +42,8 @@ class KnockoutList extends React.Component<Props, object> {
       if (gene.edited) {
         continue;
       }
-      const sortedGuides = gene.guides.map((guide: any, index: number) => [
+
+      const sortedGuides = guidesWithDomains(gene).map((guide: any, index: number) => [
         guide,
         index
       ]);

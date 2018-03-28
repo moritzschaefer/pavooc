@@ -70,6 +70,32 @@ export const downloadCSV = (
   }
 };
 
+export const arraysEqual = (a: Array<any>, b: Array<any>) => {
+  // if the other array is a falsy value, return
+  if (!a) {
+    return false;
+  }
+
+  // compare lengths - can save a lot of time
+  if (b.length !== a.length) {
+    return false;
+  }
+
+  for (var i = 0, l = b.length; i < l; i++) {
+    // Check if we have nested arrays
+    if (b[i] instanceof Array && a[i] instanceof Array) {
+      // recurse into the nested arrays
+      if (!b[i].equals(a[i])) {
+        return false;
+      }
+    } else if (b[i] !== a[i]) {
+      // Warning - two different object instances will never be equal: {x:20} != {x:20}
+      return false;
+    }
+  }
+  return true;
+};
+
 interface Domain {
   start: number;
   end: number;
@@ -86,7 +112,7 @@ export const guidesWithDomains = (geneData: any) => {
       )
       .map((domain: Domain) => domain.name)
   }));
-}
+};
 
 export const reverseComplement = (sequence: string) => {
   const dict = new Map([["A", "T"], ["T", "A"], ["C", "G"], ["G", "C"]]);

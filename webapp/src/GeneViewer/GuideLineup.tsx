@@ -17,6 +17,7 @@ interface Guide {
   selected: boolean;
   scores: any;
   domains: Array<string>;
+  start: number;
 }
 
 interface State {
@@ -52,7 +53,8 @@ export default class GuideLineup extends React.Component<Props, State> {
     // TODO fix as Array needs conversion <- ??
     return this.props.guides.map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
-      Domain: guide.domains ? guide.domains.join(",") : "",
+      domain: guide.domains ? guide.domains.join(",") : "",
+      start: guide.start,
       ...guide.scores
     }));
   }
@@ -117,7 +119,8 @@ export default class GuideLineup extends React.Component<Props, State> {
           sidePanel={false}
         >
           <LineUpStringColumnDesc column="d" label="Label" width={80} />
-          <LineUpStringColumnDesc column="Domain" label="Domain" width={60} />
+          <LineUpStringColumnDesc column="domain" label="Domain" width={60} />
+          <LineUpStringColumnDesc column="start" label="Position" width={60} />
           <LineUpNumberColumnDesc
             label="On target"
             column="azimuth"
@@ -134,11 +137,12 @@ export default class GuideLineup extends React.Component<Props, State> {
           <LineUpRanking sortBy="Scores:desc">
             <LineUpSupportColumn type="selection" />
             <LineUpColumn column="d" />
-            <LineUpColumn column="Domain" />
+            <LineUpColumn column="domain" />
             <LineUpWeightedSumColumn label="Scores">
               <LineUpWeightedColumn column="azimuth" weight={0.6} />
               <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
             </LineUpWeightedSumColumn>
+            <LineUpColumn column="start" />
           </LineUpRanking>
         </LineUp>
       </div>

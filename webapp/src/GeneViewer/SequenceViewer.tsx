@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
 // import shallowCompare from "react-addons-shallow-compare";
-import { codonToAA } from "../util/functions";
+import { codonToAA, arraysEqual } from "../util/functions";
 
 export interface SeqEditData {
   start: number;
@@ -11,7 +11,6 @@ export interface SeqEditData {
 }
 
 interface State {
-  validClick: boolean;
   genome: string;
   genes: string;
   viewStart: number;
@@ -31,8 +30,7 @@ interface Props {
   guides: Array<any>;
   hoveredGuide: number | undefined;
   onGuideHovered: (hoveredGuide: number | undefined) => void;
-  editPosition: number;
-  editPositionChanged?: ((editPosition: number) => void);
+  onGuideClicked: ((index: number) => void);
   onPdbClicked: () => void;
   editData?: SeqEditData;
   onEditCodonClicked?: (codon: number) => void;
@@ -51,8 +49,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       viewStart: -1,
       viewEnd: -1,
       viewChromosome: "",
-      browser: undefined,
-      validClick: true
+      browser: undefined
     };
   }
 
@@ -67,20 +64,19 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const {
-      hoveredGuide,
-      guides,
-      cellline,
-      editPosition,
-      guidesUrl,
-      editData
-    } = this.props;
-    const { browser, viewStart } = this.state;
+    const { hoveredGuide, guides, cellline, guidesUrl, editData } = this.props;
+    const { browser } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
       return;
     }
-    if (prevProps.hoveredGuide !== hoveredGuide) {
+    if (
+      prevProps.hoveredGuide !== hoveredGuide ||
+      !arraysEqual(
+        guides.map((guide: any) => guide.selected),
+        prevProps.guides.map((guide: any) => guide.selected)
+      )
+    ) {
       if (guides[hoveredGuide]) {
         this._highlightGuide(guides[hoveredGuide], true);
       } else {
@@ -92,14 +88,21 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     }
 
-    if (((typeof prevProps.editData === "undefined") !== (typeof editData === "undefined")) ||
-      (prevProps.editData && editData && prevProps.editData.sequence !== editData.sequence)) {
+    if (
+      (typeof prevProps.editData === "undefined") !==
+        (typeof editData === "undefined") ||
+      (prevProps.editData &&
+        editData &&
+        prevProps.editData.sequence !== editData.sequence)
+    ) {
       // TODO this will NOT track change of object keys/values
       let oldEdit = this.editConfig(prevProps.editData);
       let newEdit = this.editConfig(editData);
       if (oldEdit) {
         // the source is local, which is why removeTier can't find the correct tier without help
-        oldEdit.index = browser.tiers.findIndex((tier: any) => tier.dasSource.name === EDIT_CONFIG_NAME);
+        oldEdit.index = browser.tiers.findIndex(
+          (tier: any) => tier.dasSource.name === EDIT_CONFIG_NAME
+        );
         // delete prevprops.editData
         browser.removeTier(oldEdit);
       }
@@ -136,13 +139,6 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
 
     // TODO improve check on this one!
-
-    if (
-      prevProps.editPosition !== editPosition ||
-      prevState.viewStart !== viewStart
-    ) {
-      this._drawEditPosition();
-    }
   }
 
   // TODO test if this works
@@ -150,16 +146,19 @@ export default class SequenceViewer extends React.Component<any, State> {
     info._inhibitPopup = true;
   };
 
-
   editConfig(editData: SeqEditData | undefined) {
     const { chromosome } = this.props;
     if (editData && editData.sequence !== "") {
       const features = [];
       // chrX	99885797	99891691	ENSG00000000003.10	0	-	99885797	99891691	255,0,0
-      for (var i = 0, len = editData.sequence.length;  i < len; i += 3) {
+      for (var i = 0, len = editData.sequence.length; i < len; i += 3) {
         let aa = codonToAA(editData.sequence.slice(i, i + 3), editData.strand);
 
-        features.push(`${chromosome.slice(3, 5)} ${editData.start + i} ${editData.start + i + 3} ${aa}`);
+        features.push(
+          `${chromosome.slice(3, 5)} ${editData.start + i} ${editData.start +
+            i +
+            3} ${aa}`
+        );
       }
       return {
         index: undefined,
@@ -167,9 +166,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         tier_type: "memstore",
         type: "codon",
         payload: "bed",
-        uri: URL.createObjectURL(
-          new Blob([features.join("\n")])
-        )
+        uri: URL.createObjectURL(new Blob([features.join("\n")]))
       };
     } else {
       return undefined;
@@ -283,16 +280,6 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
   }
 
-  // Draw the editposition marker right into the dalliance
-  _drawEditPosition() {
-    const { viewStart /*, viewEnd, viewChromosome*/ } = this.state;
-    const { editPosition } = this.props;
-    if (!editPosition || viewStart < 0) {
-      return;
-    }
-
-    // TODO find perfect position and draw!
-  }
   _initialSources() {
     const { cellline, guidesUrl, editData } = this.props;
     let sources: Array<any> = [
@@ -318,7 +305,7 @@ export default class SequenceViewer extends React.Component<any, State> {
               BGITEM: true,
               STROKECOLOR: "green",
               FGCOLOR: "black",
-              BUMP: false,
+              BUMP: false
             }
           }
         ],
@@ -395,7 +382,6 @@ export default class SequenceViewer extends React.Component<any, State> {
       }
     ];
 
-
     let cnsConfig = this.cnsConfig(cellline);
     if (cnsConfig) {
       sources.push(cnsConfig);
@@ -422,8 +408,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       geneEnd,
       onPdbClicked,
       onGuideHovered,
-      editPositionChanged,
       onEditCodonClicked,
+      onGuideClicked
     } = this.props;
 
     let chr = chromosome;
@@ -464,7 +450,10 @@ export default class SequenceViewer extends React.Component<any, State> {
         }
         if (tier.dasSource.name === EDIT_CONFIG_NAME && onEditCodonClicked) {
           onEditCodonClicked(feature.min - 1); // make 0-based
-
+        }
+        if (tier.dasSource.name === "Guides" && feature) {
+          const index = feature.label.split(":")[0] - 1;
+          onGuideClicked(index);
         }
       }
     );
@@ -478,51 +467,18 @@ export default class SequenceViewer extends React.Component<any, State> {
           this.setState({
             viewChromosome,
             viewStart,
-            viewEnd,
-            validClick: false
+            viewEnd
           });
         }
       }
     );
     browser.addInitListener(() => {
       browser.setLocation(chr, geneStart - padding, geneEnd + padding);
-
-      if (editPositionChanged) {
-        // TODO only for gene editing
-        // // TODO add hovering
-        // Tier 0 is the genome
-        //
-        browser.tiers[0].viewport.addEventListener("mousedown", () =>
-          this.setState({ validClick: true })
-        );
-        browser.tiers[0].viewport.addEventListener(
-          "mouseup",
-          this._genomeClick
-        );
-      }
     });
     this.setState({ browser });
   }
 
-  _genomeClick = (event: any) => {
-    const { validClick, viewStart, viewEnd } = this.state;
-    const { editPositionChanged } = this.props;
-    if (!validClick) {
-      return;
-    }
-    const clickPosition = event.x;
-    const browserWidth = event.target.parentElement.parentElement.offsetWidth;
-
-    const nucleotidePosition = Math.floor(
-      viewStart + clickPosition / browserWidth * (viewEnd - viewStart)
-    );
-    editPositionChanged(nucleotidePosition);
-  };
-
   shouldComponentUpdate(nextProps: Props, nextState: State) {
-    if (this.state.validClick !== nextState.validClick) {
-      return false;
-    }
     return true;
     // return shallowCompare(this, nextProps, nextState);
   }
