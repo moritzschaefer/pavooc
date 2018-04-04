@@ -23,10 +23,10 @@ from pavooc.preprocessing.exon_guide_search import generate_edit_guides
 
 
 app = Flask(__name__)
-api = Api(app)
+api = Api(app, doc='/api/')
 ns = api.namespace('api', description='API')
 
-guide_field = fields.Nested({
+guide_field = fields.Nested(api.model('Guide', {
     'exon_id': fields.String,
     'target': fields.String,
     'start': fields.Integer,
@@ -35,7 +35,7 @@ guide_field = fields.Nested({
     'otCount': fields.Integer,
     'orientation': fields.String,
     'mutations': fields.List(fields.String),
-    'scores': fields.Nested({
+    'scores': fields.Nested(api.model('Score', {
         'azimuth': fields.Float,
         # 'Doench2014OnTarget': fields.Float,
         'Doench2016CFDScore': fields.Float,
@@ -43,23 +43,23 @@ guide_field = fields.Nested({
         # 'dangerous_polyT': fields.String,
         # 'dangerous_in_genome': fields.String,
         'Hsu2013': fields.Float
-    }),
-})
+    })),
+}))
 
-pdb_field = fields.Nested({
+pdb_field = fields.Nested(api.model('PDB', {
     'pdb': fields.String,
     'start': fields.Integer,
     'end': fields.Integer,
     'chain': fields.String,
     'swissprot_id': fields.String,
     'mappings': fields.Raw,
-})
+}))
 
-exon_field = fields.Nested({
+exon_field = fields.Nested(api.model('Exon', {
     'start': fields.Integer,
     'end': fields.Integer,
     'exon_id': fields.String,
-})
+}))
 
 edit_input = api.model('EditInput', {
     'gene_id': fields.String,
@@ -90,11 +90,11 @@ knockout_output = api.model('KnockoutGuides', {
     'exons': fields.List(exon_field),
     'sequence': fields.String(default=''),
     'domains': fields.List(
-        fields.Nested({
+        fields.Nested(api.model('Domain', {
             'name': fields.String,
             'start': fields.Integer,
             'end': fields.Integer
-        }), default=[]),
+        })), default=[]),
     'pdbs': fields.List(pdb_field, default=[]),
     'guides': fields.List(guide_field)
 })
@@ -119,10 +119,10 @@ gene_details = api.model('GeneDetails', {
 
 
 initial_output = api.model('InitialData', {
-    'genes': fields.List(fields.Nested({
-        'gene_id': fields.String,
-        'gene_symbol': fields.String,
-    })),
+    'genes': fields.List(fields.Nested(api.model('Gene', {
+        'gene_id': fields.String(),
+        'gene_symbol': fields.String(),
+    }))),
     'celllines': fields.List(fields.String)
 })
 
@@ -136,7 +136,7 @@ class InitialData(Resource):
     @api.marshal_with(initial_output)
     def get(self):
         # fields = ['gene_id', 'gene_symbol',
-                  # 'chromosome', 'start', 'end', 'strand', 'pdbs', 'exons']
+                 #  'chromosome', 'start', 'end', 'strand', 'pdbs', 'exons']
         # genes = guide_collection.aggregate([
         #     {"$unwind": "$exons"},
         #     {"$group": {
@@ -236,7 +236,7 @@ class Details(Resource):
         return next(gene_data)
 
 
-# TODO make sure only JSON gets accepted
+# TODO edit is not necessary anymore..
 @ns.route('/edit')
 class EditGuides(Resource):
     @api.expect(edit_input)
