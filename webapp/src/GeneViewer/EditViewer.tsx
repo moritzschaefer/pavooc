@@ -10,14 +10,13 @@ import CelllineSelector from "../util/CelllineSelector";
 import PdbSelectionDialog from "./PdbSelectionDialog";
 import CodonEditDialog, { Props as CodonEditProps } from "./CodonEditDialog";
 
-import { setEditPosition /* , setPadding */ } from "../App/actions";
 import { showMessage } from "../Messages/actions";
-import { setEditSelection, markGeneEdit, fetchEdit } from "../IO/actions";
+import { setGuideSelection, markGeneEdit } from "../IO/actions";
 import ProteinViewer from "./ProteinViewer";
 import SequenceViewer, { SeqEditData } from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
-import { downloadCSV } from "../util/functions";
+import { downloadCSV, guidesWithDomains, arraysEqual } from "../util/functions";
 import "./style.css";
 
 export interface Exon {
@@ -27,29 +26,23 @@ export interface Exon {
 }
 
 interface Props {
+  geneData: any;
   cellline: string;
   geneId: string;
   geneSymbol: string;
   chromosome: string;
-  geneStart: number;
-  geneEnd: number;
   geneCns: boolean;
-  bedUrl: string;
   strand: string;
   sequence: string;
   push: (route: string) => {};
   markGeneEdit: (geneId: string) => {};
-  setEditSelection: (beforeNotAfter: boolean, guideSelection: number[]) => {};
-  fetchEdit: (geneId: string, editPosition: number, padding: number) => {};
-  guidesBefore: Array<any>;
-  guidesAfter: Array<any>;
+  setGuideSelection: (geneId: string, guideSelection: number[]) => void;
+  guides: Array<any>;
   pdbs: Array<any>;
   exons: Array<any>;
   onMessage: (message: string) => {};
   isFetching: boolean;
-  editPosition: number;
   padding: number; // how far to look for guides
-  setEditPosition: (editPosition: number) => void;
   setPadding: (padding: number) => void;
 }
 
@@ -86,74 +79,70 @@ class EditViewer extends React.Component<Props, State> {
       }
     };
   }
+
+  _cutEditSequence() {
+    const { guides, sequence, exons, padding } = this.props;
+    const guide = guides.find((guide: any) => guide.selected);
+    if (!guide) {
+      return "";
+    }
+    const start = guide.cut_position - padding;
+    const end = guide.cut_position + padding;
+
+    const geneStart = Math.min(...exons.map((exon: any) => exon.start));
+    const geneEnd = Math.max(...exons.map((exon: any) => exon.end));
+
+    const editedSequence = sequence.slice(Math.max(start - geneStart, 0), Math.min(end-geneStart, geneEnd-geneStart));
+    return editedSequence;
+
+  }
   componentDidMount() {
-    this.setState({ editedSequence: this.props.sequence });
+    this.setState({ editedSequence: this._cutEditSequence() });
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    if (prevProps.sequence !== this.props.sequence) {
+    const { guides, sequence } = this.props;
+    if (
+      (prevProps.sequence !== sequence) ||
+      (!arraysEqual(guides.map((guide: any) => guide.selected),
+                    prevProps.guides.map((guide: any) => guide.selected)))) {
       // reset editedSequence!
-      this.setState({ editedSequence: this.props.sequence });
+      this.setState({ editedSequence: this._cutEditSequence() });
     }
   }
 
-  _pdbAaClicked = (aa: number) => {
-    const { exons, strand, guidesBefore, guidesAfter } = this.props;
-    // if there are no guides, fetch guides
-    if (guidesBefore.length === 0) {
-      let nucleotides = aa * 3;
-      for (let exon of exons) {
-        // TODO does this work for reverse as well?
-        let length = exon.end - exon.start;
-        if (nucleotides < length) {
-          if (strand === "+") {
-            this._setEditPosition(nucleotides + exon.start);
-          } else {
-            this._setEditPosition(exon.end - nucleotides - 1);
-          }
-          return;
-        } else {
-          nucleotides -= length;
-        }
-      }
-    } else {
-      const seqEditData = this._editRange();
-      // if we clicked in the editable region, edit the selected AA
-      if (seqEditData && seqEditData.aaStart) {
-        if (
-          aa >= seqEditData.aaStart &&
-          aa < seqEditData.aaStart + seqEditData.sequence.length / 3
-        ) {
-          let aaNucleotideOffset = (aa - seqEditData.aaStart) * 3;
-
-          if (strand === "-") {
-            aaNucleotideOffset =
-              seqEditData.sequence.length - aaNucleotideOffset - 3;
-          }
-          this._onEditCodonClicked(seqEditData.start + aaNucleotideOffset);
-        }
-      } else {
-        // else, see if we selected a cut position so we can select a guide
-        var beforeIndex = guidesBefore.findIndex(
-          (guide: any) => guide.aa_cut_position === aa
-        );
-        if (beforeIndex >= 0) {
-          this.props.setEditSelection(true, [beforeIndex]);
-        }
-        var afterIndex = guidesAfter.findIndex(
-          (guide: any) => guide.aa_cut_position === aa
-        );
-        if (afterIndex >= 0) {
-          this.props.setEditSelection(false, [afterIndex]);
-        }
-      }
-    }
+  _onGuideClicked = (index: number): void => {
+    const { geneId } = this.props;
+    this.props.setGuideSelection(geneId, [index]);
   };
 
-  _setEditPosition = (editPosition: number) => {
-    const { geneId, padding } = this.props;
-    this.props.setEditPosition(editPosition);
-    this.props.fetchEdit(geneId, editPosition, padding);
+  _pdbAaClicked = (aa: number) => {
+    const { strand, guides, geneId } = this.props;
+    // if there are no guides, fetch guides
+    const seqEditData = this._editRange();
+    // if we clicked in the editable region, edit the selected AA
+    if (seqEditData && seqEditData.aaStart) {
+      if (
+        aa >= seqEditData.aaStart &&
+        aa < seqEditData.aaStart + seqEditData.sequence.length / 3
+      ) {
+        let aaNucleotideOffset = (aa - seqEditData.aaStart) * 3;
+
+        if (strand === "-") {
+          aaNucleotideOffset =
+            seqEditData.sequence.length - aaNucleotideOffset - 3;
+        }
+        this._onEditCodonClicked(seqEditData.start + aaNucleotideOffset);
+      }
+    } else {
+      // else, see if we selected a cut position so we can select a guide
+      var index = guides.findIndex(
+        (guide: any) => guide.aa_cut_position === aa
+      );
+      if (index >= 0) {
+        this.props.setGuideSelection(geneId, [index]);
+      }
+    }
   };
 
   setHoveredGuide = (hoveredGuide: number | undefined): void => {
@@ -173,53 +162,11 @@ class EditViewer extends React.Component<Props, State> {
     }
   };
 
-  _findAA() {
-    // count the amino acids until to the editPosition
-    const { exons, sequence, strand, padding, editPosition } = this.props;
-    let relativePosition = 0;
-    let codon = "";
-    // let lastExonEnd = 0;
-    // let codonPosition = [];
-    for (let exon of exons) {
-      if (
-        (strand === "+" && exon.end <= editPosition) ||
-        (strand === "-" && exon.start > editPosition)
-      ) {
-        relativePosition += exon.end - exon.start;
-        // lastExonEnd = exon.end;
-      } else if (
-        (strand === "+" && exon.start <= editPosition) ||
-        (strand === "-" && exon.end > editPosition)
-      ) {
-        let inExonPosition;
-        if (strand === "+") {
-          // inside the cutting exon
-          inExonPosition = editPosition - exon.start;
-        } else {
-          inExonPosition = exon.end - editPosition;
-        }
-        relativePosition += inExonPosition;
-        let offset = relativePosition % 3;
-        let codonStart = relativePosition - offset;
-        // check if its at the beginning of an exon
-        if (exon.start - codonStart < 3 || codonStart + 2 >= exon.end) {
-          this.props.onMessage(
-            "The codon to edit lies within two exons so I cant show its amino acid"
-          );
-        } else {
-          codon = sequence.slice(padding - offset, padding - offset + 3);
-        }
-        return { aaPosition: codonStart / 3, codon };
-      }
-    }
-    // cutting exon was never reached
-    return { aaPosition: undefined, codon: "" };
-  }
-
   _renderMainContainer() {
-    const { cellline, guidesBefore, guidesAfter } = this.props;
+    const { cellline, geneId, geneData } = this.props;
     const { hoveredGuide } = this.state;
 
+    // TODO guideSelection should only return ONE selection
     return (
       <div className="containerCenter">
         <div className="centerLeft">
@@ -233,25 +180,8 @@ class EditViewer extends React.Component<Props, State> {
             cellline={cellline}
             setHoveredGuide={this.setHoveredGuide}
             setGuideSelection={(guideSelection: number[]) =>
-              this.props.setEditSelection(true, guideSelection)}
-            guides={guidesBefore}
-            className="guideTable"
-          />
-          <GuideLineup
-            hoveredGuide={
-              typeof hoveredGuide !== "undefined" &&
-              hoveredGuide >= guidesBefore.length
-                ? hoveredGuide - guidesBefore.length
-                : undefined
-            }
-            cellline={cellline}
-            setHoveredGuide={(_hoveredGuide: number) =>
-              typeof _hoveredGuide === "undefined"
-                ? this.setHoveredGuide(undefined)
-                : this.setHoveredGuide(_hoveredGuide + guidesBefore.length)}
-            setGuideSelection={(guideSelection: number[]) =>
-              this.props.setEditSelection(false, guideSelection)}
-            guides={guidesAfter}
+              this.props.setGuideSelection(geneId, guideSelection)}
+            guides={guidesWithDomains(geneData)}
             className="guideTable"
           />
         </div>
@@ -269,15 +199,7 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _renderProteinViewer() {
-    const {
-      pdbs,
-      guidesBefore,
-      guidesAfter,
-      sequence,
-      editPosition,
-      padding,
-      strand
-    } = this.props;
+    const { pdbs, guides, padding, strand } = this.props;
     const { selectedPdb, editedSequence } = this.state;
     let highlightPositions: Array<{
       aa_cut_position: number;
@@ -288,7 +210,7 @@ class EditViewer extends React.Component<Props, State> {
     if (seqEditData && typeof seqEditData.aaStart !== "undefined") {
       for (var i = 0, len = seqEditData.sequence.length / 3; i < len; i++) {
         // TODO enable selected, if this one has been edited
-        const sequenceStart = editPosition - padding;
+        const sequenceStart = this._editPosition() - padding;
         let inSeqPosition;
         if (strand === "+") {
           inSeqPosition = seqEditData.start + i * 3 - sequenceStart;
@@ -298,8 +220,9 @@ class EditViewer extends React.Component<Props, State> {
             (seqEditData.sequence.length - i * 3 - 3) -
             sequenceStart;
         }
+
         const selected =
-          sequence.slice(inSeqPosition, inSeqPosition + 3) !==
+          this._cutEditSequence().slice(inSeqPosition, inSeqPosition + 3) !==
           editedSequence.slice(inSeqPosition, inSeqPosition + 3);
         highlightPositions.push({
           aa_cut_position: seqEditData.aaStart + i,
@@ -308,26 +231,12 @@ class EditViewer extends React.Component<Props, State> {
       }
     } else {
       // show guide cut positions
-      highlightPositions = guidesBefore
-        .concat(guidesAfter)
-        .map((guide: any) => ({
-          aa_cut_position: guide.aa_cut_position,
-          selected: guide.selected
-        }));
+      highlightPositions = guides.map((guide: any) => ({
+        aa_cut_position: guide.aa_cut_position,
+        selected: guide.selected
+      }));
     }
 
-    // TODO delete along with _findAA
-    // try {
-    //   const { aaPosition } = this._findAA();
-    //   if (aaPosition) {
-    //     highlightPositions.push({
-    //       aa_cut_position: aaPosition,
-    //       selected: true
-    //     });
-    //   }
-    // } catch (e) {
-    //   highlightPositions = []; // TODO set highlight here
-    // }
     return (
       <ProteinViewer
         className="proteinViewer"
@@ -340,21 +249,15 @@ class EditViewer extends React.Component<Props, State> {
 
   _renderSequenceViewer() {
     const {
-      geneStart,
-      geneEnd,
       cellline,
-      guidesBefore,
-      guidesAfter,
-      bedUrl,
+      guides,
       pdbs,
       chromosome,
       exons,
-      isFetching,
-      editPosition
+      isFetching
     } = this.props;
     const { selectedPdb, hoveredGuide } = this.state;
 
-    const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
     const pdb = pdbs[selectedPdb] && pdbs[selectedPdb].pdb;
     return (
       <div style={{ position: "relative" }}>
@@ -367,17 +270,15 @@ class EditViewer extends React.Component<Props, State> {
           cellline={cellline}
           editData={this._editRange()}
           onEditCodonClicked={this._onEditCodonClicked}
-          editPosition={editPosition}
-          editPositionChanged={this._setEditPosition}
+          onGuideClicked={this._onGuideClicked}
           hoveredGuide={hoveredGuide}
-          guidesUrl={bedUrl}
-          guides={allGuides}
+          guides={guides}
           onGuideHovered={this.setHoveredGuide}
           pdb={pdb}
           onPdbClicked={this._openPdbSelection}
           chromosome={chromosome}
-          geneStart={geneStart}
-          geneEnd={geneEnd}
+          geneStart={Math.min(...exons.map((exon: any) => exon.start))}
+          geneEnd={Math.max(...exons.map((exon: any) => exon.end))}
           exons={exons}
         />
       </div>
@@ -385,13 +286,12 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _csvData() {
-    const { geneId, geneCns, guidesBefore, guidesAfter } = this.props;
-    const allGuides = guidesBefore ? guidesBefore.concat(guidesAfter) : [];
+    const { geneId, geneCns, guides, chromosome } = this.props;
 
     // TODO exon_id and aa_cut_position are not included
     return [
       {
-        guides: allGuides.map((g: any) => ({
+        guides: guides.map((g: any) => ({
           selected: g.selected,
           target: g.target,
           otCount: g.otCount,
@@ -402,15 +302,16 @@ class EditViewer extends React.Component<Props, State> {
           scores: g.scores
         })),
         gene_id: geneId,
+        chromosome,
         cns: geneCns
       }
     ];
   }
 
   _setEditedCodon = (position: number, codon: string) => {
-    const { editPosition, padding } = this.props;
+    const { padding } = this.props;
     let { editedSequence } = this.state;
-    const sequenceStart = editPosition - padding;
+    const sequenceStart = this._editPosition() - padding;
     const inSequencePosition = position - sequenceStart;
 
     this.setState({
@@ -422,14 +323,14 @@ class EditViewer extends React.Component<Props, State> {
   };
 
   _editedCodon = () => {
-    const { editPosition, padding } = this.props;
+    const { padding } = this.props;
     const editCodonPosition = this.state.codonEditProps.position;
     const { editedSequence } = this.state;
     if (!editedSequence) {
       return "";
     }
 
-    const sequenceStart = editPosition - padding;
+    const sequenceStart = this._editPosition() - padding;
     const inSequencePosition = editCodonPosition - sequenceStart;
     const editedCodon = editedSequence.slice(
       inSequencePosition,
@@ -440,11 +341,11 @@ class EditViewer extends React.Component<Props, State> {
 
   _onEditCodonClicked = (editCodonPosition: number) => {
     // get sequence:
-    const { sequence, editPosition, padding, strand } = this.props;
+    const { padding, strand } = this.props;
 
-    const sequenceStart = editPosition - padding;
+    const sequenceStart = this._editPosition() - padding;
     const inSequencePosition = editCodonPosition - sequenceStart;
-    const originalCodon = sequence.slice(
+    const originalCodon = this._cutEditSequence().slice(
       inSequencePosition,
       inSequencePosition + 3
     );
@@ -460,37 +361,30 @@ class EditViewer extends React.Component<Props, State> {
       }
     });
   };
+  _editPosition(): number {
+    // Only call if selected
+    const { guides } = this.props;
+    const guide = guides.find((guide: any) => guide.selected);
+    return guide.cut_position;
+  }
 
   _editRange(): SeqEditData | undefined {
     // returns left and right IN-FRAME cut positions if left and right
     // guides are selected or undefined
     const { editedSequence } = this.state;
-    const {
-      guidesBefore,
-      guidesAfter,
-      strand,
-      editPosition,
-      padding
-    } = this.props;
+    const { strand, guides, padding } = this.props;
     if (
       !editedSequence ||
-      !editPosition ||
-      !guidesBefore ||
-      editPosition === -1
+      !guides ||
+      !guides.find((guide: any) => guide.selected)
     ) {
       return undefined;
     }
 
-    let start = Math.max(
-      ...guidesBefore
-        .filter(guide => guide.selected)
-        .map(guide => guide.cut_position)
-    );
-    let end = Math.min(
-      ...guidesAfter
-        .filter(guide => guide.selected)
-        .map(guide => guide.cut_position)
-    );
+    let guide = guides.find((guide: any) => guide.selected);
+    let start = guide.cut_position - padding;
+    let end = guide.cut_position + padding;
+
     if (!Number.isInteger(start) || !Number.isInteger(end)) {
       return undefined;
     }
@@ -523,7 +417,7 @@ class EditViewer extends React.Component<Props, State> {
         }
         end -= (nucleotideCount + (end - exon.start)) % 3;
         const l = end - start;
-        const localStart = start - (editPosition - padding);
+        const localStart = start - (this._editPosition() - padding);
 
         if (strand === "-") {
           let totalNucleotides = exons
@@ -600,23 +494,22 @@ class EditViewer extends React.Component<Props, State> {
 }
 
 const mapStateToProps = (state: any) => {
-  let gene = state.io.detailsData || {};
+  let geneData = state.io.knockoutData[0];
   return {
-    ...state.io.editData, // guides{Before,After)}, sequence, pdbs
-    editPosition: state.app.editPosition,
+    sequence: geneData.sequence,
     padding: state.app.padding,
     isFetching: state.io.isFetching,
     cellline: state.app.cellline,
-    strand: gene.strand,
-    geneStart: gene.start,
-    geneEnd: gene.end,
-    geneSymbol: gene.gene_symbol,
-    geneId: gene.gene_id,
-    geneCns: gene.cns.includes(state.app.cellline),
-    chromosome: gene.chromosome,
-    exons: gene.exons,
+    geneData: geneData,
+    guides: geneData.guides,
+    strand: geneData.strand,
+    geneSymbol: geneData.gene_symbol,
+    geneId: geneData.gene_id,
+    geneCns: geneData.cns.includes(state.app.cellline),
+    chromosome: geneData.chromosome,
+    exons: geneData.exons,
     // pdbs: state.io.editData.pdbs || []
-    pdbs: gene.pdbs || []
+    pdbs: geneData.pdbs || []
     // geneData: {
     //   ...geneData,
     //   guides: geneData.guides.filter(
@@ -627,14 +520,10 @@ const mapStateToProps = (state: any) => {
 };
 
 const mapDispatchToProps = (dispatch: any) => ({
-  fetchEdit: (geneId: string, editPosition: number, padding: number) =>
-    dispatch(fetchEdit(geneId, editPosition, padding)),
   push: (route: string) => dispatch(push(route)),
-  setEditSelection: (beforeNotAfter: boolean, guideSelection: number[]) =>
-    dispatch(setEditSelection(beforeNotAfter, guideSelection)),
+  setGuideSelection: (geneId: string, guideSelection: number[]) =>
+    dispatch(setGuideSelection(geneId, guideSelection)),
   markGeneEdit: (geneId: string) => dispatch(markGeneEdit(geneId)),
-  setEditPosition: (editPosition: number) =>
-    dispatch(setEditPosition(editPosition)),
   onMessage: (message: string) => dispatch(showMessage(message))
 });
 

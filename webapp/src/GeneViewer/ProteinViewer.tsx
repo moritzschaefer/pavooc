@@ -56,12 +56,12 @@ export default class ProteinViewer extends React.Component<Props, State> {
               pdb.mappings[resno]
             ) {
               if (highlightPositions[hoveredPosition].selected) {
-                return 0x2222aa;
+                return 0xf8a854;
               } else {
-                return 0x22aaaa;
+                return 0xaaffff;
               }
             } else {
-              return 0xaa3737;
+              return 0x295595;
             }
           } catch (e) {
             console.log(

@@ -18,7 +18,7 @@ import Table, {
 } from "material-ui/Table";
 import Paper from "material-ui/Paper";
 import "./style.css";
-import { downloadCSV } from "../util/functions";
+import { downloadCSV, guidesWithDomains } from "../util/functions";
 
 export interface Props {
   guideCount: number;
@@ -42,12 +42,22 @@ class KnockoutList extends React.Component<Props, object> {
       if (gene.edited) {
         continue;
       }
-      const sortedGuides = gene.guides.map((guide: any, index: number) => [
+
+      const sortedGuides = guidesWithDomains(gene).map((guide: any, index: number) => [
         guide,
         index
       ]);
       sortedGuides.sort(function(a: [any, number], b: [any, number]) {
-        return b[0].scores.azimuth - a[0].scores.azimuth;
+        // domain gives a bonus of 0.1
+        let bScore =  (b[0].scores.azimuth * 0.6 + b[0].scores.Doench2016CFDScore * 0.4);
+        if (b[0].domains.length > 0) {
+          bScore += 0.1;
+        }
+        let aScore = (a[0].scores.azimuth * 0.6 + a[0].scores.Doench2016CFDScore * 0.4);
+        if (a[0].domains.length > 0) {
+          aScore += 0.1;
+        }
+        return bScore - aScore;
       });
       // enable first <guideCount> guides
       for (let [guide, index] of sortedGuides.slice(0, guideCount)) {

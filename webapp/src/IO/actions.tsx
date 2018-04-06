@@ -3,12 +3,15 @@ import * as t from "./actionTypes";
 export interface FetchKnockouts {
   type: typeof t.FETCH_KNOCKOUTS;
   geneIds: Array<string>;
+  edit: boolean;
 }
 
 export const fetchKnockouts = (
-  geneIds: Array<string>
+  geneIds: Array<string>,
+  edit: boolean = false
 ): FetchKnockouts => ({
   type: t.FETCH_KNOCKOUTS,
+  edit,
   geneIds
 });
 
@@ -27,15 +30,16 @@ export const fetchKnockoutsFailure = (
 export interface FetchKnockoutsSuccess {
   type: typeof t.FETCH_KNOCKOUTS_SUCCESS;
   data: object;
+  edit: boolean;
 }
 
 export const fetchKnockoutsSuccess = (
-  payload: object
+  payload: any
 ): FetchKnockoutsSuccess => ({
   type: t.FETCH_KNOCKOUTS_SUCCESS,
-  data: payload
+  data: payload,
+  edit: payload.length === 1 && payload[0].sequence // if payload contains the sequence field, then it was an edit request
 });
-
 
 export interface FetchEdit {
   type: typeof t.FETCH_EDIT;
@@ -157,18 +161,6 @@ export interface SetGuideSelection {
 export const setGuideSelection = (geneId: string, guideSelection: number[]): SetGuideSelection => ({
   type: t.SET_GUIDE_SELECTION,
   geneId,
-  guideSelection
-});
-
-export interface SetEditSelection {
-  type: typeof t.SET_EDIT_SELECTION;
-  beforeNotAfter: boolean;
-  guideSelection: number[];
-}
-
-export const setEditSelection = (beforeNotAfter: boolean, guideSelection: number[]): SetEditSelection => ({
-  type: t.SET_EDIT_SELECTION,
-  beforeNotAfter,
   guideSelection
 });
 

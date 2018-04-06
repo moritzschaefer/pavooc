@@ -58,6 +58,7 @@ def _init_model(feature_length, model_class, loss, learning_rate):
 
     return model, criterion, optimizer, scheduler
 
+
 def train_predict(combined_features, y, validation_fold, model_class,
                   learning_rate, loss, epochs,
                   tensorboard_experiment=None):

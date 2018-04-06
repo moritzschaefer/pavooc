@@ -5,8 +5,8 @@ import glob
 import logging
 
 from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
-    EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE
-from pavooc.data import celllines
+    EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE, \
+    DOMAIN_BED_FILE
 from pavooc.data_integration.downloader import main as main_downloader
 from pavooc.preprocessing.preprocessing import main as main_preprocessing
 from pavooc.preprocessing.prepare_flashfry import main as main_ff
@@ -21,6 +21,8 @@ from pavooc.preprocessing.generate_exon_bed import main as generate_exon_bed
 from pavooc.preprocessing.generate_guide_bed import main as generate_guide_bed
 from pavooc.preprocessing.generate_snp_bed import main as generate_snp_bed
 from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
+from pavooc.preprocessing.generate_domain_bed import main as \
+        generate_domain_bed
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,10 +34,11 @@ def generate_bed_files(skip_generation=False):
         generate_guide_bed()
         generate_snp_bed()
         generate_cns_bed()
+        generate_domain_bed()
 
     SORTED_TMP_FILE = os.path.join(DATADIR, 'sorted.bed')
     os.chmod(BIG_BED_EXE, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
-    bedfiles = [EXON_BED_FILE, GUIDE_BED_FILE, PDB_BED_FILE]
+    bedfiles = [EXON_BED_FILE, GUIDE_BED_FILE, PDB_BED_FILE, DOMAIN_BED_FILE]
     mutation_bedfiles = glob.glob(MUTATION_BED_FILE.format('*'))
     cns_bedfiles = glob.glob(CNS_BED_FILE.format('*'))
     bedfiles.extend(mutation_bedfiles)

@@ -11,6 +11,7 @@ export const downloadCSV = (
         .filter((guide: any) => guide.selected) // only return selected guides
         .map((guide: any) => ({
           cns: gene.cns,
+          chromosome: gene.chromosome,
           gene_id: gene.gene_id,
           exon_id: guide.exon_id,
           target: guide.target,
@@ -67,6 +68,50 @@ export const downloadCSV = (
     link.click();
     document.body.removeChild(link);
   }
+};
+
+export const arraysEqual = (a: Array<any>, b: Array<any>) => {
+  // if the other array is a falsy value, return
+  if (!a) {
+    return false;
+  }
+
+  // compare lengths - can save a lot of time
+  if (b.length !== a.length) {
+    return false;
+  }
+
+  for (var i = 0, l = b.length; i < l; i++) {
+    // Check if we have nested arrays
+    if (b[i] instanceof Array && a[i] instanceof Array) {
+      // recurse into the nested arrays
+      if (!b[i].equals(a[i])) {
+        return false;
+      }
+    } else if (b[i] !== a[i]) {
+      // Warning - two different object instances will never be equal: {x:20} != {x:20}
+      return false;
+    }
+  }
+  return true;
+};
+
+interface Domain {
+  start: number;
+  end: number;
+  name: string;
+}
+
+export const guidesWithDomains = (geneData: any) => {
+  return geneData.guides.map((guide: any) => ({
+    ...guide,
+    domains: geneData.domains
+      .filter(
+        (domain: Domain) =>
+          domain.start < guide.cut_position && domain.end > guide.cut_position
+      )
+      .map((domain: Domain) => domain.name)
+  }));
 };
 
 export const reverseComplement = (sequence: string) => {

@@ -18,7 +18,7 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 from pavooc.preprocessing.generate_guide_bed import guides_to_bed
 from pavooc.config import DEBUG, BASEDIR  # noqa
 from pavooc.db import guide_collection  # noqa
-from pavooc.data import celllines, read_gencode
+from pavooc.data import celllines, gencode_exons, chromosomes
 from pavooc.preprocessing.exon_guide_search import generate_edit_guides
 
 
@@ -78,6 +78,7 @@ edit_output = api.model('EditGuides', {
 
 knockout_input = api.model('KnockoutInput', {
     'gene_ids': fields.List(fields.String),
+    'edit': fields.Boolean(default=False),
 })
 
 knockout_output = api.model('KnockoutGuides', {
@@ -87,6 +88,7 @@ knockout_output = api.model('KnockoutGuides', {
     'strand': fields.String,
     'cns': fields.List(fields.String),
     'exons': fields.List(exon_field),
+    'sequence': fields.String(default=''),
     'domains': fields.List(
         fields.Nested({
             'name': fields.String,
@@ -165,8 +167,13 @@ class KnockoutGuides(Resource):
     @api.marshal_with(knockout_output)
     def post(self):
         gene_ids = request.get_json(force=True)['gene_ids']
+        edit = request.get_json(force=True)['edit']
         if not gene_ids:  # TODO improve
             raise BadRequest('gene_ids not set')
+
+        if edit and len(gene_ids) != 1:
+            raise BadRequest('gene_ids needs to have length 1 if editing..')
+
 
         # TODO here goes all the computation for checking wether SNP and CNSD
         # influence the guides. For now return the 6 best guides
@@ -187,8 +194,15 @@ class KnockoutGuides(Resource):
             #     'guides': {'$push': '$guides'}
             # }},
         ]
-        result = guide_collection.aggregate(aggregation_pipeline)
-        return list(result)
+        result = list(guide_collection.aggregate(aggregation_pipeline))
+        if edit:
+            df = gencode_exons()
+            exons = df[(df.gene_id == gene_ids[0])]
+            chromosome = exons.seqname.iloc[0]
+            seq = chromosomes()[chromosome][min(exons.start):max(exons.end)]
+            result[0]['sequence'] = seq
+
+        return result
 
 
 @ns.route('/details')

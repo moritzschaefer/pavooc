@@ -227,7 +227,7 @@ def build_gene_document(gene, check_exists=True):
 
     # delete all guides with scores below 0.55
     # TODO use something more sophisticated
-    guides.drop(guides.index[azimuth_score < 0.55], inplace=True)
+    guides.drop(guides.index[azimuth_score < 0.47], inplace=True)
 
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))

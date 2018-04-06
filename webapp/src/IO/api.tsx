@@ -7,10 +7,10 @@ function handleFetchErrors(response: Response) {
   return response;
 }
 
-export const fetchKnockoutsApi = (geneIds: any) => {
+export const fetchKnockoutsApi = (geneIds: Array<string>, edit: boolean) => {
   const request = fetch("/api/knockout", {
     method: "POST",
-    body: JSON.stringify({ gene_ids: geneIds })
+    body: JSON.stringify({ gene_ids: geneIds, edit: edit })
   })
     .then(handleFetchErrors)
     .then(response => response.json());
