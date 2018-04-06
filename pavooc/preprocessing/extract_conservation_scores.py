@@ -76,6 +76,7 @@ def cut_chromosomes(species='hg38'):
 def read_mm10():
     print('read gencode')
     df = read_gtf_as_dataframe(GENCODE_MM10_FILE)
+    df.gene_id = df.gene_id.apply(lambda gid: gid[:15])
 
     return df
 
@@ -84,6 +85,7 @@ def read_mm10():
 def read_hg38():
     print('read gencode')
     df = read_gtf_as_dataframe(GENCODE_HG38_FILE)
+    df.gene_id = df.gene_id.apply(lambda gid: gid[:15])
 
     return df
 
@@ -153,7 +155,7 @@ def find_guide_context(gene, context, sense):
         df = read_hg38()
 
     try:
-        gene_data = df[((df.gene_name == gene) | (df.gene_id.map(lambda g: g[:15]) == gene[:15])) & (
+        gene_data = df[((df.gene_name == gene) | (df.gene_id == gene[:15])) & (
             df.feature == 'gene')].iloc[0].copy()
     except IndexError:
         print(f'didnot find context {context} in gene {gene}. Sense: {sense}')
@@ -208,6 +210,11 @@ def index_phast_mm10():
 @buffer_return_value
 @pickle_return_value  # delete me later?
 def index_phast_hg38():
+    return _index_phast(HUMAN_CHROMOSOMES, '.phastCons100way.wigFix.hg38')
+
+@buffer_return_value
+@pickle_return_value  # delete me later?
+def index_phast_hg19():
     return _index_phast(HUMAN_CHROMOSOMES, '.phastCons100way.wigFix')
 
 
@@ -255,7 +262,7 @@ def get_conservation_score_features(species, chromosome, position):
     phast data comes in a somewhat difficult format..
 
     :trees: the interval trees of the conservation score intervals
-    :species: mm10 or hg38
+    :species: mm10 or hg38, or hg19
     :chromosome: The chromosome
     :position: The bp corrdinate position of interest in the chromosome
     '''
@@ -263,11 +270,16 @@ def get_conservation_score_features(species, chromosome, position):
     if position == -1:
         return None
 
-    filename = f'{chromosome}.phastCons{"100way" if species=="hg38" else "60way"}.wigFix'
+    filename = f'{chromosome}.phastCons{"100way" if species in ("hg38", "hg19") else "60way"}.wigFix{".hg38" if species == "hg38" else ""}'
+    if species == 'hg38':
+        tree = index_phast_hg38()
+    elif species == 'hg19':
+        tree = index_phast_hg19()
+    else:
+        tree = index_phast_mm10()
 
     with open(os.path.join(DATADIR, filename)) as f:
         for offset in range(-3, 4, 1):
-            tree = index_phast_hg38() if species == 'hg38' else index_phast_mm10()
             lookup = tree[chromosome][position + offset]
             if len(lookup) != 1:
                 print(f'found {len(tree[chromosome][position+offset])} positions for offset {chromosome}_{position}_{offset}')
@@ -286,6 +298,7 @@ def get_conservation_score_features(species, chromosome, position):
 def process_dataframe(cut_positions):
     '''
     Calculate conservation scores for a given dataset
+    :cut_positions: Series of tuples species, chromosome, cut_position
     '''
 
     scores = cut_positions.apply(lambda chromosome_cut_position:

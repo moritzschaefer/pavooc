@@ -64,6 +64,7 @@ class EditViewer extends React.Component<Props, State> {
       pdbSelectionOpened: false,
       codonEditProps: {
         strand: "+",
+        cutDistance: 0,
         originalCodon: "",
         editedCodon: "",
         position: -1,
@@ -92,9 +93,11 @@ class EditViewer extends React.Component<Props, State> {
     const geneStart = Math.min(...exons.map((exon: any) => exon.start));
     const geneEnd = Math.max(...exons.map((exon: any) => exon.end));
 
-    const editedSequence = sequence.slice(Math.max(start - geneStart, 0), Math.min(end-geneStart, geneEnd-geneStart));
+    const editedSequence = sequence.slice(
+      Math.max(start - geneStart, 0),
+      Math.min(end - geneStart, geneEnd - geneStart)
+    );
     return editedSequence;
-
   }
   componentDidMount() {
     this.setState({ editedSequence: this._cutEditSequence() });
@@ -103,9 +106,12 @@ class EditViewer extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props, prevState: State) {
     const { guides, sequence } = this.props;
     if (
-      (prevProps.sequence !== sequence) ||
-      (!arraysEqual(guides.map((guide: any) => guide.selected),
-                    prevProps.guides.map((guide: any) => guide.selected)))) {
+      prevProps.sequence !== sequence ||
+      !arraysEqual(
+        guides.map((guide: any) => guide.selected),
+        prevProps.guides.map((guide: any) => guide.selected)
+      )
+    ) {
       // reset editedSequence!
       this.setState({ editedSequence: this._cutEditSequence() });
     }
@@ -208,6 +214,7 @@ class EditViewer extends React.Component<Props, State> {
 
     const seqEditData = this._editRange();
     if (seqEditData && typeof seqEditData.aaStart !== "undefined") {
+      let originalSequence = this._cutEditSequence();
       for (var i = 0, len = seqEditData.sequence.length / 3; i < len; i++) {
         // TODO enable selected, if this one has been edited
         const sequenceStart = this._editPosition() - padding;
@@ -222,7 +229,7 @@ class EditViewer extends React.Component<Props, State> {
         }
 
         const selected =
-          this._cutEditSequence().slice(inSeqPosition, inSeqPosition + 3) !==
+          originalSequence.slice(inSeqPosition, inSeqPosition + 3) !==
           editedSequence.slice(inSeqPosition, inSeqPosition + 3);
         highlightPositions.push({
           aa_cut_position: seqEditData.aaStart + i,
@@ -299,7 +306,8 @@ class EditViewer extends React.Component<Props, State> {
           orientation: g.orientation,
           cut_position: g.cut_position,
           aa_cut_position: g.aa_cut_position,
-          scores: g.scores
+          scores: g.scores,
+          exon_id: g.exon_id
         })),
         gene_id: geneId,
         chromosome,
@@ -357,6 +365,7 @@ class EditViewer extends React.Component<Props, State> {
         strand,
         opened: true,
         position: editCodonPosition,
+        cutDistance: Math.abs(editCodonPosition - this._editPosition()),
         originalCodon
       }
     });
@@ -439,8 +448,33 @@ class EditViewer extends React.Component<Props, State> {
     return undefined;
   }
 
+  _onCSVClick = () => {
+    const { editedSequence } = this.state;
+    const { padding, guides } = this.props;
+    const guide = guides.find((guide: any) => guide.selected);
+    if (!guide) {
+      return;
+    }
+    const templateStart = guide.cut_position - padding;
+    let originalSequence = this._cutEditSequence();
+
+    const editPositions = [];
+    for (var i = 0, len = originalSequence.length; i < len; i++) {
+      if (originalSequence[i] !== editedSequence[i]) {
+        editPositions.push(i);
+      }
+    }
+
+    downloadCSV(this._csvData(), "pavoocEdit.csv", {
+      template: editedSequence,
+      templateStart,
+      originalSequence,
+      editPositions
+    });
+  };
+
   _renderTopContainer() {
-    const { selectedPdb, editedSequence } = this.state;
+    const { selectedPdb } = this.state;
     const { geneSymbol, pdbs } = this.props;
 
     return (
@@ -463,8 +497,7 @@ class EditViewer extends React.Component<Props, State> {
           <Button
             raised={true}
             disabled={!this._editRange()}
-            onClick={() =>
-              downloadCSV(this._csvData(), "pavoocEdit.csv", editedSequence)}
+            onClick={this._onCSVClick}
           >
             &darr; CSV
           </Button>

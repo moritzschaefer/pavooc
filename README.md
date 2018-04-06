@@ -11,8 +11,11 @@ runs everything required to get you started. Additionally there is a docker-envi
 
     docker-compose up
 
+TODO: training needs installation of cuda pytorch if GPU are being used
+
 # Conventions
 
+- this is all hg19/GRCh37!
 - In the DB 'exons' right now are only the exons for the canonical transcript.. this also means, that in knockout and edit experiments we only consider the canonical transcripts
 - canonical exons contain all exons of the canonical transcript MINUS UTR regions
 - All sequences are saved in gene-relative direction ('-'-strands are reverse-complemented).

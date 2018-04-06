@@ -72,6 +72,9 @@ def read_gencode():
     df = read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
+    df.exon_id = df.exon_id.map(lambda v: v[:15])
+    df.gene_id = df.gene_id.map(lambda v: v[:15])
+    df.transcript_id = df.transcript_id.map(lambda v: v[:15])
 
     # only take protein_coding genes/transcripts/exons
     df = df[

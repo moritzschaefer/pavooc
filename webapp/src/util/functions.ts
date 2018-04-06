@@ -1,7 +1,12 @@
 export const downloadCSV = (
   geneData: Array<any>,
   exportFilename: string,
-  template: string | undefined = undefined
+  editData: {
+        template: string;
+        templateStart: number;
+        originalSequence: string;
+        editPositions: Array<number>;
+      } | undefined = undefined
 ) => {
   // TODO orientation->guideOrientation, geneStrand
   const data = [].concat(
@@ -27,9 +32,15 @@ export const downloadCSV = (
   );
 
   // add template to objects
-  if (template) {
+  if (editData) {
+    // TODO should be one only..
     data.forEach((obj: any) => {
-      obj.template = template;
+      obj.template = editData.template;
+      obj.templateStart = editData.templateStart;
+      obj.originalSequence = editData.originalSequence;
+      obj.editDistance = editData.editPositions
+        .map((editPosition: number) => Math.abs(editPosition - obj.cut_position))
+        .join("|");
     });
   }
 

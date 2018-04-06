@@ -34,23 +34,8 @@ interface Props {
   showDomain?: boolean;
 }
 
-// function eqSet(as: Set<number>, bs: Set<number>) {
-//   if (as.size !== bs.size) {
-//     return false;
-//   }
-//   let equal = true;
-//   as.forEach((v: number) => {
-//     if (!bs.has(v)) {
-//       equal = false;
-//     }
-//   });
-//   return equal;
-// }
-//
-
 export default class GuideLineup extends React.Component<Props, State> {
   _tableArray() {
-    // TODO fix as Array needs conversion <- ??
     return this.props.guides.map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
       domain: guide.domains ? guide.domains.join(",") : "",
@@ -101,6 +86,11 @@ export default class GuideLineup extends React.Component<Props, State> {
       .map(([guide, index]: [Guide, number]) => index);
     return newSelection;
   }
+  _onSelectionChanged = (selection: number[]) => this.props.setGuideSelection(selection);
+  _onHighlightChanged = (highlight: number) =>
+            this.props.setHoveredGuide(
+              highlight === -1 ? undefined : highlight
+            );
 
   render() {
     return (
@@ -108,12 +98,8 @@ export default class GuideLineup extends React.Component<Props, State> {
         <LineUp
           data={this._tableArray()}
           defaultRanking={false}
-          onSelectionChanged={(selection: number[]) =>
-            this.props.setGuideSelection(selection)}
-          onHighlightChanged={(highlight: number) =>
-            this.props.setHoveredGuide(
-              highlight === -1 ? undefined : highlight
-            )}
+          onSelectionChanged={this._onSelectionChanged}
+          onHighlightChanged={this._onHighlightChanged}
           selection={this._selectionIndices()}
           highlight={this.props.hoveredGuide}
           sidePanel={false}

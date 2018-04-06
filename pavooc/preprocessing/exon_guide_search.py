@@ -28,17 +28,31 @@ PATTERN = re.compile(
 )
 
 
+def gene_names_similar(gene_a, gene_b):
+    gc = read_gencode()
+    name_a = gc[gc.gene_id == gene_a].iloc[0].gene_name
+    name_b = gc[gc.gene_id == gene_b].iloc[0].gene_name
+    if name_a[:-1] in name_b or name_b[:-1] in name_a:
+        return True
+    else:
+        return False
+
+
 # TODO maybe improve this heuristic
 def off_targets_relevant(off_targets, gene_id, mismatches):
     '''
+    ATM just check whether there is a zero mismatch OT in another gene
+
     :off_targets: string containing all off targets to check for relevance
     :gene_id: The gene_id of the on-target
     :mismatches: dictionary to keep statistics of mismatches
     :returns: boolean wether off_targets are relevant or not
     '''
-    in_exons_summary = False
     result = PATTERN.match(off_targets)
     assert bool(result), off_targets  # check that pattern is valid
+    if int(result.group('mismatch_count')) > 0:
+        return False
+
     for off_locus in result.group('off_loci').split('|'):
         # in flashfry, the position is always the left-handside
         # (in forward strand direction)
@@ -67,17 +81,19 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
                 bool(in_exons),
                 int(result.group('mismatch_count'))
             )] = int(result.group('occurences'))
-        # either, we sort out guides, that cut the same gene while
-        # cutting another gene which might sort out many good guides
+        # (either, we sort out guides, that cut the same gene while
+        # cutting another gene which might sort out many good guides)
         # (depends on the design of FF). Right now:
         # Disallow guides only if that off_target is away from the gene
-        # That is the correct solution!
+        # np.all, because np.any would make this relevant if it was on the
+        # same gene, when there is another exon on the reverse strand
+        # furthermore check if this is in an isozyme
         if bool(in_exons) and \
-                np.all([exon[0] != gene_id for exon in in_exons]):
-            in_exons_summary = True
+                np.all([not gene_names_similar(exon[2][0], gene_id)
+                        for exon in in_exons]):
+            return True
 
-    # if there is an exact in-extron match which is not in this gene
-    return result.group('mismatch_count') == 0 and in_exons_summary
+    return False
 
 
 def flashfry_guides(seq_file, target_file):
@@ -262,6 +278,7 @@ def generate_guides(gene_id, seq_file, target_file, check_in_exon):
                  row['start'] < 10):
                 delete_indices.add(index)
                 continue
+
 
         # check for off_target duplicates inside the exome
         for off_targets in row['offTargets'].split(','):

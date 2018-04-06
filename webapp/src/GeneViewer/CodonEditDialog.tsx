@@ -11,6 +11,7 @@ interface State {
 export interface Props {
   originalCodon: string;
   editedCodon: string;
+  cutDistance: number;
   position: number;
   setEditedCodon: (position: number, codon: string) => void;
   strand: string;
@@ -48,7 +49,7 @@ export default class CodonEditDialog extends React.Component<Props, State> {
     }
   }
   render() {
-    const { originalCodon, onClose, opened, strand } = this.props;
+    const { originalCodon, onClose, opened, strand, cutDistance } = this.props;
     const { value } = this.state;
     let originalAA = codonToAA(originalCodon, strand);
     let editedAA = codonToAA(value, strand);
@@ -58,6 +59,7 @@ export default class CodonEditDialog extends React.Component<Props, State> {
 
         <DialogTitle id="pdb-dialog-title">Edit codon</DialogTitle>
         <div style={{ padding: 25, paddingTop: 0 }}>
+            <div>Distance to guide cut: {cutDistance}</div>
             <TextField
             id="with-placeholder"
             label={`Original: ${originalCodon}: ${originalAA}`}

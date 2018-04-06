@@ -26,6 +26,17 @@ logging.basicConfig(level=logging.WARN,
 mg = mygene.MyGeneInfo()
 
 
+def filter_bad_guides(guides, azimuth_score):
+    # delete all guides with scores below 0.47 or with BsaI site or other
+    # sequences, that hinder their function
+    delete_indices = guides.index[(azimuth_score < 0.47) |
+                                  (guides.target.str.startswith('GGGGG')) |
+                                  (guides.target.str.contains('TTTT')) |
+                                  (guides.target.str.contains('GGTCTC')) |
+                                  (guides.target.str.contains('GAGACC'))]
+    guides.drop(delete_indices, inplace=True)
+
+
 def cns_affection(exons):
     '''
     :returns: boolean whether the gene is affected by a CNS or not
@@ -117,7 +128,7 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
     interval_domains = domain_tree[gene_start:gene_end]
 
     try:
-        mygene_domains = mg.get_gene(gene_id[:15], 'pfam')['pfam']
+        mygene_domains = mg.getgene(gene_id, 'pfam')['pfam']
     except TypeError:
         print(f'No MyGene information for {gene_id}')
         # wildcard
@@ -212,8 +223,8 @@ def build_gene_document(gene, check_exists=True):
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
         azimuth_score = pd.Series(0, index=guides.index)
     logging.info('calculating pavooc score for {}'.format(gene_id))
-    # pavooc_score = pd.Series(pavooc.score(
-    #     gene_id, guides), index=guides.index, dtype=np.float64)
+    pavooc_score = pd.Series(pavooc.score(
+        gene_id, guides), index=guides.index, dtype=np.float64)
     # try:
     # except ValueError as e:
     #     guides.to_csv(f'{gene_id}.csv')
@@ -225,9 +236,7 @@ def build_gene_document(gene, check_exists=True):
     flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
 
-    # delete all guides with scores below 0.55
-    # TODO use something more sophisticated
-    guides.drop(guides.index[azimuth_score < 0.47], inplace=True)
+    filter_bad_guides(guides, azimuth_score)
 
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
