@@ -3,7 +3,7 @@ numpy==1.12.1
 scipy==1.0.0
 matplotlib==2.0.2
 scikit-bio==0.5.1
-git+git://github.com/moritzschaefer/gtfparse@master#egg=gtfparse
+git+https://github.com/moritzschaefer/gtfparse@master#egg=gtfparse
 intervaltree==2.1.0
 pymongo==3.5.1
 seaborn==0.8.1
