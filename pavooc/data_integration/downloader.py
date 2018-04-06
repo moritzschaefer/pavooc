@@ -43,7 +43,7 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz',
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv',  # noqa <- this is the same file as being computed in the pipeline
-] + ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/chr{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
+] + ['http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/chr{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
         'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
 
 logging.basicConfig(level=logging.INFO)
@@ -65,8 +65,14 @@ def file_download(url, target):
             raise RuntimeError(result.stderr)
 
 
-def download_unzip(url):
+def download_unzip(url, append_postfix=None):
     download_filename = os.path.basename(url)
+    if append_postfix:
+        if download_filename[-3:] == '.gz':
+            download_filename = download_filename[:-3] + append_postfix + '.gz'
+        else:
+            download_filename = download_filename + append_postfix
+
     download_target = os.path.join(DATADIR, download_filename)
 
     if os.path.exists(os.path.join(DATADIR, download_filename)):
@@ -152,6 +158,9 @@ def download_sifts():
 def main():
     for url in URLS:
         download_unzip(url)
+    # because of duplicate names we have to download this one here separately to rename it
+    for url in ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/chr{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES]:
+        download_unzip(url, 'hg38')
 
     download_sifts()
 

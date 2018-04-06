@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from torch.autograd import Variable
 
-from pavooc.data import chromosomes, read_gencode, cnn38_model, feature_scaler
+from pavooc.data import read_gencode, cnn38_model, feature_scaler
 from pavooc.preprocessing.extract_conservation_scores import find_guide_context, process_dataframe
 from pavooc.scoring.azimuth import _context_guide
 from pavooc.scoring.feature_extraction import extract_features
@@ -33,8 +33,9 @@ def score(gene_id, guides):
         gene.seqname), axis=1)
 
     # TODO sense is probably relative to gene not to chromosome
-    cut_positions = guides.apply(lambda row: find_guide_context(
-        gene_id, contexts.loc[row.name], (gene.strand == '+') == (row['orientation'] == 'FWD')), axis=1)
+
+    cut_positions = guides.apply(lambda row: (
+        'hg19', gene.seqname, row['cut_position']), axis=1)
     conservation_scores = process_dataframe(cut_positions)
 
     # now build the azimuth-style feature data

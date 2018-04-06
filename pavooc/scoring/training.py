@@ -136,7 +136,7 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # validation scores
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
             if not (np.isfinite(predicted_labels).all()):
-                logging.error('Model is buggy, reinitialize')
+                logging.error('Model is buggy. some predicted label is not a number, reinitialize')
                 model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
                 continue
             l1 = np.abs(predicted_labels - validation_labels).mean()
@@ -146,8 +146,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
             training_spearman = st.spearmanr(
                 train_labels, predicted_training_labels)[0]
             if np.isnan(training_spearman):
-                from IPython.core.debugger import set_trace
-                set_trace()
+                logging.error('Model is buggy. spearman is nan, reinitialize')
+                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                continue
 
             training_loss = criterion(
                 Variable(torch.from_numpy(predicted_training_labels),
@@ -155,8 +156,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 Variable(torch.from_numpy(train_labels),
                          requires_grad=False)).data[0]
             if not (np.isfinite(predicted_training_labels).all()):
-                from IPython.core.debugger import set_trace
-                set_trace()
+                logging.error('Model is buggy. predicted training labels are non number somehow, reinitialize')
+                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                continue
             training_l1 = np.abs(
                 predicted_training_labels - train_labels).mean()
             training_l2 = (
