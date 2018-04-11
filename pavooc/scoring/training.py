@@ -2,6 +2,9 @@ import pickle
 import os
 import logging
 import copy
+import pandas as pd
+
+from sklearn.externals import joblib
 
 import torch
 # from torch.utils.data import DataLoader
@@ -15,8 +18,12 @@ from tensorboardX import SummaryWriter
 import scipy.stats as st
 import numpy as np
 
+from pavooc.scoring.feature_extraction import extract_features, \
+    split_test_train_valid, normalize_features
+from pavooc.scoring.azimuth_dataset import load_dataset
 from pavooc.scoring.dataloader import DataLoader
-from pavooc.config import BATCH_SIZE, WEIGHTS_DIR
+from pavooc.config import BATCH_SIZE, WEIGHTS_DIR, \
+    CONSERVATION_FEATURES_FILE, SCALER_FILE
 
 if cuda.is_available():
     import torch.backends.cudnn as cudnn
@@ -102,7 +109,8 @@ def train_predict(combined_features, y, validation_fold, model_class,
 
     # first converge with normal features
 
-    model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+    model, criterion, optimizer, scheduler = _init_model(
+        combined_features.shape[1], model_class, loss, learning_rate)
 
     spearmans = []
     losses = []
@@ -136,8 +144,10 @@ def train_predict(combined_features, y, validation_fold, model_class,
             # validation scores
             spearman = st.spearmanr(validation_labels, predicted_labels)[0]
             if not (np.isfinite(predicted_labels).all()):
-                logging.error('Model is buggy. some predicted label is not a number, reinitialize')
-                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                logging.error(
+                    'Model is buggy. some predicted label is not a number, reinitialize')
+                model, criterion, optimizer, scheduler = _init_model(
+                    combined_features.shape[1], model_class, loss, learning_rate)
                 continue
             l1 = np.abs(predicted_labels - validation_labels).mean()
             l2 = ((predicted_labels - validation_labels)**2).mean()
@@ -147,7 +157,8 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 train_labels, predicted_training_labels)[0]
             if np.isnan(training_spearman):
                 logging.error('Model is buggy. spearman is nan, reinitialize')
-                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                model, criterion, optimizer, scheduler = _init_model(
+                    combined_features.shape[1], model_class, loss, learning_rate)
                 continue
 
             training_loss = criterion(
@@ -156,8 +167,10 @@ def train_predict(combined_features, y, validation_fold, model_class,
                 Variable(torch.from_numpy(train_labels),
                          requires_grad=False)).data[0]
             if not (np.isfinite(predicted_training_labels).all()):
-                logging.error('Model is buggy. predicted training labels are non number somehow, reinitialize')
-                model, criterion, optimizer, scheduler = _init_model(combined_features.shape[1], model_class, loss, learning_rate)
+                logging.error(
+                    'Model is buggy. predicted training labels are non number somehow, reinitialize')
+                model, criterion, optimizer, scheduler = _init_model(
+                    combined_features.shape[1], model_class, loss, learning_rate)
                 continue
             training_l1 = np.abs(
                 predicted_training_labels - train_labels).mean()
@@ -234,7 +247,8 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
             pass
 
         if crayon:
-            tensorboard_experiment = crayon.create_experiment(experiment_name_i)
+            tensorboard_experiment = crayon.create_experiment(
+                experiment_name_i)
         else:
             tensorboard_experiment = experiment_name_i
         losses, spearmans, model = train_predict(
@@ -245,3 +259,28 @@ def cv_train_test(genes, transformed_features, y, model_class, learning_rate,
         results.append(max(spearmans))
 
     return results
+
+
+def generate_final_model():
+    Xdf, Y, gene_position, target_genes = load_dataset()
+    conservation_scores = pd.read_csv(CONSERVATION_FEATURES_FILE, index_col=0)
+
+    combined_features, y, genes, feature_names = extract_features(
+        Xdf, Y, gene_position, conservation_scores, order=1)
+    normalized_features, scaler = normalize_features(combined_features)
+    X_train, X_test, y_train, y_test, validation_fold, _ = split_test_train_valid(
+        combined_features, y, joint_scaling=True)
+
+    joblib.dump(scaler, SCALER_FILE)
+
+    tensorboard_experiment = 'final'
+    L = normalized_features.shape[0]
+    indices = np.random.permutation(L)
+    validation_fold = np.array([i in indices[:750] for i in range(L)])
+
+
+    losses, spearmans, model = train_predict(
+        normalized_features, y, validation_fold, CNN38,
+        0.003, nn.MSELoss(), 10000, tensorboard_experiment)
+
+    # TODO save this model

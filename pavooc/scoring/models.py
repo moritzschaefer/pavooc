@@ -350,24 +350,25 @@ class Deep1(nn.Module):
         return self.fc2(out)
 
 
-# try stride 2
 class CNN38(nn.Module):
     def __init__(self, input_size):
         super(CNN38, self).__init__()
 
         self.conv1 = nn.Conv1d(
-            in_channels=4, out_channels=128, kernel_size=4, stride=1)  # boost this?
+            in_channels=4, out_channels=256, kernel_size=7, stride=1)  # boost this?
         self.conv2 = nn.Conv1d(
-            in_channels=128, out_channels=512, kernel_size=4)
+            in_channels=256, out_channels=1024, kernel_size=3)
+
 
         # 128 kernels, 30-3 => 27/2 => 13-3 => 10/2 => 5
-        self._conv_output_dimension = 512 * 3
+        self._conv_output_dimension = 1024 * 2
 
         # hidden layers, additional_features, conv output
 
         self.pre_fc = nn.Linear(input_size, 256)
-        self.fc1 = nn.Linear(256 + self._conv_output_dimension, 32)
-        self.fc2 = nn.Linear(32, 1)
+        self.fc1 = nn.Linear(256 + self._conv_output_dimension, 512)
+        self.fc2 = nn.Linear(512, 64)
+        self.fc3 = nn.Linear(64, 1)
 
         self.apply(weights_init)
 
@@ -382,7 +383,7 @@ class CNN38(nn.Module):
         conv1_output = F.max_pool1d(conv1_output, 3)
         conv2_output = F.relu(self.conv2(conv1_output))
         conv2_output = F.dropout(conv2_output, 0.5, self.training)
-        conv2_output = F.max_pool1d(conv2_output, 2)
+        conv2_output = F.max_pool1d(conv2_output, 3)
         return conv2_output.view(-1, self._conv_output_dimension)
 
     def forward(self, x):
@@ -398,9 +399,12 @@ class CNN38(nn.Module):
         out = F.relu(self.fc1(torch.cat(
             [pre_output, convolution_output], 1)))
 
+        out = F.dropout(out, 0.4, self.training)
+
+        out = F.relu(self.fc2(out))
         out = F.dropout(out, 0.55, self.training)
 
-        return self.fc2(out)
+        return self.fc3(out)
 
 
 class CNN34(nn.Module):

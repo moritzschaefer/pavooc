@@ -336,6 +336,7 @@ def domain_interval_trees():
 
     return trees
 
+
 @buffer_return_value
 def cnn38_model():
     model = CNN38(160)

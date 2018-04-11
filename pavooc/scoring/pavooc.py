@@ -10,7 +10,6 @@ from torch.autograd import Variable
 
 from pavooc.data import read_gencode, cnn38_model, feature_scaler
 from pavooc.preprocessing.extract_conservation_scores import find_guide_context, process_dataframe
-from pavooc.scoring.azimuth import _context_guide
 from pavooc.scoring.feature_extraction import extract_features
 
 
@@ -26,14 +25,6 @@ def score(gene_id, guides):
 
     gene = read_gencode()[read_gencode().gene_id == gene_id].iloc[0]
 
-    contexts = guides.apply(lambda row: _context_guide(
-        row['exon_id'],
-        row['start'],
-        row['orientation'],
-        gene.seqname), axis=1)
-
-    # TODO sense is probably relative to gene not to chromosome
-
     cut_positions = guides.apply(lambda row: (
         'hg19', gene.seqname, row['cut_position']), axis=1)
     conservation_scores = process_dataframe(cut_positions)
@@ -46,7 +37,7 @@ def score(gene_id, guides):
         'Target gene': 'dummy',
         'score_drug_gene_rank': [0.5] * len(guides),  # no need
         'drug': 'dummy',
-        '30mer': contexts,
+        '30mer': guides.context,
         'Strand': ['sense' if orientation == 'FWD' else 'antisense' for orientation in guides.orientation],
         'Percent Peptide': guides.percent_peptide,
         'Amino Acid Cut position': guides.aa_cut_position

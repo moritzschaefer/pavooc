@@ -9,13 +9,14 @@ import mygene
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
+from skbio.sequence import DNA
 
 from pavooc.config import GUIDES_FILE, COMPUTATION_CORES, DEBUG
 from pavooc.pdb import pdb_mappings
 from pavooc.util import normalize_pid, aa_cut_position, percent_peptide
 from pavooc.db import guide_collection
 from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
-    read_gencode, cellline_mutation_trees, cns_trees, pfam_mapping
+    read_gencode, cellline_mutation_trees, cns_trees, pfam_mapping, chromosomes
 from pavooc.scoring import azimuth, flashfry, pavooc
 
 
@@ -24,6 +25,42 @@ logging.basicConfig(level=logging.WARN,
 
 
 mg = mygene.MyGeneInfo()
+
+
+def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5):
+    '''
+    :exon_id: ensembl id
+    :start: bp position start of guide(!) relative to chromosome
+    :guide_direction: either 'FWD' or 'RVS'
+    :chromosome: the chromosome this is on
+    :context_length: option to adjust padding in bps TODO: implement
+    :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
+        capital letters
+    '''
+    exon = gencode_exons().loc[exon_id]
+
+    if isinstance(exon, pd.DataFrame):
+        exon = exon[exon.seqname == chromosome]
+        if len(exon.start.unique()) != 1:
+            logging.error(f'azimuth.py: same exon_id with different starts {exon}')
+        exon = exon.iloc[0]
+
+    if guide_direction == 'RVS':
+        start -= 3
+    else:
+        start -= 4
+
+    seq = chromosomes()[exon['seqname']
+                        ][start:start + 30].upper()
+
+    # if the strands don't match, it needs to be reversed
+    if guide_direction == 'RVS':
+        seq = str(DNA(seq).reverse_complement())
+
+    assert seq[25:27] == 'GG', \
+        'the generated context is invalid (PAM) site. {}, {}, {}'.format(
+        seq, exon['strand'], guide_direction)
+    return seq
 
 
 def filter_bad_guides(guides, azimuth_score):
@@ -139,10 +176,10 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
         if type(mygene_domains) != list:
             mygene_domains = [mygene_domains]
 
-        pfam_names = set(
-            [pfam_mapping().loc[pfam_acc].PFAM_Name
-                for pfam_acc in mygene_domains
-                if pfam_acc in pfam_mapping().index])
+    pfam_names = set(
+        [pfam_mapping().loc[pfam_acc].PFAM_Name
+            for pfam_acc in mygene_domains
+            if pfam_acc in pfam_mapping().index])
 
     # filter for domains in the correct direction
     domains = [{'name': domain[2][0], 'start': domain[0], 'end': domain[1]}
@@ -153,20 +190,9 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
     return domains
 
 
-def build_gene_document(gene, check_exists=True):
-    '''
-    Compute all necessary data (scores for example) and return a document for
-    the gene
-    '''
-
-    gene_id, exons = gene
+def load_guides(gene_id, exons):
     chromosome = exons.iloc[0]['seqname']
-    if check_exists and \
-            guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
-        # item exists
-        return None
     strand = exons.iloc[0]['strand']
-    gene_symbol = exons.iloc[0]['gene_name']
     try:
         guides = pd.read_csv(GUIDES_FILE.format(
             gene_id), sep='\t', index_col=False)
@@ -213,6 +239,34 @@ def build_gene_document(gene, check_exists=True):
     except ValueError:  # guides is empty and apply returned a DataFrame
         guides['percent_peptide'] = []
 
+    guides['context'] = guides.apply(lambda row: _context_guide(
+        row['exon_id'],
+        row['start'],
+        row['orientation'],
+        chromosome), axis=1)
+
+    return guides
+
+
+def build_gene_document(gene, check_exists=True):
+    '''
+    Compute all necessary data (scores for example) and return a document for
+    the gene
+    '''
+
+    gene_id, exons = gene
+    chromosome = exons.iloc[0]['seqname']
+    strand = exons.iloc[0]['strand']
+    gene_symbol = exons.iloc[0]['gene_name']
+    if check_exists and \
+            guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
+        # item exists
+        return None
+
+    guides = load_guides()
+    gene_start = exons['start'].min()
+    gene_end = exons['end'].max()
+
     logging.info('calculating azimuth score for {}'.format(gene_id))
     try:
         azimuth_score = pd.Series(azimuth.score(
@@ -225,6 +279,7 @@ def build_gene_document(gene, check_exists=True):
     logging.info('calculating pavooc score for {}'.format(gene_id))
     pavooc_score = pd.Series(pavooc.score(
         gene_id, guides), index=guides.index, dtype=np.float64)
+
     # try:
     # except ValueError as e:
     #     guides.to_csv(f'{gene_id}.csv')
@@ -252,8 +307,8 @@ def build_gene_document(gene, check_exists=True):
             ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
              'dangerous_in_genome', 'Hsu2013']].to_dict(),
-            'azimuth': azimuth_score.loc[index]}
-        # 'pavooc': pavooc_score.loc[index]}
+            'azimuth': azimuth_score.loc[index],
+            'pavooc': pavooc_score.loc[index]}
     } for index, row in guides.iterrows() if index in flashfry_scores.index]
 
     return {
