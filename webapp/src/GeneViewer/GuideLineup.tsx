@@ -61,8 +61,7 @@ export default class GuideLineup extends React.Component<Props, State> {
       nextProps.hoveredGuide !== this.props.hoveredGuide
     ) {
       console.log("guides might have changed in GuideLineup");
-      return false; // TODO delete
-      //return true;
+      return true;
     }
     let changed = false;
     nextProps.guides.forEach((guide: Guide, index: number) => {

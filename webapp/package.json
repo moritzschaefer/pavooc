@@ -11,7 +11,8 @@
     "@types/react-router-dom": "^4.0.8",
     "@types/react-router-redux": "^5.0.8",
     "@types/redux-actions": "^2.2.2",
-    "dalliance": "https://www.biodalliance.org/prerelease/dalliance-0.13.90-alpha.5.tgz",
+
+    "dalliance": "https://www.biodalliance.org/prerelease/dalliance-0.13.90-alpha.7.tgz",
     "downshift": "^1.25.0",
     "element-resize-event": "^2.0.9",
     "history": "^4.7.2",
