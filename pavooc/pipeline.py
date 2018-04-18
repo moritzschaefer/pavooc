@@ -64,6 +64,7 @@ def generate_bed_files(skip_generation=False):
                 BIG_BED_EXE, result.stderr))
 
 
+# TODO add model training
 if __name__ == "__main__":
     main_downloader()
     main_preprocessing()
@@ -72,3 +73,4 @@ if __name__ == "__main__":
     main_guide_search()  # ff search
     main_guides_to_db()
     generate_bed_files()
+    print('finished pipeline')

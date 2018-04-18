@@ -16,7 +16,7 @@ S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 if DEBUG:
-    CHROMOSOMES = ['chrY', 'chrX']
+    CHROMOSOMES = ['chrY']
 else:
     CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
 MOUSE_CHROMOSOMES = ['chr{}'.format(v)

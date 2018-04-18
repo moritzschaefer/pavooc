@@ -216,28 +216,21 @@ def load_guides(gene_id, exons):
             axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
         logging.warn('no guides: {}'.format(e))
-        guides['start'] = []
-        guides['cut_position'] = []
+        raise ValueError('No guides')
     except KeyError as e:  # exon_id from guides doesnt exist
         logging.warn('. gene: {}'.format(e, gene_id))
         return None
 
     # AA number of canonical transcript cut position for each guide
     # TODO we should check early if no guides exist and just return None or so.
-    try:
-        guides['aa_cut_position'] = guides.apply(
-            lambda row: aa_cut_position(row, exons), axis=1)
-    except ValueError:  # guides is empty and apply returned a DataFrame
-        guides['aa_cut_position'] = []
+    guides['aa_cut_position'] = guides.apply(
+        lambda row: aa_cut_position(row, exons), axis=1)
 
     gene_start = exons['start'].min()
     gene_end = exons['end'].max()
-    try:
-        guides['percent_peptide'] = guides.apply(
-            lambda row: percent_peptide(row, gene_start, gene_end, strand),
-            axis=1)
-    except ValueError:  # guides is empty and apply returned a DataFrame
-        guides['percent_peptide'] = []
+    guides['percent_peptide'] = guides.apply(
+        lambda row: percent_peptide(row, gene_start, gene_end, strand),
+        axis=1)
 
     guides['context'] = guides.apply(lambda row: _context_guide(
         row['exon_id'],
@@ -262,8 +255,10 @@ def build_gene_document(gene, check_exists=True):
             guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
         # item exists
         return None
-
-    guides = load_guides()
+    try:
+        guides = load_guides(gene_id, exons)
+    except ValueError:
+        return None
     gene_start = exons['start'].min()
     gene_end = exons['end'].max()
 
@@ -279,13 +274,6 @@ def build_gene_document(gene, check_exists=True):
     logging.info('calculating pavooc score for {}'.format(gene_id))
     pavooc_score = pd.Series(pavooc.score(
         gene_id, guides), index=guides.index, dtype=np.float64)
-
-    # try:
-    # except ValueError as e:
-    #     guides.to_csv(f'{gene_id}.csv')
-    #     logging.error(
-    #         f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
-    #     pavooc_score = pd.Series(0, index=guides.index, dtype=np.float64)
 
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
