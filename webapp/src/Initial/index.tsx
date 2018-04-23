@@ -17,10 +17,13 @@ export default class Initial extends React.Component<Props, object> {
         <div className="AppBody">
           <div className="bodyLeft">
             <p className="teaser">
-              Design and control cutting-edge-scored sgRNAs in an eye-blink
+              Design and control cutting-edge-scored sgRNAs in the blink of an eye
             </p>
           </div>
           <InitialForm className="bodyRight" />
+        </div>
+        <div className="AppFooter">
+          <a target="_blank" href="http://pavooc.io/api">API</a> | <a target="_blank" href="https://youtu.be/ivURazAJFwE">Tutorial</a> | <a target="_blank" href="https://github.com/moritzschaefer/pavooc/">GitHub</a> | &copy; 2018 <a href="http://moritzs.de/blog">Moritz Schaefer</a>
         </div>
       </div>
     );
