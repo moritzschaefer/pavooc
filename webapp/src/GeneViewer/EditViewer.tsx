@@ -475,7 +475,7 @@ class EditViewer extends React.Component<Props, State> {
 
   _renderTopContainer() {
     const { selectedPdb } = this.state;
-    const { geneSymbol, pdbs } = this.props;
+    const { geneSymbol, pdbs, strand } = this.props;
 
     return (
       <div className="containerTop">
@@ -489,7 +489,7 @@ class EditViewer extends React.Component<Props, State> {
           </Button>
         </div>
         <h2 className="heading">
-          {geneSymbol}&nbsp; PDB:{" "}
+          {geneSymbol}&nbsp; Strand: {strand} PDB:{" "}
           {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
         </h2>
         <div className="topControls">

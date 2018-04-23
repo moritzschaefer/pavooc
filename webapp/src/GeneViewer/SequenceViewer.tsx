@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
 // import shallowCompare from "react-addons-shallow-compare";
-import { codonToAA, arraysEqual } from "../util/functions";
+import { codonToAA, arraysEqual, urlExists } from "../util/functions";
 
 export interface SeqEditData {
   start: number;
@@ -11,12 +11,13 @@ export interface SeqEditData {
 }
 
 interface State {
-  genome: string;
-  genes: string;
+  // genome: string;
+  // genes: string;
   viewStart: number;
   viewEnd: number;
   viewChromosome: string;
   browser: typeof dalliance.Browser | undefined;
+  intranet: boolean;
 }
 
 interface Props {
@@ -44,12 +45,13 @@ export default class SequenceViewer extends React.Component<any, State> {
     super(props);
 
     this.state = {
-      genes: "http://www.derkholm.net:8080/das/hsa_54_36p/",
-      genome: "http://www.derkholm.net:8080/das/hg18comp/",
+      // genes: "http://www.derkholm.net:8080/das/hsa_54_36p/",
+      // genome: "http://www.derkholm.net:8080/das/hg18comp/",
       viewStart: -1,
       viewEnd: -1,
       viewChromosome: "",
-      browser: undefined
+      browser: undefined,
+      intranet: false
     };
   }
 
@@ -65,7 +67,7 @@ export default class SequenceViewer extends React.Component<any, State> {
 
   componentDidUpdate(prevProps: Props, prevState: State) {
     const { hoveredGuide, guides, cellline, guidesUrl, editData } = this.props;
-    const { browser } = this.state;
+    const { browser, intranet } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
       return;
@@ -134,8 +136,8 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
 
     if (prevProps.guidesUrl !== guidesUrl) {
-      browser.removeTier(this.guidesConfig(prevProps.guidesUrl));
-      browser.addTier(this.guidesConfig(guidesUrl));
+      browser.removeTier(this.guidesConfig(prevProps.guidesUrl, intranet));
+      browser.addTier(this.guidesConfig(guidesUrl, intranet));
     }
 
     // TODO improve check on this one!
@@ -182,7 +184,9 @@ export default class SequenceViewer extends React.Component<any, State> {
     return {
       name: `${cellline} CNSs`,
       desc: `copy number segmentation data for cellline ${cellline}`,
-      bwgURI: `/celllines/${cellline}_cns.bb`,
+      uri: `/celllines/${cellline}_cns.bed`,
+      tier_type: "memstore",
+      payload: "bed",
       style: [
         {
           type: "default",
@@ -210,7 +214,9 @@ export default class SequenceViewer extends React.Component<any, State> {
     return {
       name: `${cellline} SNPs`,
       desc: `mutations for cellline ${cellline}`,
-      bwgURI: `/celllines/${cellline}_mutations.bb`,
+      uri: `/celllines/${cellline}_mutations.bed`,
+      tier_type: "memstore",
+      payload: "bed",
       style: [
         {
           type: "default",
@@ -229,13 +235,19 @@ export default class SequenceViewer extends React.Component<any, State> {
     };
   }
 
-  guidesConfig(url: string = "") {
+  guidesConfig(url: string = "", intranet: boolean) {
     // if url is undefined we load the complete guide file
+    let bbPrefix;
+    if (intranet) {
+      bbPrefix = "http://wdec005438:8000";
+    } else {
+      bbPrefix = "";
+    }
     if (!url) {
       return {
         name: "Guides",
         desc: "sgRNAs in the exome",
-        bwgURI: "/guides.bb",
+        bwgURI: `${bbPrefix}/guides.bb`,
         style: [
           {
             type: "default",
@@ -280,17 +292,26 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
   }
 
-  _initialSources() {
+  _initialSources(intranet: boolean) {
     const { cellline, guidesUrl, editData } = this.props;
+    let genomeURI, bbPrefix;
+    if (intranet) {
+      genomeURI = "http://wdec005438:8000/hg19.2bit";
+      bbPrefix = "http://wdec005438:8000";
+    } else {
+      genomeURI = "//www.biodalliance.org/datasets/hg19.2bit";
+      bbPrefix = "";
+    }
+
     let sources: Array<any> = [
       {
         name: "Genome",
-        twoBitURI: "//www.biodalliance.org/datasets/hg19.2bit",
+        twoBitURI: genomeURI,
         tier_type: "sequence"
       },
       {
         name: "Canonical transcripts",
-        bwgURI: "/exome.bb",
+        bwgURI: `${bbPrefix}/exome.bb`,
         tier_type: "translation",
         subtierMax: 1,
         // stylesheet_uri: "/gencode.xml",
@@ -311,31 +332,31 @@ export default class SequenceViewer extends React.Component<any, State> {
         ],
         collapseSuperGroups: false
       },
-      this.guidesConfig(guidesUrl),
-      {
-        name: "Genes", // TODO we just use this to show the direction of the gene
-        // style: [
-        //   {
-        //     type: "default",
-        //     style: {
-        //       glyph: "ARROW",
-        //       LABEL: true,
-        //       HEIGHT: "12",
-        //       BGITEM: true,
-        //       STROKECOLOR: "black",
-        //       FGCOLOR: "black"
-        //     }
-        //   }
-        // ],
-        desc: "Gene structures from GENCODE 19",
-        bwgURI: "/exome.bb",
-        stylesheet_uri: "/gencode.xml",
-        collapseSuperGroups: true
-      },
+      this.guidesConfig(guidesUrl, intranet),
+      //{
+      //name: "Genes", // TODO we just use this to show the direction of the gene
+      // style: [
+      //   {
+      //     type: "default",
+      //     style: {
+      //       glyph: "ARROW",
+      //       LABEL: true,
+      //       HEIGHT: "12",
+      //       BGITEM: true,
+      //       STROKECOLOR: "black",
+      //       FGCOLOR: "black"
+      //     }
+      //   }
+      // ],
+      // desc: "Gene structures from GENCODE 19",
+      // bwgURI: "/exome.bb",
+      // stylesheet_uri: "/gencode.xml",
+      // collapseSuperGroups: true
+      // },
       {
         name: "Domains",
         desc: "Domains mapped to gene coordinates",
-        bwgURI: "/domains.bb",
+        bwgURI: `${bbPrefix}/domains.bb`,
         noSourceFeatureInfo: true,
         disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
@@ -359,7 +380,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       {
         name: "PDB",
         desc: "PDBs mapped to gene coordinates",
-        bwgURI: "/pdbs.bb",
+        bwgURI: `${bbPrefix}/pdbs.bb`,
         noSourceFeatureInfo: true,
         disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
@@ -399,8 +420,7 @@ export default class SequenceViewer extends React.Component<any, State> {
     return sources;
   }
 
-  // TODO we can use trix to speed up the browser
-  componentDidMount() {
+  _loadBrowser = (intranet: boolean) => {
     let {
       // const
       chromosome,
@@ -411,7 +431,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       onEditCodonClicked,
       onGuideClicked
     } = this.props;
-
+    this.setState({ intranet });
     let chr = chromosome;
     const padding = Math.floor((geneEnd - geneStart) / 7);
     let browser = new dalliance.Browser({
@@ -427,7 +447,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         version: "37",
         ucscName: "hg19"
       },
-      sources: this._initialSources()
+      sources: this._initialSources(intranet)
     });
     browser.addFeatureHoverListener(
       (event: any, feature: any, hit: any, tier: any) => {
@@ -476,6 +496,11 @@ export default class SequenceViewer extends React.Component<any, State> {
       browser.setLocation(chr, geneStart - padding, geneEnd + padding);
     });
     this.setState({ browser });
+  };
+
+  // TODO we can use trix to speed up the browser
+  componentDidMount() {
+    urlExists("http://wdec005438:8000/hg19.2bit", this._loadBrowser);
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {

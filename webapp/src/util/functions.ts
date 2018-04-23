@@ -203,3 +203,13 @@ export const codonToAA = (codon: string, strand: string = "+") => {
     return "";
   }
 };
+export const urlExists = (url: string , callback: (successful: boolean) => void) => {
+    var http = new XMLHttpRequest();
+    http.open("HEAD", url);
+    http.onreadystatechange = function() {
+        if (this.readyState === this.DONE) {
+            callback(this.status / 100 === 2);
+        }
+    };
+    http.send();
+};

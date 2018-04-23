@@ -41,8 +41,8 @@ def generate_bed_files(skip_generation=False):
     bedfiles = [EXON_BED_FILE, GUIDE_BED_FILE, PDB_BED_FILE, DOMAIN_BED_FILE]
     mutation_bedfiles = glob.glob(MUTATION_BED_FILE.format('*'))
     cns_bedfiles = glob.glob(CNS_BED_FILE.format('*'))
-    bedfiles.extend(mutation_bedfiles)
-    bedfiles.extend(cns_bedfiles)
+    # bedfiles.extend(mutation_bedfiles)
+    # bedfiles.extend(cns_bedfiles)
     for bedfile in bedfiles:  # TODO is bigbed necessary here??
         logging.info(f'Bed->BB for {bedfile}')
         with open(SORTED_TMP_FILE, 'w') as sorted_file:

@@ -272,8 +272,12 @@ def build_gene_document(gene, check_exists=True):
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
         azimuth_score = pd.Series(0, index=guides.index)
     logging.info('calculating pavooc score for {}'.format(gene_id))
-    pavooc_score = pd.Series(pavooc.score(
-        gene_id, guides), index=guides.index, dtype=np.float64)
+    try:
+        pavooc_score = pd.Series(pavooc.score(
+            gene_id, guides), index=guides.index, dtype=np.float64)
+    except ValueError:  # being raised when there are no conservation scores
+        logging.warn(f'No pavooc score for  {gene_id}')
+        pavooc_score = pd.Series(-1, index=guides.index, dtype=np.float64)
 
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)

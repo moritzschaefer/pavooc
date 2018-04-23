@@ -29,6 +29,7 @@ export interface GeneData {
   pdbs: Array<any>;
   exons: Array<Exon>;
   chromosome: string;
+  strand: string;
 }
 
 interface Props {
@@ -112,7 +113,7 @@ class KnockoutViewer extends React.Component<Props, State> {
             Back
           </Button>
           <h2 className="heading">
-            {geneData.gene_symbol}&nbsp; PDB:{" "}
+            {geneData.gene_symbol}&nbsp; Strand: {geneData.strand} PDB:{" "}
             {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
           </h2>
           <div className="topControls">
