@@ -37,6 +37,7 @@ guide_field = fields.Nested(api.model('Guide', {
     'mutations': fields.List(fields.String),
     'scores': fields.Nested(api.model('Score', {
         'azimuth': fields.Float,
+        'pavooc': fields.Float,
         # 'Doench2014OnTarget': fields.Float,
         'Doench2016CFDScore': fields.Float,
         # 'dangerous_GC': fields.String,
