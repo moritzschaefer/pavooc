@@ -108,7 +108,7 @@ export default class GuideLineup extends React.Component<Props, State> {
           <LineUpStringColumnDesc column="start" label="Position" width={60} />
           <LineUpNumberColumnDesc
             label="On target"
-            column="azimuth"
+            column="pavooc"
             domain={[0, 1]}
             color="green"
           />
@@ -124,7 +124,7 @@ export default class GuideLineup extends React.Component<Props, State> {
             <LineUpColumn column="d" />
             <LineUpColumn column="domain" />
             <LineUpWeightedSumColumn label="Scores">
-              <LineUpWeightedColumn column="azimuth" weight={0.6} />
+              <LineUpWeightedColumn column="pavooc" weight={0.6} />
               <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
             </LineUpWeightedSumColumn>
             <LineUpColumn column="start" />
