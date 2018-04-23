@@ -63,10 +63,10 @@ def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5
     return seq
 
 
-def filter_bad_guides(guides, azimuth_score):
+def filter_bad_guides(guides, pavooc_score):
     # delete all guides with scores below 0.47 or with BsaI site or other
     # sequences, that hinder their function
-    delete_indices = guides.index[(azimuth_score < 0.47) |
+    delete_indices = guides.index[(pavooc_score < 0.45) |
                                   (guides.target.str.startswith('GGGGG')) |
                                   (guides.target.str.contains('TTTT')) |
                                   (guides.target.str.contains('GGTCTC')) |
@@ -283,7 +283,7 @@ def build_gene_document(gene, check_exists=True):
     flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
 
-    filter_bad_guides(guides, azimuth_score)
+    filter_bad_guides(guides, pavooc_score)
 
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))

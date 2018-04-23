@@ -439,6 +439,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       viewStart: geneStart - padding,
       viewEnd: geneEnd + padding,
       defaultSubtierMax: 3,
+      disablePoweredBy: true,
 
       coordSystem: {
         speciesName: "Human",

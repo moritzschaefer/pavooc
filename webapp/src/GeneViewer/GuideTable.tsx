@@ -55,7 +55,7 @@ export default class GuideTable extends React.Component<Props, State> {
           {this._renderTarget(guide.target)}
         </TableCell>
         <TableCell>{guide.domains.join()}</TableCell>
-        <TableCell>{guide.scores.azimuth.toFixed(3)}</TableCell>
+        <TableCell>{guide.scores.pavooc.toFixed(3)}</TableCell>
       </TableRow>
     );
   }
@@ -65,7 +65,7 @@ export default class GuideTable extends React.Component<Props, State> {
     // sort, retaining indices
     const sortedGuides = guides.map((guide: Guide, index: number) => [guide, index])
     sortedGuides.sort(function(a: [Guide, number], b: [Guide, number]) {
-      return b[0].scores.azimuth - a[0].scores.azimuth;
+      return b[0].scores.pavooc - a[0].scores.pavooc;
     });
 
     return (
