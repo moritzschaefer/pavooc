@@ -57,6 +57,10 @@ In docker-hub there are automated builds for pavooc and the configured nginx ser
 Default tag is _latest_ and image names are moritzs/pavooc and moritzs/pavooc-nginx
 This speeds up deployment
 
+    docker-compose pull
+    docker-compose build # for nginx
+    docker-compose up -d
+
 ### Manual builds
 It is possible to manually build and push the images using
 
