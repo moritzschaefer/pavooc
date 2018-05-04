@@ -43,7 +43,7 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     # for conservation scores:
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz',
-    'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump',
+    'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump.tar.gz',
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv',  # noqa <- this is the same file as being computed in the pipeline
 ] + ['http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
         'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
@@ -96,6 +96,10 @@ def download_unzip(url, append_postfix=None):
             file_content = gz_file.read()
         with open(os.path.join(DATADIR, download_filename[:-3]), 'wb') as datafile:
             datafile.write(file_content)
+        download_filename = download_filename[:-3]
+
+    if download_filename[-4:] == '.tar':
+        tarfile.TarFile(os.path.join(DATADIR, download_filename).extractall(path=DATADIR)
 
 
 def download_ftp(queue):

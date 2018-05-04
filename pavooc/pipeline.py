@@ -73,14 +73,13 @@ def initialize_db():
     main_downloader()
     generate_raw_chromosomes()
     combine_genome()
-    command:
     result = subprocess.run(
-        ['mongorestore', '--host', 'mongo', '--db', 'db', '--collection',
-            'gene_guides', os.path.join(DATADIR, 'mongodump')],
+        ['mongorestore', '--host', 'mongo', os.path.join(DATADIR, 'dump')],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         raise RuntimeError(
             'Failed restoring mongo: {}'.format(result.stderr))
+    generate_bed_files()
 
 
 def build_db():
