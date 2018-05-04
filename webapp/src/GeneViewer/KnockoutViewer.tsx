@@ -114,7 +114,10 @@ class KnockoutViewer extends React.Component<Props, State> {
           </Button>
           <h2 className="heading">
             {geneData.gene_symbol}&nbsp; Strand: {geneData.strand} PDB:{" "}
-            {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
+            <a href="#" onClick={this._openPdbSelection}>
+              {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
+            </a>
+
           </h2>
           <div className="topControls">
             <CelllineSelector />

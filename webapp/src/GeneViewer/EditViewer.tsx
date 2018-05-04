@@ -490,7 +490,10 @@ class EditViewer extends React.Component<Props, State> {
         </div>
         <h2 className="heading">
           {geneSymbol}&nbsp; Strand: {strand} PDB:{" "}
-          {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
+
+          <a href="#" onClick={this._openPdbSelection}>
+            {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
+          </a>
         </h2>
         <div className="topControls">
           <CelllineSelector />

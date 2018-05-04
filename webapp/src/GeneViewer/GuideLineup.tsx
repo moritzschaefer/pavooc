@@ -103,14 +103,20 @@ export default class GuideLineup extends React.Component<Props, State> {
           highlight={this.props.hoveredGuide}
           sidePanel={false}
         >
-          <LineUpStringColumnDesc column="d" label="Label" width={80} />
-          <LineUpStringColumnDesc column="domain" label="Domain" width={60} />
-          <LineUpStringColumnDesc column="start" label="Position" width={60} />
+          <LineUpStringColumnDesc column="d" label="Label" width={70} />
+          <LineUpStringColumnDesc column="domain" label="Domain" width={90} />
+          {/* <LineUpStringColumnDesc column="start" label="Position" width={70} /> */}
           <LineUpNumberColumnDesc
-            label="On target"
+            label="On target 1"
             column="pavooc"
             domain={[0, 1]}
             color="green"
+          />
+          <LineUpNumberColumnDesc
+            label="On target 2"
+            column="azimuth"
+            domain={[0, 1]}
+            color="blue"
           />
           <LineUpNumberColumnDesc
             label="Off target"
@@ -124,10 +130,11 @@ export default class GuideLineup extends React.Component<Props, State> {
             <LineUpColumn column="d" />
             <LineUpColumn column="domain" />
             <LineUpWeightedSumColumn label="Scores">
-              <LineUpWeightedColumn column="pavooc" weight={0.6} />
+              <LineUpWeightedColumn column="pavooc" weight={0.5} />
+              <LineUpWeightedColumn column="azimuth" weight={0.1} />
               <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
             </LineUpWeightedSumColumn>
-            <LineUpColumn column="start" />
+            {/* <LineUpColumn column="start" /> */}
           </LineUpRanking>
         </LineUp>
       </div>
