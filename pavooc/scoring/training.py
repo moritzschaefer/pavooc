@@ -23,7 +23,7 @@ from pavooc.scoring.feature_extraction import extract_features, \
 from pavooc.scoring.azimuth_dataset import load_dataset
 from pavooc.scoring.dataloader import DataLoader
 from pavooc.config import BATCH_SIZE, WEIGHTS_DIR, \
-    CONSERVATION_FEATURES_FILE, SCALER_FILE
+    CONSERVATION_FEATURES_FILE, SCALER_FILE, DATADIR
 
 if cuda.is_available():
     import torch.backends.cudnn as cudnn
@@ -283,4 +283,4 @@ def generate_final_model():
         normalized_features, y, validation_fold, CNN38,
         0.003, nn.MSELoss(), 10000, tensorboard_experiment)
 
-    # TODO save this model
+    torch.save(model.state_dict(), os.path.join(DATADIR, 'cnn38.torch'))

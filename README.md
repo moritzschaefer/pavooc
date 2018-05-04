@@ -1,7 +1,10 @@
 # PAVOOC
 
-Prediction and visualization of on- and off-targets for CRISPR
-Most of the code is hg19 related. hg38 is used to be compliant with the azimuth dataset.
+*Prediction and visualization of on- and off-targets for CRISPR*
+
+**CONTRIBUTIONS welcome**: The software should be easy to set up and work with on your local machine. If you have feature requests, file an issue (along with ideas on how to realize it).
+
+The platform is based on hg19. hg38 is used only for the model generation to be in sync with the azimuth dataset.
 
 # Run it
 
@@ -11,7 +14,8 @@ runs everything required to get you started. Additionally there is a docker-envi
 
     docker-compose up
 
-TODO: training needs installation of cuda pytorch if GPU are being used
+Note: training requires installation of cuda pytorch if GPUs are being used
+Note 2: By default a dump of the database is used to initialize all required data. To compute everything by scratch (probably takes several days), use the ONLY_INIT=0 environment variable (see pipeline.py and docker-compose.yml)
 
 # Conventions
 
@@ -84,17 +88,8 @@ eval $(docker-machine env machine-name)
 then simply run
 docker-compose up
 
-## Swarm
+# Future work
 
-Alternatively Docker Swarm can be used.
-A swarm is created the easiest way via the docker cloud web interface
+## exon expressions
 
-    https://cloud.docker.com/swarm/moritzs/swarm/wizard
-
-Clicking on the created swarm reveals a command to connect to the swarm, e.g.:
-
-    docker run --rm -ti -v /var/run/docker.sock:/var/run/docker.sock -e DOCKER_HOST dockercloud/client moritzs/swarm1
-
-then just run swarm commands to deploy
-
-    docker stack deploy -c docker-compose.yml
+GUIDES (http://guides.sanjanalab.org/) offers a nice way of considering exon expressions. It would be nice and easy to add an expression level to guides in the table in the GeneViewer table.

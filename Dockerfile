@@ -2,7 +2,7 @@ FROM python:3
 
 RUN sh -c 'curl -sL https://deb.nodesource.com/setup_8.x | bash -'
 RUN apt-get update
-RUN apt-get install -y nodejs
+RUN apt-get install -y nodejs mongodb-clients
 
 # install java8 with webupd8 repository
 RUN \

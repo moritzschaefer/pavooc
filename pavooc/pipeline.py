@@ -9,6 +9,7 @@ from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
     DOMAIN_BED_FILE
 from pavooc.data_integration.downloader import main as main_downloader
 from pavooc.preprocessing.preprocessing import main as main_preprocessing
+from pavooc.preprocessing.preprocessing import generate_raw_chromosomes, combine_genome
 from pavooc.preprocessing.prepare_flashfry import main as main_ff
 # from pavooc.preprocessing.sgrna_finder import main as main_sgrna
 from pavooc.preprocessing.exon_guide_search import main as main_guide_search
@@ -22,7 +23,8 @@ from pavooc.preprocessing.generate_guide_bed import main as generate_guide_bed
 from pavooc.preprocessing.generate_snp_bed import main as generate_snp_bed
 from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
 from pavooc.preprocessing.generate_domain_bed import main as \
-        generate_domain_bed
+    generate_domain_bed
+from pavooc.scoring.training import generate_final_model
 
 logging.basicConfig(level=logging.INFO)
 
@@ -57,15 +59,35 @@ def generate_bed_files(skip_generation=False):
                      CHROM_SIZES_FILE, '{}.bb'.format(base)]
         if bedfile == EXON_BED_FILE:
             arguments.extend(
-                ["-as=pavooc/preprocessing/bigGenePred.as", "-type=bed12+8"])
+                ['-as=pavooc/preprocessing/bigGenePred.as', '-type=bed12+8'])
         result = subprocess.run(arguments, stderr=subprocess.PIPE)
         if result.returncode != 0:
             raise RuntimeError('{} failed for some reason: {}'.format(
                 BIG_BED_EXE, result.stderr))
 
 
-# TODO add model training
-if __name__ == "__main__":
+def initialize_db():
+    '''
+    This is the quick way, that downloads all preprocessed data and inserts it in the DB
+    '''
+    main_downloader()
+    generate_raw_chromosomes()
+    combine_genome()
+    command:
+    result = subprocess.run(
+        ['mongorestore', '--host', 'mongo', '--db', 'db', '--collection',
+            'gene_guides', os.path.join(DATADIR, 'mongodump')],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise RuntimeError(
+            'Failed restoring mongo: {}'.format(result.stderr))
+
+
+def build_db():
+    '''
+    This is the long way, that downloads all raw data and computes all necessary data
+    to then insert it into mongoDB
+    '''
     main_downloader()
     main_preprocessing()
     main_extract_conservation_scores()
@@ -73,4 +95,13 @@ if __name__ == "__main__":
     main_guide_search()  # ff search
     main_guides_to_db()
     generate_bed_files()
+    generate_final_model()
     print('finished pipeline')
+
+
+if __name__ == '__main__':
+    if os.environ.get('ONLY_INIT', 'True') in \
+            ['True', 'true', '1', 'y', 'yes', 't']:
+        initialize_db()
+    else:
+        build_db()
