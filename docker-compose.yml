@@ -48,8 +48,8 @@ services:
     image: moritzs/pavooc:latest
     # build: .
     environment:
-      JAVA_RAM: '12'
-      COMPUTATION_CORES: '12'
+      JAVA_RAM: '4'
+      COMPUTATION_CORES: '1'
       MONGO_HOST: "mongo:27017"
       DEBUG: 0
     command: ["python", "-m", "pavooc.pipeline"]
