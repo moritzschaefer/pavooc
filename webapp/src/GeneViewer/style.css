@@ -110,8 +110,11 @@
 
 .guideTable {
   display: grid;
-  width: 530px;
+  width: 535px;
   margin: 3px;
+}
+.lu-row > div {
+  overflow-y: hidden;
 }
 
 .lu-wrapper {
