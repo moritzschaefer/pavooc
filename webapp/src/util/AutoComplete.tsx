@@ -6,14 +6,11 @@ import { MenuItem } from "material-ui/Menu";
 import TextField from "material-ui/TextField";
 import "./AutoComplete.css";
 
-
 interface Props {
   onSelect: ((selected: string) => boolean) | undefined;
   dataSource: Map<string, string>;
   dataSourceReverse: Map<string, string> | undefined;
   floatingLabelText: string;
-  openOnFocus: boolean;
-  deleteOnSelect: boolean;
   onMessage: ((message: string) => {}) | null;
 }
 
@@ -72,12 +69,15 @@ export default class AutoComplete extends React.Component<Props, State> {
     inputValue: string;
     highlightedIndex: number | undefined;
   }) => {
-    const { onSelect, deleteOnSelect, onMessage } = this.props;
+    const { onSelect, onMessage, dataSource } = this.props;
+    const { menuIsOpen } = this.state;
     if (typeof inputValue !== "string") {
       if (typeof highlightedIndex === "undefined") {
         this.setState({ menuIsOpen: false });
       }
       return;
+    } else if (!menuIsOpen) {
+      this.setState({ menuIsOpen: true });
     }
     if (!onSelect) {
       this.setState({ inputValue });
@@ -93,11 +93,13 @@ export default class AutoComplete extends React.Component<Props, State> {
       // results = [for (let v of results) v.trim()];
     } else {
       const key = this.getKeyForInput(upperInput);
-      if (key) {
+      if (
+        key &&
+        Array.from(dataSource.values()).filter((gene: string) =>
+          gene.includes(upperInput)
+        ).length <= 1
+      ) {
         this.onChange(key, undefined);
-        if (!deleteOnSelect) {
-          this.setState({ inputValue });
-        }
       } else {
         // this is the usual case
         this.setState({ inputValue });
@@ -126,7 +128,7 @@ export default class AutoComplete extends React.Component<Props, State> {
           `Added ${added} genes. ${duplicate} already selected, ${invalid} unrecognized.`
         );
       }
-      if (added > 0 && deleteOnSelect) {
+      if (added > 0) {
         // TODO use Toast
         this.setState({ inputValue: "" });
       } else {
@@ -136,20 +138,20 @@ export default class AutoComplete extends React.Component<Props, State> {
   };
 
   onChange = (selected: any, stateAndHelpers: object | undefined) => {
-    const { onSelect, deleteOnSelect } = this.props;
+    const { onSelect } = this.props;
+    console.log("onChange fired");
     this.setState({ menuIsOpen: false });
-    if (onSelect) { // TODO onSelect is called twice :/
+    if (onSelect) {
+      // TODO onSelect is called twice :/
       onSelect(selected);
-      if (deleteOnSelect) {
-        this.setState({ inputValue: "" });
-      }
+      this.setState({ inputValue: "" });
     }
   };
 
   render() {
     // onOuterClick={() => this.setState({menuIsOpen: false})}
     // TODO support lowercase
-    const { dataSource, floatingLabelText, openOnFocus } = this.props;
+    const { dataSource, floatingLabelText } = this.props;
     const { inputValue, menuIsOpen } = this.state;
     return (
       <Downshift
@@ -171,8 +173,7 @@ export default class AutoComplete extends React.Component<Props, State> {
                 inputProps={getInputProps()}
                 label={floatingLabelText}
                 value={inputValue || undefined}
-                onFocusCapture={() =>
-                  this.setState({ menuIsOpen: openOnFocus || menuIsOpen })}
+                onFocusCapture={() => this.setState({ menuIsOpen: true })}
               />
               {menuIsOpen ? (
                 <Paper className="suggestionContainer">

@@ -4,6 +4,7 @@ import Radio, { RadioGroup } from "material-ui/Radio";
 import { FormControlLabel } from "material-ui/Form";
 import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
+
 import "./Form.css";
 import CelllineSelector from "../util/CelllineSelector";
 import { observable } from "mobx";
@@ -135,8 +136,6 @@ export default class Form extends React.Component<Props, State> {
         </RadioGroup>
         <AutoComplete
           floatingLabelText="Genes"
-          deleteOnSelect={true}
-          openOnFocus={true}
           dataSource={genes}
           dataSourceReverse={reversedGenes}
           onSelect={this.addGene}
