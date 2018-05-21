@@ -1,7 +1,7 @@
 import * as React from "react";
 import * as dalliance from "dalliance";
 // import shallowCompare from "react-addons-shallow-compare";
-import { codonToAA, arraysEqual, urlExists } from "../util/functions";
+import { codonToAA, arraysEqual } from "../util/functions";
 
 export interface SeqEditData {
   start: number;
@@ -434,6 +434,11 @@ export default class SequenceViewer extends React.Component<any, State> {
       },
       sources: this._initialSources()
     });
+    // workaround: Dalliance automatically adds locally stored sources..
+    let editSource = browser.sources.findIndex((source: any) => source.name === EDIT_CONFIG_NAME);
+    if (typeof editSource !== "undefined" ) {
+      browser.sources.splice(editSource, 1);
+    }
     browser.addFeatureHoverListener(
       (event: any, feature: any, hit: any, tier: any) => {
         if (tier.dasSource.name === "Guides") {
@@ -485,7 +490,7 @@ export default class SequenceViewer extends React.Component<any, State> {
 
   // TODO we can use trix to speed up the browser
   componentDidMount() {
-    urlExists("http://wdec005438:8000/hg19.2bit", this._loadBrowser);
+    this._loadBrowser();
   }
 
   shouldComponentUpdate(nextProps: Props, nextState: State) {
