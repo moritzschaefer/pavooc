@@ -436,7 +436,7 @@ export default class SequenceViewer extends React.Component<any, State> {
     });
     // workaround: Dalliance automatically adds locally stored sources..
     let editSource = browser.sources.findIndex((source: any) => source.name === EDIT_CONFIG_NAME);
-    if (typeof editSource !== "undefined" ) {
+    if (editSource >= 0) {
       browser.sources.splice(editSource, 1);
     }
     browser.addFeatureHoverListener(
