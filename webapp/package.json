@@ -16,17 +16,16 @@
     "element-resize-event": "^2.0.9",
     "history": "^4.7.2",
     "jquery": "^3.2.1",
-    "lineupjs": "next",
-    "lineupjsx": "next",
+    "lineupjsx": "^1.0.0-beta.12",
     "material-ui": "^1.0.0-beta.16",
     "material-ui-icons": "^1.0.0-beta.15",
     "mobx": "^3.6.1",
     "mobx-react": "^4.4.2",
     "ngl": "^0.10.4",
     "pileup": "^0.6.8",
-    "react": "^16.0.0",
+    "react": "^16.3.2",
     "react-addons-shallow-compare": "^15.6.2",
-    "react-dom": "^16.0.0",
+    "react-dom": "^16.3.2",
     "react-redux": "^5.0.6",
     "react-router": "^4.2.0",
     "react-router-dom": "^4.2.2",
@@ -49,10 +48,10 @@
   "devDependencies": {
     "@types/jest": "^21.1.2",
     "@types/node": "^8.0.34",
-    "@types/react": "^16.0.10",
-    "@types/react-dom": "^16.0.1",
+    "@types/react": "^16.3.14",
+    "@types/react-dom": "^16.0.5",
     "prettier": "1.7.4",
     "tslint-config-prettier": "^1.6.0",
-    "typescript": "^2.6.1"
+    "typescript": "^2.8.3"
   }
 }
