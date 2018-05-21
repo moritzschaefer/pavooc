@@ -139,7 +139,6 @@ export default class AutoComplete extends React.Component<Props, State> {
 
   onChange = (selected: any, stateAndHelpers: object | undefined) => {
     const { onSelect } = this.props;
-    console.log("onChange fired");
     this.setState({ menuIsOpen: false });
     if (onSelect) {
       // TODO onSelect is called twice :/

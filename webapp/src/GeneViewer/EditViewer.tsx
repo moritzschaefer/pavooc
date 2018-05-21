@@ -337,8 +337,14 @@ class EditViewer extends React.Component<Props, State> {
     if (!editedSequence) {
       return "";
     }
+    // need to use try catch because editedSequence takes some time to update..
+    let sequenceStart;
+    try {
+      sequenceStart = this._editPosition() - padding;
+    } catch (e) {
+      return "";
+    }
 
-    const sequenceStart = this._editPosition() - padding;
     const inSequencePosition = editCodonPosition - sequenceStart;
     const editedCodon = editedSequence.slice(
       inSequencePosition,

@@ -33,7 +33,6 @@ class KnockoutList extends React.Component<Props, object> {
     this.updateGuideSelection(this.props.guideCount);
   }
 
-
   updateGuideSelection(guideCount: number) {
     const { knockoutData } = this.props;
     // select all top-guides where no editing has occured before
@@ -43,17 +42,18 @@ class KnockoutList extends React.Component<Props, object> {
         continue;
       }
 
-      const sortedGuides = guidesWithDomains(gene).map((guide: any, index: number) => [
-        guide,
-        index
-      ]);
+      const sortedGuides = guidesWithDomains(
+        gene
+      ).map((guide: any, index: number) => [guide, index]);
       sortedGuides.sort(function(a: [any, number], b: [any, number]) {
         // domain gives a bonus of 0.1
-        let bScore =  (b[0].scores.pavooc * 0.6 + b[0].scores.Doench2016CFDScore * 0.4);
+        let bScore =
+          b[0].scores.pavooc * 0.6 + (1 - b[0].scores.Doench2016CFDScore) * 0.4;
         if (b[0].domains.length > 0) {
           bScore += 0.1;
         }
-        let aScore = (a[0].scores.pavooc * 0.6 + a[0].scores.Doench2016CFDScore * 0.4);
+        let aScore =
+          a[0].scores.pavooc * 0.6 + (1 - a[0].scores.Doench2016CFDScore) * 0.4;
         if (a[0].domains.length > 0) {
           aScore += 0.1;
         }
@@ -177,7 +177,8 @@ class KnockoutList extends React.Component<Props, object> {
               <Button
                 raised={true}
                 style={{ flex: 1, margin: 10 }}
-                onClick={() => downloadCSV(this.props.knockoutData, "pavoocKnockout.csv")}
+                onClick={() =>
+                  downloadCSV(this.props.knockoutData, "pavoocKnockout.csv")}
               >
                 &darr; CSV
               </Button>
@@ -214,7 +215,7 @@ const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
   push: (route: string) => dispatch(push(route)),
   setGuideCount: (guideCount: number) => dispatch(setGuideCount(guideCount)),
   toggleGuideSelection: (geneId: string, guideIndex: number) =>
-    dispatch(toggleGuideSelection(geneId, guideIndex))
+    dispatch(toggleGuideSelection(geneId, guideIndex, false))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(KnockoutList);

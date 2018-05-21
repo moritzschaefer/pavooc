@@ -168,12 +168,14 @@ export interface ToggleGuideSelection {
   type: typeof t.TOGGLE_GUIDE_SELECTION;
   geneId: string;
   guideIndex: number;
+  setGeneEdited: boolean;
 }
 
-export const toggleGuideSelection = (geneId: string, guideIndex: number): ToggleGuideSelection => ({
+export const toggleGuideSelection = (geneId: string, guideIndex: number, setGeneEdited: boolean = true): ToggleGuideSelection => ({
   type: t.TOGGLE_GUIDE_SELECTION,
   geneId,
-  guideIndex
+  guideIndex,
+  setGeneEdited
 });
 
 export interface MarkGeneEdit {

@@ -40,7 +40,9 @@ export default class GuideLineup extends React.Component<Props, State> {
       d: `Guide ${index}`,
       domain: guide.domains ? guide.domains.join(",") : "",
       start: guide.start,
-      ...guide.scores
+      ...{...guide.scores,
+        Doench2016CFDScore: 1 - guide.scores.Doench2016CFDScore
+      }
     }));
   }
 
@@ -119,7 +121,7 @@ export default class GuideLineup extends React.Component<Props, State> {
             color="blue"
           />
           <LineUpNumberColumnDesc
-            label="Off target"
+            label="Off target (inverted)"
             column="Doench2016CFDScore"
             domain={[0, 1]}
             color="red"
