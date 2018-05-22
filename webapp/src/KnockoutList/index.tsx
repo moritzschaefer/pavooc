@@ -26,6 +26,7 @@ export interface Props {
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
   push: (route: string) => {};
   knockoutData: Array<any>;
+  cellline: string;
 }
 
 class KnockoutList extends React.Component<Props, object> {
@@ -34,7 +35,7 @@ class KnockoutList extends React.Component<Props, object> {
   }
 
   updateGuideSelection(guideCount: number) {
-    const { knockoutData } = this.props;
+    const { knockoutData, cellline } = this.props;
     // select all top-guides where no editing has occured before
     for (let gene of knockoutData) {
       // Make sure we don't erase selection edits by the user
@@ -60,15 +61,19 @@ class KnockoutList extends React.Component<Props, object> {
         return bScore - aScore;
       });
       // enable first <guideCount> guides
+      let selectedGuides = 0;
       for (let [guide, index] of sortedGuides.slice(0, guideCount)) {
-        if (!guide.selected) {
-          this.props.toggleGuideSelection(gene.gene_id, index);
-        }
-      }
-      // disable the guides after <guideCount>
-      for (let [guide, index] of sortedGuides.slice(guideCount)) {
-        if (guide.selected) {
-          this.props.toggleGuideSelection(gene.gene_id, index);
+        if (selectedGuides < guideCount) {
+          if (!guide.mutations.includes(cellline)) {
+            if (!guide.selected) {
+              this.props.toggleGuideSelection(gene.gene_id, index);
+            }
+            selectedGuides++;
+          }
+        } else {
+          if (guide.selected) {
+            this.props.toggleGuideSelection(gene.gene_id, index);
+          }
         }
       }
     }
@@ -197,6 +202,7 @@ const mapStateToProps = (state: any) => {
   // Filter guides for mutations within the selected cellline
   return {
     guideCount: state.knockoutList.guideCount,
+    cellline: state.app.cellline,
     knockoutData: state.io.knockoutData.map((gene: any) => {
       let filteredGuides = gene.guides.filter(
         (guide: any) => !guide.mutations.includes(state.app.cellline)
@@ -204,7 +210,6 @@ const mapStateToProps = (state: any) => {
       return {
         ...gene,
         cns: gene.cns.includes(state.app.cellline),
-        guides: filteredGuides,
         filterCount: gene.guides.length - filteredGuides.length
       };
     })

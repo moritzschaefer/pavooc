@@ -172,12 +172,7 @@ const mapStateToProps = (
   let geneData = state.io.knockoutData.find((v: any) => v.gene_id === geneId);
   return {
     cellline: state.app.cellline,
-    geneData: {
-      ...geneData,
-      guides: geneData.guides.filter(
-        (guide: any) => !guide.mutations.includes(state.app.cellline) // TODO this filter destroys important indices!!
-      )
-    },
+    geneData,
     geneId
   };
 };

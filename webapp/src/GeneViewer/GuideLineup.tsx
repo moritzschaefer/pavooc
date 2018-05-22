@@ -5,6 +5,7 @@ import {
   LineUp,
   LineUpStringColumnDesc,
   LineUpNumberColumnDesc,
+  LineUpCategoricalColumnDesc,
   LineUpRanking,
   LineUpColumn,
   LineUpWeightedSumColumn,
@@ -17,6 +18,7 @@ interface Guide {
   selected: boolean;
   scores: any;
   domains: Array<string>;
+  mutations: Array<string>;
   start: number;
 }
 
@@ -35,10 +37,12 @@ interface Props {
 }
 
 export default class GuideLineup extends React.Component<Props, State> {
+
   _tableArray() {
     return this.props.guides.map((guide: Guide, index: number) => ({
       d: `Guide ${index}`,
       domain: guide.domains ? guide.domains.join(",") : "",
+      affected: guide.mutations.includes(this.props.cellline) ? "yes" : "no",
       start: guide.start,
       ...{...guide.scores,
         Doench2016CFDScore: 1 - guide.scores.Doench2016CFDScore
@@ -93,6 +97,12 @@ export default class GuideLineup extends React.Component<Props, State> {
               highlight === -1 ? undefined : highlight
             );
 
+
+  guideMutationExists(): boolean  {
+    const { guides, cellline } = this.props;
+    return guides.some((guide: any) => guide.mutations.includes(cellline));
+  }
+
   render() {
     return (
       <div className={this.props.className}>
@@ -106,8 +116,14 @@ export default class GuideLineup extends React.Component<Props, State> {
           sidePanel={false}
         >
           <LineUpStringColumnDesc column="d" label="Label" width={70} />
-          <LineUpStringColumnDesc column="domain" label="Domain" width={90} />
+          <LineUpCategoricalColumnDesc column="domain" label="Domain" width={90} />
           {/* <LineUpStringColumnDesc column="start" label="Position" width={70} /> */}
+          <LineUpCategoricalColumnDesc
+            label="SNV affected"
+            column="affected"
+            color="orange"
+            width={70}
+          />
           <LineUpNumberColumnDesc
             label="On target 1"
             column="pavooc"
@@ -137,6 +153,10 @@ export default class GuideLineup extends React.Component<Props, State> {
               <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
             </LineUpWeightedSumColumn>
             {/* <LineUpColumn column="start" /> */}
+            { this.guideMutationExists() ?
+              <LineUpColumn column="affected"/> : null
+            }
+
           </LineUpRanking>
         </LineUp>
       </div>
