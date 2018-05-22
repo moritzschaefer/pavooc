@@ -183,7 +183,13 @@ class KnockoutList extends React.Component<Props, object> {
                 raised={true}
                 style={{ flex: 1, margin: 10 }}
                 onClick={() =>
-                  downloadCSV(this.props.knockoutData, "pavoocKnockout.csv")}
+                  downloadCSV(
+                    this.props.knockoutData.map((geneData: any) => ({
+                      ...geneData,
+                      guides: guidesWithDomains(geneData)
+                    })),
+                    "pavoocKnockout.csv"
+                  )}
               >
                 &darr; CSV
               </Button>

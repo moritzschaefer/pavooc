@@ -20,12 +20,13 @@ export const downloadCSV = (
           gene_id: gene.gene_id,
           exon_id: guide.exon_id,
           target: guide.target,
+          domain: guide.domains[0] || "",
           on_target_score: guide.scores.pavooc,
           off_target_score: guide.scores.Doench2016CFDScore,
           start: guide.start,
           cut_position: guide.cut_position,
           aa_cut_position: guide.aa_cut_position,
-          otCount: guide.otCount,
+          // otCount: guide.otCount, // this is just disturbing..
           orientation: guide.orientation
         }))
     )
