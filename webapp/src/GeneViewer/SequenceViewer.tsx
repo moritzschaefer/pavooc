@@ -104,7 +104,11 @@ export default class SequenceViewer extends React.Component<any, State> {
           (tier: any) => tier.dasSource.name === EDIT_CONFIG_NAME
         );
         // delete prevprops.editData
-        browser.removeTier(oldEdit);
+        try {
+          browser.removeTier(oldEdit);
+        } catch (e) {
+          /* handle error */
+        }
       }
       if (newEdit) {
         browser.addTier(newEdit);
@@ -113,28 +117,40 @@ export default class SequenceViewer extends React.Component<any, State> {
 
     if (prevProps.cellline !== cellline || prevProps.guidesUrl !== guidesUrl) {
       let oldCns = this.cnsConfig(prevProps.cellline);
-      let oldSnp = this.snpConfig(prevProps.cellline);
+      let oldSnv = this.snvConfig(prevProps.cellline);
 
       let newCns = this.cnsConfig(cellline);
-      let newSnp = this.snpConfig(cellline);
+      let newSnv = this.snvConfig(cellline);
 
       if (oldCns) {
-        browser.removeTier(oldCns);
+        try {
+          browser.removeTier(oldCns);
+        } catch (e) {
+          /* handle error */
+        }
       }
-      if (oldSnp) {
-        browser.removeTier(oldSnp);
+      if (oldSnv) {
+        try {
+          browser.removeTier(oldSnv);
+        } catch (e) {
+          /* handle error */
+        }
       }
 
       if (newCns) {
         browser.addTier(newCns);
       }
-      if (newSnp) {
-        browser.addTier(newSnp);
+      if (newSnv) {
+        browser.addTier(newSnv);
       }
     }
 
     if (prevProps.guidesUrl !== guidesUrl) {
-      browser.removeTier(this.guidesConfig(prevProps.guidesUrl));
+      try {
+        browser.removeTier(this.guidesConfig(prevProps.guidesUrl));
+      } catch (e) {
+        /* handle error */
+      }
       browser.addTier(this.guidesConfig(guidesUrl));
     }
 
@@ -203,14 +219,14 @@ export default class SequenceViewer extends React.Component<any, State> {
     };
   }
 
-  snpConfig(cellline: string) {
+  snvConfig(cellline: string) {
     const { guides } = this.props;
     // only show BED if it exists
     if (!guides.find((g: any) => g.mutations.includes(cellline))) {
       return undefined;
     }
     return {
-      name: `${cellline} SNPs`,
+      name: `${cellline} SNVs`,
       desc: `mutations for cellline ${cellline}`,
       uri: `/celllines/${cellline}_mutations.bed`,
       tier_type: "memstore",
@@ -393,9 +409,9 @@ export default class SequenceViewer extends React.Component<any, State> {
       sources.push(cnsConfig);
     }
 
-    let snpConfig = this.snpConfig(cellline);
-    if (snpConfig) {
-      sources.push(snpConfig);
+    let snvConfig = this.snvConfig(cellline);
+    if (snvConfig) {
+      sources.push(snvConfig);
     }
     let editConfig = this.editConfig(editData);
     if (editConfig) {
