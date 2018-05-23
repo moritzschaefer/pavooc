@@ -122,7 +122,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         browser.removeTier(oldCns);
       }
       if (oldSnp) {
-        browser.removeTier(oldCns);
+        browser.removeTier(oldSnp);
       }
 
       if (newCns) {
