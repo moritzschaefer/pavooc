@@ -4,6 +4,7 @@ import Radio, { RadioGroup } from "material-ui/Radio";
 import { FormControlLabel } from "material-ui/Form";
 import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
+import CircularProgress from "material-ui/Progress/CircularProgress";
 
 import "./Form.css";
 import CelllineSelector from "../util/CelllineSelector";
@@ -18,6 +19,7 @@ export interface Props {
   className: string;
   onMessage: (message: string) => {};
   cellline: string;
+  isFetching: boolean;
 }
 
 export interface State {
@@ -93,7 +95,7 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { genes, className, onMessage, cellline } = this.props;
+    const { genes, className, onMessage, cellline, isFetching } = this.props;
     const { experimentType, editGene } = this.state;
     let classes = "initialForm ";
     if (className) {
@@ -160,7 +162,12 @@ export default class Form extends React.Component<Props, State> {
           raised={true}
           className="formButton"
         >
+          <div>
           Go
+          </div>
+          <div style={{position: "absolute"}}>
+          {isFetching && <CircularProgress size={32}/>}
+          </div>
         </Button>
       </div>
     );

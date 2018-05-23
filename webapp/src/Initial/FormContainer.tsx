@@ -7,7 +7,8 @@ import { connect } from 'react-redux';
 export function mapStateToProps(state: any) {
   return {
     genes: state.io.genes,
-    cellline: state.app.cellline
+    cellline: state.app.cellline,
+    isFetching: state.io.isFetching
   }
 }
 
