@@ -359,7 +359,6 @@ export default class SequenceViewer extends React.Component<any, State> {
         desc: "Domains mapped to gene coordinates",
         bwgURI: "/domains.bb",
         noSourceFeatureInfo: true,
-        disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
         subtierMax: 2,
         style: [
@@ -383,7 +382,6 @@ export default class SequenceViewer extends React.Component<any, State> {
         desc: "PDBs mapped to gene coordinates",
         bwgURI: "/pdbs.bb",
         noSourceFeatureInfo: true,
-        disableDefaultFeaturePopup: true,
         featureInfoPlugin: this._test,
         subtierMax: 2,
         style: [
@@ -440,7 +438,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       viewEnd: geneEnd + padding,
       defaultSubtierMax: 3,
       disablePoweredBy: true,
-
+      disableDefaultFeaturePopup: true,
       coordSystem: {
         speciesName: "Human",
         taxon: 9606,
