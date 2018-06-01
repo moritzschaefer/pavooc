@@ -128,7 +128,7 @@ export default class Form extends React.Component<Props, State> {
   }
 
   render() {
-    const { genes, className, onMessage, cellline, isFetching } = this.props;
+    const { genes, className, onMessage, isFetching } = this.props;
     const { experimentType, editGene } = this.state;
     let classes = "initialForm ";
     if (className) {
@@ -189,7 +189,6 @@ export default class Form extends React.Component<Props, State> {
         <Button
           onClick={this._goButtonClick}
           disabled={
-            !cellline ||
             ((experimentType === "knockout" && !this.geneSelection.size) ||
             (experimentType === "edit" && editGene[0] === ""))
           }

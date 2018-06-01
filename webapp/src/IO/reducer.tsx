@@ -26,9 +26,8 @@ export interface Gene {
 
 const INITIAL_EDIT_DATA = {
   guidesBefore: [],
-  guidesAfter: [],
-}
-
+  guidesAfter: []
+};
 
 const INITIAL_STATE: State = {
   isFetching: false,
@@ -38,7 +37,7 @@ const INITIAL_STATE: State = {
   detailsData: {},
   genes: new Map<string, string>(),
   celllines: [],
-  guideCount: 5,
+  guideCount: 5
 };
 
 export default (state: State = INITIAL_STATE, action: any) => {
@@ -53,31 +52,45 @@ export default (state: State = INITIAL_STATE, action: any) => {
         isFetching: false,
         error: undefined,
         knockoutData: action.data.map((gene: any) => {
+          if (action.edit) {
+            return {
+              ...gene,
+              guides: gene.guides.map((guide: any, index: number) => ({
+                ...guide,
+                selected: false
+              }))
+            };
+          }
           const sortedGuides = guidesWithDomains(
             gene
           ).map((guide: any, index: number) => [guide, index]);
           sortedGuides.sort(function(a: [any, number], b: [any, number]) {
             // domain gives a bonus of 0.1
             let bScore =
-              b[0].scores.pavooc * 0.6 + (1 - b[0].scores.Doench2016CFDScore) * 0.4;
+              b[0].scores.pavooc * 0.6 +
+              (1 - b[0].scores.Doench2016CFDScore) * 0.4;
             if (b[0].domains.length > 0) {
               bScore += 0.1;
             }
             let aScore =
-              a[0].scores.pavooc * 0.6 + (1 - a[0].scores.Doench2016CFDScore) * 0.4;
+              a[0].scores.pavooc * 0.6 +
+              (1 - a[0].scores.Doench2016CFDScore) * 0.4;
             if (a[0].domains.length > 0) {
               aScore += 0.1;
             }
             return bScore - aScore;
           });
-          let selectedGuideIndices = sortedGuides.slice(0, state.guideCount).map(([guide, index]: [any, number]) => index);
+          let selectedGuideIndices = sortedGuides
+            .slice(0, state.guideCount)
+            .map(([guide, index]: [any, number]) => index);
 
           return {
-          ...gene,
-          guides: gene.guides.map((guide: any, index: number) => ({
-            ...guide,
-            selected: selectedGuideIndices.includes(index)
-          }))};
+            ...gene,
+            guides: gene.guides.map((guide: any, index: number) => ({
+              ...guide,
+              selected: selectedGuideIndices.includes(index)
+            }))
+          };
         })
       };
     case t.FETCH_KNOCKOUTS_FAILURE:
@@ -94,7 +107,12 @@ export default (state: State = INITIAL_STATE, action: any) => {
     case t.FETCH_DETAILS_FAILURE:
       return { ...state, isFetching: false, error: action.error };
     case t.FETCH_EDIT:
-      return { ...state, isFetching: true, error: undefined, editData: INITIAL_EDIT_DATA };
+      return {
+        ...state,
+        isFetching: true,
+        error: undefined,
+        editData: INITIAL_EDIT_DATA
+      };
     case t.FETCH_EDIT_SUCCESS:
       return {
         ...state,
@@ -175,7 +193,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
       return {
         ...state,
         knockoutData: state.knockoutData.map((gene: any) => ({
-          ...gene,
+          ...gene
         }))
       };
     default:
