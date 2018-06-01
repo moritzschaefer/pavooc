@@ -23,7 +23,6 @@ import Loading from "./util/Loading";
 
 import IOEpic from "./IO/epic";
 import IOReducer from "./IO/reducer";
-import KnockoutListReducer from "./KnockoutList/reducer";
 import MessagesReducer from "./Messages/reducer";
 import AppReducer from "./App/reducer";
 
@@ -37,7 +36,6 @@ const rootReducer = combineReducers({
   io: IOReducer,
   messages: MessagesReducer,
   app: AppReducer,
-  knockoutList: KnockoutListReducer,
 });
 
 const epics = combineEpics(IOEpic);

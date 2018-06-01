@@ -3,12 +3,7 @@ import { push } from "react-router-redux";
 import { Link } from "react-router-dom";
 import { connect } from "react-redux";
 import Button from "material-ui/Button";
-import Select from "material-ui/Select";
-import Input, { InputLabel } from "material-ui/Input";
-import { MenuItem } from "material-ui/Menu";
-import { setGuideCount } from "./actions";
 import { toggleGuideSelection } from "../IO/actions";
-import { FormControl } from "material-ui/Form";
 import CelllineSelector from "../util/CelllineSelector";
 import Table, {
   TableBody,
@@ -21,8 +16,6 @@ import "./style.css";
 import { downloadCSV, guidesWithDomains } from "../util/functions";
 
 export interface Props {
-  guideCount: number;
-  setGuideCount: (guideCount: number) => {};
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
   push: (route: string) => {};
   knockoutData: Array<any>;
@@ -31,82 +24,6 @@ export interface Props {
 
 class KnockoutList extends React.Component<Props, object> {
   componentDidMount() {
-    this.updateGuideSelection(this.props.guideCount);
-  }
-
-  updateGuideSelection(guideCount: number) {
-    const { knockoutData, cellline } = this.props;
-    // select all top-guides where no editing has occured before
-    for (let gene of knockoutData) {
-      // Make sure we don't erase selection edits by the user
-      if (gene.edited) {
-        continue;
-      }
-
-      const sortedGuides = guidesWithDomains(
-        gene
-      ).map((guide: any, index: number) => [guide, index]);
-      sortedGuides.sort(function(a: [any, number], b: [any, number]) {
-        // domain gives a bonus of 0.1
-        let bScore =
-          b[0].scores.pavooc * 0.6 + (1 - b[0].scores.Doench2016CFDScore) * 0.4;
-        if (b[0].domains.length > 0) {
-          bScore += 0.1;
-        }
-        let aScore =
-          a[0].scores.pavooc * 0.6 + (1 - a[0].scores.Doench2016CFDScore) * 0.4;
-        if (a[0].domains.length > 0) {
-          aScore += 0.1;
-        }
-        return bScore - aScore;
-      });
-      // enable first <guideCount> guides
-      let selectedGuides = 0;
-      for (let [guide, index] of sortedGuides.slice(0, guideCount)) {
-        if (selectedGuides < guideCount) {
-          if (!guide.mutations.includes(cellline)) {
-            if (!guide.selected) {
-              this.props.toggleGuideSelection(gene.gene_id, index);
-            }
-            selectedGuides++;
-          }
-        } else {
-          if (guide.selected) {
-            this.props.toggleGuideSelection(gene.gene_id, index);
-          }
-        }
-      }
-    }
-
-    this.props.setGuideCount(guideCount);
-  }
-
-  renderGuideCountSelector() {
-    const { guideCount } = this.props;
-    return (
-      <FormControl style={{ flex: 2 }}>
-        <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
-        <Select
-          value={guideCount}
-          onChange={event =>
-            this.updateGuideSelection(parseInt(event.target.value, 10))}
-          input={<Input id="guides-count" />}
-          MenuProps={{
-            PaperProps: {
-              style: {
-                maxHeight: 200
-              }
-            }
-          }}
-        >
-          {Array.from(new Array(10), (_: {}, i: number) => (
-            <MenuItem value={i} key={i}>
-              {i}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-    );
   }
 
   renderTableRow(geneGuides: any) {
@@ -193,7 +110,6 @@ class KnockoutList extends React.Component<Props, object> {
               >
                 &darr; CSV
               </Button>
-              {this.renderGuideCountSelector()}
             </div>
             {this.renderTable()}
             <Button onClick={() => this.props.push("/")}>Back</Button>
@@ -207,7 +123,6 @@ class KnockoutList extends React.Component<Props, object> {
 const mapStateToProps = (state: any) => {
   // Filter guides for mutations within the selected cellline
   return {
-    guideCount: state.knockoutList.guideCount,
     cellline: state.app.cellline,
     knockoutData: state.io.knockoutData.map((gene: any) => {
       let filteredGuides = gene.guides.filter(
@@ -224,7 +139,6 @@ const mapStateToProps = (state: any) => {
 
 const mapDispatchToProps = (dispatch: any, ownProps: any) => ({
   push: (route: string) => dispatch(push(route)),
-  setGuideCount: (guideCount: number) => dispatch(setGuideCount(guideCount)),
   toggleGuideSelection: (geneId: string, guideIndex: number) =>
     dispatch(toggleGuideSelection(geneId, guideIndex, false))
 });

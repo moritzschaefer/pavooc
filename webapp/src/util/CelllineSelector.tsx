@@ -25,10 +25,11 @@ class CelllineSelector extends React.Component<Props, State> {
     return (
       <div className="cellline-selector">
         <VirtualizedSelect
-          clearable={false}
+          placeholder="Select cancer cell line (optional)"
+          clearable={true}
           options={celllines.map((c: string) => ({ label: c, value: c }))}
-          onChange={(cellline: any) => this.props.setCellline(cellline.value)}
-          value={{ label: cellline, value: cellline }}
+          onChange={(cellline: any) => this.props.setCellline(cellline && cellline.value)}
+          value={cellline && { label: cellline, value: cellline }}
         />
       </div>
     );

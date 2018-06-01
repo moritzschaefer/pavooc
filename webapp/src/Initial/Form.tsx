@@ -2,6 +2,10 @@ import * as React from "react";
 import AutoComplete from "../util/AutoComplete";
 import Radio, { RadioGroup } from "material-ui/Radio";
 import { FormControlLabel } from "material-ui/Form";
+import { FormControl } from "material-ui/Form";
+import Input, { InputLabel } from "material-ui/Input";
+import { MenuItem } from "material-ui/Menu";
+import Select from "material-ui/Select";
 import Button from "material-ui/Button";
 import Chip from "material-ui/Chip";
 import CircularProgress from "material-ui/Progress/CircularProgress";
@@ -12,6 +16,8 @@ import { observable } from "mobx";
 import { observer } from "mobx-react";
 
 export interface Props {
+  guideCount: number;
+  setGuideCount: (guideCount: number) => {};
   goKnockout: (geneSelection: Array<string>) => {};
   goEdit: (geneId: string) => {};
   initialLoad: () => {};
@@ -94,6 +100,33 @@ export default class Form extends React.Component<Props, State> {
     );
   }
 
+  renderGuideCountSelector() {
+    const { setGuideCount, guideCount } = this.props;
+    return (
+      <FormControl style={{ flex: 2 }}>
+        <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
+        <Select
+          value={guideCount}
+          onChange={event => setGuideCount(parseInt(event.target.value, 10))}
+          input={<Input id="guides-count" />}
+          MenuProps={{
+            PaperProps: {
+              style: {
+                maxHeight: 200
+              }
+            }
+          }}
+        >
+          {Array.from(new Array(10), (_: {}, i: number) => (
+            <MenuItem value={i} key={i}>
+              {i}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+    );
+  }
+
   render() {
     const { genes, className, onMessage, cellline, isFetching } = this.props;
     const { experimentType, editGene } = this.state;
@@ -116,6 +149,7 @@ export default class Form extends React.Component<Props, State> {
     return (
       <div className={classes}>
         <CelllineSelector />
+        { experimentType === "knockout" ? this.renderGuideCountSelector() : null }
         <br />
         <RadioGroup
           className="radioButtonGroup"
