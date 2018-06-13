@@ -106,7 +106,7 @@ export default class Form extends React.Component<Props, State> {
       <FormControl style={{ flex: 2 }}>
         <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
         <Select
-          value={guideCount}
+          value={guideCount || 0}
           onChange={event => setGuideCount(parseInt(event.target.value, 10))}
           input={<Input id="guides-count" />}
           MenuProps={{
