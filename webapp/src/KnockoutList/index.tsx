@@ -46,7 +46,7 @@ class KnockoutList extends React.Component<Props, object> {
           ) : null}
           {cns ? (
             <div style={{ color: "orange" }}>
-              This gene is affected by a copy number segmentation in the
+              This gene is affected by a copy number alteration in the
               selected cellline
             </div>
           ) : null}
