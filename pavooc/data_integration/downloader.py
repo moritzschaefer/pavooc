@@ -99,7 +99,7 @@ def download_unzip(url, append_postfix=None):
         download_filename = download_filename[:-3]
 
     if download_filename[-4:] == '.tar':
-        tarfile.TarFile(os.path.join(DATADIR, download_filename).extractall(path=DATADIR)
+        tarfile.TarFile(os.path.join(DATADIR, download_filename)).extractall(path=DATADIR)
 
 
 def download_ftp(queue):
