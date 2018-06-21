@@ -18,7 +18,7 @@ from pavooc.config import MOUSE_CHROMOSOMES, CHROMOSOMES, DATADIR, SIFTS_FILE, S
 # needed so we download all conservation scores and training doesnt fail..
 ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
 
-URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
+ESSENTIAL_URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
     S3_BUCKET_URL.format('cnn38.torch'),
     S3_BUCKET_URL.format('scaler.pkl'),
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
@@ -41,10 +41,12 @@ URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.fo
     'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz',  # noqa # NOTE that this is based on GRCh38!!
     # for conservation scores:
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz',
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump.tar.gz',
-    'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv',  # noqa <- this is the same file as being computed in the pipeline
+    'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv']  # noqa <- this is the same file as being computed in the pipeline
+
+EXTENDEND_URLS = [
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz'
 ] + ['http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
         'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
 
@@ -161,12 +163,18 @@ def download_sifts():
         process.join()
 
 
-def main():
-    for url in URLS:
+def main(only_init=False):
+    urls = ESSENTIAL_URLS
+    if not only_init:
+        urls.extend(EXTENDEND_URLS)
+
+    for url in urls:
         download_unzip(url)
-    # because of duplicate names we have to download this one here separately to rename it
-    for url in ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES]:
-        download_unzip(url, '.hg38')
+
+    if not only_init:
+        # because of duplicate names we have to download this one here separately to rename it
+        for url in ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES]:
+            download_unzip(url, '.hg38')
 
     download_sifts()
 

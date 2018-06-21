@@ -70,7 +70,7 @@ def initialize_db():
     '''
     This is the quick way, that downloads all preprocessed data and inserts it in the DB
     '''
-    main_downloader()
+    main_downloader(only_init=True)
     generate_raw_chromosomes()
     combine_genome()
     result = subprocess.run(
@@ -101,6 +101,7 @@ def build_db():
 if __name__ == '__main__':
     if os.environ.get('ONLY_INIT', 'True') in \
             ['True', 'true', '1', 'y', 'yes', 't']:
+        print('Initializing with precomputed DB dump')
         initialize_db()
     else:
         build_db()
