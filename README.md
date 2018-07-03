@@ -93,3 +93,15 @@ docker-compose up
 ## exon expressions
 
 GUIDES (http://guides.sanjanalab.org/) offers a nice way of considering exon expressions. It would be nice and easy to add an expression level to guides in the table in the GeneViewer table.
+
+## improve repository
+
+Tests are not running a.t.m.. Also it would be nice to have automatic PEP8 and TypeScript sanity checks.
+
+## Model features
+
+Adding chromatin accessibility could be a very useful feature..
+
+## Favicon
+
+The website still has the stock react favicon. What a shame!
