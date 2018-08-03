@@ -14,7 +14,7 @@ runs everything required to get you started. Additionally there is a docker-envi
 
     docker-compose up
 
-Note: training requires installation of cuda pytorch if GPUs are being used
+Note: training requires installation of (cuda) pytorch (http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl)
 Note 2: By default a dump of the database is used to initialize all required data. To compute everything by scratch (probably takes several days), use the ONLY_INIT=0 environment variable (see pipeline.py and docker-compose.yml)
 
 # Conventions
