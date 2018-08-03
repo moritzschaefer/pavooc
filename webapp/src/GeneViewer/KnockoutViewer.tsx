@@ -5,7 +5,6 @@ import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
 import CelllineSelector from "../util/CelllineSelector";
-import PdbSelectionDialog from "./PdbSelectionDialog";
 
 import {
   toggleGuideSelection,
@@ -66,13 +65,9 @@ class KnockoutViewer extends React.Component<Props, State> {
     this.setState({ pdbSelectionOpened: true });
   };
 
-  _selectPdb = (index: number | undefined): void => {
-    // TODO show selection dialog
-    if (typeof index !== "undefined" && index >= 0) {
-      this.setState({ selectedPdb: index, pdbSelectionOpened: false });
-    } else {
-      this.setState({ pdbSelectionOpened: false });
-    }
+  _selectPdb = (pdb: string | undefined): void => {
+    let index = this.props.geneData.pdbs.findIndex((p: any) => p.pdb === pdb); // TODO check index?
+    this.setState({ selectedPdb: index, pdbSelectionOpened: false });
   };
 
   _aaClicked = (aa: number) => {
@@ -99,11 +94,6 @@ class KnockoutViewer extends React.Component<Props, State> {
     const { selectedPdb, hoveredGuide, pdbSelectionOpened } = this.state;
     return (
       <div className="mainContainer">
-        <PdbSelectionDialog
-          data={geneData.pdbs.map((pdb: any) => pdb.pdb)}
-          opened={pdbSelectionOpened}
-          selectIndex={this._selectPdb}
-        />
         <div className="containerTop">
           <Button
             onClick={() => this.props.push("/knockout")}
@@ -112,13 +102,16 @@ class KnockoutViewer extends React.Component<Props, State> {
           >
             Back
           </Button>
-          <h2 className="heading">
+          <div className="heading" >
+            <h2>
             {geneData.gene_symbol}&nbsp; Strand: {geneData.strand} PDB:{" "}
-            <a href="#" onClick={this._openPdbSelection}>
               {geneData.pdbs[selectedPdb] ? geneData.pdbs[selectedPdb].pdb : ""}
-            </a>
+            </h2>
+            <Button style={{textAlign: "right"}} onClick={this._openPdbSelection} raised={true}>
+              Select PDB
+            </Button>
 
-          </h2>
+          </div>
           <div className="topControls">
             <CelllineSelector />
           </div>
@@ -151,7 +144,8 @@ class KnockoutViewer extends React.Component<Props, State> {
             onGuideClicked={this._onGuideClicked}
             onGuideHovered={this.setHoveredGuide}
             pdb={geneData.pdbs[selectedPdb] && geneData.pdbs[selectedPdb].pdb}
-            onPdbClicked={this._openPdbSelection}
+            onPdbClicked={this._selectPdb}
+            pdbSelectionOpened={pdbSelectionOpened}
             chromosome={geneData.chromosome}
             exons={geneData.exons}
             geneStart={Math.min(

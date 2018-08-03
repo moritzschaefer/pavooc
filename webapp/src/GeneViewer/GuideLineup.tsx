@@ -125,16 +125,10 @@ export default class GuideLineup extends React.Component<Props, State> {
             width={70}
           />
           <LineUpNumberColumnDesc
-            label="On target 1"
-            column="pavooc"
-            domain={[0, 1]}
-            color="green"
-          />
-          <LineUpNumberColumnDesc
-            label="On target 2"
+            label="On target"
             column="azimuth"
             domain={[0, 1]}
-            color="blue"
+            color="green"
           />
           <LineUpNumberColumnDesc
             label="Off target (inverted)"
@@ -148,9 +142,8 @@ export default class GuideLineup extends React.Component<Props, State> {
             <LineUpColumn column="d" />
             <LineUpColumn column="domain" />
             <LineUpWeightedSumColumn label="Scores">
-              <LineUpWeightedColumn column="pavooc" weight={0.5} />
-              <LineUpWeightedColumn column="azimuth" weight={0.1} />
-              <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.4} />
+              <LineUpWeightedColumn column="azimuth" weight={0.65} />
+              <LineUpWeightedColumn column="Doench2016CFDScore" weight={0.35} />
             </LineUpWeightedSumColumn>
             {/* <LineUpColumn column="start" /> */}
             { this.guideMutationExists() ?

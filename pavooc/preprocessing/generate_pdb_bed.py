@@ -7,7 +7,7 @@ import logging
 from tqdm import tqdm
 import numpy as np
 
-from pavooc.config import PDB_BED_FILE
+from pavooc.config import PDB_BED_FILE, SINGLE_PDBS
 from pavooc.util import normalize_pid
 from pavooc.data import gencode_exons, pdb_list
 from pavooc.pdb import pdb_mappings
@@ -151,11 +151,14 @@ def main():
             else:
                 f.write('\t'.join([str(v) for v in data]))
                 f.write('\n')
+                with open(SINGLE_PDBS.format(pdb.PDB), 'w') as f:
+                    f.write('\t'.join([str(v) for v in data]))
+                    f.write('\n')
 
 
 if __name__ == "__main__":
-    # try:
-    #     os.makedirs(os.path.dirname(PDB_BED_FILE))
-    # except FileExistsError:
-    #     pass
+    try:
+        os.makedirs(os.path.dirname(SINGLE_PDBS))
+    except FileExistsError:
+        pass
     main()

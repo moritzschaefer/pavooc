@@ -32,6 +32,8 @@ interface Props {
   onGuideHovered: (hoveredGuide: number | undefined) => void;
   onGuideClicked: ((index: number) => void);
   onPdbClicked: () => void;
+  pdb: string | undefined;
+  pdbSelectionOpened: boolean;
   editData?: SeqEditData;
   onEditCodonClicked?: (codon: number) => void;
 }
@@ -64,7 +66,7 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, cellline, guidesUrl, editData } = this.props;
+    const { hoveredGuide, guides, cellline, guidesUrl, editData, pdbSelectionOpened, pdb } = this.props;
     const { browser } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
@@ -114,6 +116,18 @@ export default class SequenceViewer extends React.Component<any, State> {
         browser.addTier(newEdit);
       }
     }
+    if ((prevProps.pdbSelectionOpened !== pdbSelectionOpened && prevProps.pdb && pdb) || (prevProps.pdb && pdb && prevProps.pdb !== pdb)) {
+      if (pdbSelectionOpened) {
+        // find out which pdb is loaded (dalliance is buggy)
+        let singlePdbTier = browser.tiers.find((tier: any) => tier.dasSource.name === "PDB");
+        singlePdbTier.index = browser.tiers.findIndex((tier: any) => tier.dasSource.name === "PDB");
+        browser.removeTier(singlePdbTier);
+        browser.addTier(this.allPdbConfig());
+      } else {
+        browser.removeTier(this.allPdbConfig());
+        browser.addTier(this.singlePdbConfig(pdb));
+      }
+    }
 
     if (prevProps.cellline !== cellline || prevProps.guidesUrl !== guidesUrl) {
       let oldCns = this.cnsConfig(prevProps.cellline);
@@ -157,11 +171,6 @@ export default class SequenceViewer extends React.Component<any, State> {
     // TODO improve check on this one!
   }
 
-  // TODO test if this works
-  _test = (i: any, info: any) => {
-    info._inhibitPopup = true;
-  };
-
   editConfig(editData: SeqEditData | undefined) {
     const { chromosome } = this.props;
     if (editData && editData.sequence !== "") {
@@ -189,6 +198,32 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
   }
 
+  singlePdbConfig(pdb: string) {
+    return {
+      name: "PDB",
+      desc: "The selected PDB mapped to gene coordinates",
+      uri: `/pdbs/${pdb}.bed`,
+      tier_type: "memstore",
+      payload: "bed",
+      noSourceFeatureInfo: true,
+      subtierMax: 100,
+      style: [
+        {
+          type: "default",
+          style: {
+            glyph: "ANCHORED_ARROW",
+            LABEL: true,
+            HEIGHT: "10",
+            BGITEM: true,
+            STROKECOLOR: "black",
+            FGCOLOR: "black"
+          }
+        }
+      ],
+      collapseSuperGroups: true
+    }
+  }
+
   cnsConfig(cellline: string) {
     const { cns } = this.props;
     // only show BED if it exists
@@ -196,8 +231,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       return undefined;
     }
     return {
-      name: `${cellline} CNSs`,
-      desc: `copy number segmentation data for cellline ${cellline}`,
+      name: `${cellline} CNAs`,
+      desc: `copy number alteration data for cellline ${cellline}`,
       uri: `/celllines/${cellline}_cns.bed`,
       tier_type: "memstore",
       payload: "bed",
@@ -301,7 +336,7 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   _initialSources() {
-    const { cellline, guidesUrl, editData } = this.props;
+    const { cellline, guidesUrl, editData, pdb } = this.props;
     let genomeURI = "//www.biodalliance.org/datasets/hg19.2bit";
 
     let sources: Array<any> = [
@@ -359,7 +394,6 @@ export default class SequenceViewer extends React.Component<any, State> {
         desc: "Domains mapped to gene coordinates",
         bwgURI: "/domains.bb",
         noSourceFeatureInfo: true,
-        featureInfoPlugin: this._test,
         subtierMax: 2,
         style: [
           {
@@ -376,31 +410,10 @@ export default class SequenceViewer extends React.Component<any, State> {
           }
         ],
         collapseSuperGroups: true
-      },
-      {
-        name: "PDB",
-        desc: "PDBs mapped to gene coordinates",
-        bwgURI: "/pdbs.bb",
-        noSourceFeatureInfo: true,
-        featureInfoPlugin: this._test,
-        subtierMax: 2,
-        style: [
-          {
-            type: "default",
-            style: {
-              glyph: "ANCHORED_ARROW",
-              LABEL: true,
-              HEIGHT: "10",
-              BGITEM: true,
-              STROKECOLOR: "black",
-              BUMP: true,
-              FGCOLOR: "black"
-            }
-          }
-        ],
-        collapseSuperGroups: true
-      }
-    ];
+      }    ];
+    if (pdb) { // PDBs do exist
+      sources.push(this.singlePdbConfig(pdb));
+    }
 
     let cnsConfig = this.cnsConfig(cellline);
     if (cnsConfig) {
@@ -418,6 +431,32 @@ export default class SequenceViewer extends React.Component<any, State> {
 
     return sources;
   }
+
+  allPdbConfig() {
+    return {
+      name: "Change PDB",
+      desc: "PDBs mapped to gene coordinates",
+      bwgURI: "/pdbs.bb",
+      noSourceFeatureInfo: true,
+      subtierMax: 100,
+      style: [
+        {
+          type: "default",
+          style: {
+            glyph: "ANCHORED_ARROW",
+            LABEL: true,
+            HEIGHT: "10",
+            BGITEM: true,
+            STROKECOLOR: "black",
+            BUMP: true,
+            FGCOLOR: "black"
+          }
+        }
+      ],
+      collapseSuperGroups: true
+    }
+  }
+
 
   _loadBrowser = () => {
     let {
@@ -469,8 +508,8 @@ export default class SequenceViewer extends React.Component<any, State> {
     );
     browser.addFeatureListener(
       (event: any, feature: any, hit: any, tier: any) => {
-        if (tier.dasSource.name === "PDB") {
-          onPdbClicked();
+        if (tier.dasSource.name === "Change PDB") {
+          onPdbClicked(feature.label);
         }
         if (tier.dasSource.name === EDIT_CONFIG_NAME && onEditCodonClicked) {
           onEditCodonClicked(feature.min - 1); // make 0-based

@@ -28,7 +28,7 @@ services:
     build:
       context: ./nginx
     ports:
-      - '80:80' # expose 80 on host and sent to 80 in container
+      - '${EXPOSED_PORT}:80' # expose 80 on host and send to 80 in container
     volumes:
       - webapp:/usr/app/webapp/build
       - data:/usr/app/data

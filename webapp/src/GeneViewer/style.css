@@ -53,6 +53,9 @@
 }
 
 .heading {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-evenly;
   padding: 0 10px;
   flex: 3;
 }

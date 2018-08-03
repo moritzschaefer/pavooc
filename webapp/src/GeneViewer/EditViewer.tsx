@@ -7,7 +7,6 @@ import { push } from "react-router-redux";
 
 import Button from "material-ui/Button";
 import CelllineSelector from "../util/CelllineSelector";
-import PdbSelectionDialog from "./PdbSelectionDialog";
 import CodonEditDialog, { Props as CodonEditProps } from "./CodonEditDialog";
 
 import { showMessage } from "../Messages/actions";
@@ -24,6 +23,7 @@ export interface Exon {
   end: number;
   exon_id: string;
 }
+
 
 interface Props {
   geneData: any;
@@ -159,13 +159,9 @@ class EditViewer extends React.Component<Props, State> {
     this.setState({ pdbSelectionOpened: true });
   };
 
-  _selectPdb = (index: number | undefined): void => {
-    // TODO show selection dialog
-    if (typeof index !== "undefined" && index >= 0) {
-      this.setState({ selectedPdb: index, pdbSelectionOpened: false });
-    } else {
-      this.setState({ pdbSelectionOpened: false });
-    }
+  _selectPdb = (pdb: string | undefined): void => {
+    let index = this.props.pdbs.findIndex((p: any) => p.pdb === pdb); // TODO check index?
+    this.setState({ selectedPdb: index, pdbSelectionOpened: false });
   };
 
   _renderMainContainer() {
@@ -263,9 +259,10 @@ class EditViewer extends React.Component<Props, State> {
       exons,
       isFetching
     } = this.props;
-    const { selectedPdb, hoveredGuide } = this.state;
+    const { selectedPdb, hoveredGuide, pdbSelectionOpened } = this.state;
 
     const pdb = pdbs[selectedPdb] && pdbs[selectedPdb].pdb;
+
     return (
       <div style={{ position: "relative" }}>
         {isFetching ? (
@@ -282,7 +279,8 @@ class EditViewer extends React.Component<Props, State> {
           guides={guides}
           onGuideHovered={this.setHoveredGuide}
           pdb={pdb}
-          onPdbClicked={this._openPdbSelection}
+          pdbSelectionOpened={pdbSelectionOpened}
+          onPdbClicked={this._selectPdb}
           chromosome={chromosome}
           geneStart={Math.min(...exons.map((exon: any) => exon.start))}
           geneEnd={Math.max(...exons.map((exon: any) => exon.end))}
@@ -494,13 +492,14 @@ class EditViewer extends React.Component<Props, State> {
             Back
           </Button>
         </div>
-        <h2 className="heading">
-          {geneSymbol}&nbsp; Strand: {strand} PDB:{" "}
-
-          <a href="#" onClick={this._openPdbSelection}>
-            {pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
-          </a>
-        </h2>
+        <div className="heading">
+          <h2>
+            {geneSymbol}&nbsp; Strand: {strand} PDB:{" "}{pdbs[selectedPdb] ? pdbs[selectedPdb].pdb : ""}
+          </h2>
+          <Button style={{textAlign: "right"}} onClick={this._openPdbSelection} raised={true}>
+            Select PDB
+          </Button>
+        </div>
         <div className="topControls">
           <CelllineSelector />
           <Button
@@ -516,15 +515,9 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   render() {
-    const { pdbs } = this.props;
-    const { pdbSelectionOpened, codonEditProps } = this.state;
+    const { codonEditProps } = this.state;
     return (
       <div className="mainContainer">
-        <PdbSelectionDialog
-          data={pdbs.map((pdb: any) => pdb.pdb)}
-          opened={pdbSelectionOpened}
-          selectIndex={this._selectPdb}
-        />
         <CodonEditDialog
           {...codonEditProps}
           editedCodon={this._editedCodon()}
