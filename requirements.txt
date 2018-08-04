@@ -18,7 +18,6 @@ tensorflow==1.9.0
 pycrayon==0.5
 netgraph==2.0.7
 xlrd==1.1.0
-http://download.pytorch.org/whl/cpu/torch-0.4.1-cp36-cp36m-linux_x86_64.whl
 torchvision
 mygene
 tensorboardX
