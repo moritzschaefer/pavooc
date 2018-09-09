@@ -291,25 +291,30 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _csvData() {
-    const { geneId, geneCns, guides, chromosome } = this.props;
+    const { geneId, geneCns, guides, chromosome, geneData } = this.props;
 
     // TODO exon_id and aa_cut_position are not included
+    let selectedGeneData = {
+      guides: guides.map((g: any) => ({
+        selected: g.selected,
+        target: g.target,
+        otCount: g.otCount,
+        start: g.start,
+        orientation: g.orientation,
+        cut_position: g.cut_position,
+        aa_cut_position: g.aa_cut_position,
+        scores: g.scores,
+        exon_id: g.exon_id
+      })),
+      gene_id: geneId,
+      chromosome,
+      cns: geneCns,
+      domains: geneData.domains
+    };
     return [
       {
-        guides: guides.map((g: any) => ({
-          selected: g.selected,
-          target: g.target,
-          otCount: g.otCount,
-          start: g.start,
-          orientation: g.orientation,
-          cut_position: g.cut_position,
-          aa_cut_position: g.aa_cut_position,
-          scores: g.scores,
-          exon_id: g.exon_id
-        })),
-        gene_id: geneId,
-        chromosome,
-        cns: geneCns
+        ...selectedGeneData,
+        guides: guidesWithDomains(selectedGeneData)
       }
     ];
   }

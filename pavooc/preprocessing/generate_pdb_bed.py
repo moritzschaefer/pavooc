@@ -117,6 +117,10 @@ def pdb_coordinates(pdb, pdb_exons):
 
 
 def main():
+    try:
+        os.makedirs(os.path.dirname(SINGLE_PDBS))
+    except FileExistsError:
+        pass
     exons = gencode_exons()
 
     # filter out exons which dont belong to swissprot-transcripts
@@ -151,14 +155,10 @@ def main():
             else:
                 f.write('\t'.join([str(v) for v in data]))
                 f.write('\n')
-                with open(SINGLE_PDBS.format(pdb.PDB), 'w') as f:
-                    f.write('\t'.join([str(v) for v in data]))
-                    f.write('\n')
+                with open(SINGLE_PDBS.format(pdb.PDB), 'w') as ff:
+                    ff.write('\t'.join([str(v) for v in data]))
+                    ff.write('\n')
 
 
 if __name__ == "__main__":
-    try:
-        os.makedirs(os.path.dirname(SINGLE_PDBS))
-    except FileExistsError:
-        pass
     main()
