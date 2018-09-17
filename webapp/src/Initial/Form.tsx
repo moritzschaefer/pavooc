@@ -103,7 +103,7 @@ export default class Form extends React.Component<Props, State> {
   renderGuideCountSelector() {
     const { setGuideCount, guideCount } = this.props;
     return (
-      <FormControl style={{ flex: 2 }}>
+      <FormControl style={{ flex: 2, marginTop: 10 }}>
         <InputLabel htmlFor="guides-count">Guides per gene</InputLabel>
         <Select
           value={guideCount || 0}
@@ -171,7 +171,7 @@ export default class Form extends React.Component<Props, State> {
           />
         </RadioGroup>
         <AutoComplete
-          floatingLabelText="Genes"
+          floatingLabelText="Genes (e.g. 'CDK4')"
           dataSource={genes}
           dataSourceReverse={reversedGenes}
           onSelect={this.addGene}
