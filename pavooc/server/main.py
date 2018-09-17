@@ -271,6 +271,9 @@ class EditGuides(Resource):
 
 
 def main():
+    # call them so that their results get buffered and are fastly accesible
+    gencode_exons()
+    chromosomes()
     app.run(debug=DEBUG, host='0.0.0.0')
 
 
