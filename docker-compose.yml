@@ -10,6 +10,7 @@ volumes:
 
 services:
   apiserver:
+    restart: unless-stopped
     environment:
       DEBUG: 0
       MONGO_HOST: "mongo:27017"
@@ -23,6 +24,7 @@ services:
     networks:
       - main
   nginx:
+    restart: unless-stopped
     environment:
       DEBUG: 0
     build:
@@ -38,6 +40,7 @@ services:
       - apiserver
 
   mongo:
+    restart: unless-stopped
     volumes:
       - mongodata:/data/db
     image: mongo:latest
