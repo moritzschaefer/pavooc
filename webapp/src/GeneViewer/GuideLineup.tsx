@@ -40,7 +40,7 @@ export default class GuideLineup extends React.Component<Props, State> {
 
   _tableArray() {
     return this.props.guides.map((guide: Guide, index: number) => ({
-      d: `Guide ${index}`,
+      d: `${guide.target}`,
       domain: guide.domains ? guide.domains.join(",") : "",
       affected: guide.mutations.includes(this.props.cellline) ? "yes" : "no",
       start: guide.start,
@@ -115,7 +115,7 @@ export default class GuideLineup extends React.Component<Props, State> {
           highlight={this.props.hoveredGuide}
           sidePanel={false}
         >
-          <LineUpStringColumnDesc column="d" label="Label" width={70} />
+          <LineUpStringColumnDesc column="d" label="Sequence" width={70} />
           <LineUpCategoricalColumnDesc column="domain" label="Domain" width={90} />
           {/* <LineUpStringColumnDesc column="start" label="Position" width={70} /> */}
           <LineUpCategoricalColumnDesc

@@ -156,7 +156,8 @@ def download_sifts():
 
     while not filename_queue.empty():
         print('{}/{} sifts downloaded'.format(len(filenames) -
-                                              filename_queue.qsize(), len(filenames)))
+                                              filename_queue.qsize(), len(filenames)),
+              end='\r')
         time.sleep(1)
 
     for process in ftp_processes:
