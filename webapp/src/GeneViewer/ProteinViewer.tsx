@@ -214,6 +214,11 @@ export default class ProteinViewer extends React.Component<Props, State> {
           }}
           style={{ width: "100%", height: "100%" }}
         />
+        { !this.props.pdb ?
+          <div className="noPdbMessage">
+            "No PDB file available for the selected gene"
+          </div>: null
+        }
       </div>
     );
   }

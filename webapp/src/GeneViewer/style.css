@@ -146,6 +146,11 @@
   flex: 1;
 }
 
+.noPdbMessage {
+    position: absolute;
+    margin: 150px;
+}
+
 #svgHolder {
   flex: 2;
 }
