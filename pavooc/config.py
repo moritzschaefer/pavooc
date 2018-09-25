@@ -69,8 +69,8 @@ COMPUTATION_CORES = int(os.environ.get('COMPUTATION_CORES', '1'))
 FLASHFRY_TMP_DIR = os.path.join(DATADIR, 'flashfry_tmp')
 FLASHFRY_DB_FILE = os.path.join(DATADIR, 'flashfry_genome_db')
 
-MONGO_HOST = os.getenv('MONGO_HOST', 'localhost:27017')
-
+MONGO_HOST = os.getenv('MONGO_HOST', 'localhost')
+MONGO_PORT = int(os.getenv('MONGO_PORT', '27017'))
 
 # ML
 

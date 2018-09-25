@@ -6,7 +6,7 @@ import logging
 
 from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
     EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE, \
-    DOMAIN_BED_FILE
+    DOMAIN_BED_FILE, MONGO_HOST, MONGO_PORT
 from pavooc.data_integration.downloader import main as main_downloader
 from pavooc.preprocessing.preprocessing import main as main_preprocessing
 from pavooc.preprocessing.preprocessing import generate_raw_chromosomes, combine_genome
@@ -74,7 +74,7 @@ def initialize_db():
     generate_raw_chromosomes()
     combine_genome()
     result = subprocess.run(
-        ['mongorestore', '--host', 'mongo', os.path.join(DATADIR, 'dump')],
+        ['mongorestore', '--host', MONGO_HOST, '--port', str(MONGO_PORT), os.path.join(DATADIR, 'dump')],
         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if result.returncode != 0:
         raise RuntimeError(

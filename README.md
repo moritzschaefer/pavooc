@@ -6,16 +6,40 @@
 
 The platform is based on hg19. hg38 is used only for the model generation to be in sync with the azimuth dataset.
 
+# Install
+
+python3 with pip, mongodb and mongodb-tools (mongorestore) and npm are required.
+
+    pip install -r requirements.txt
+    cd webapp && npm install
+    
+
+Alternatively you can run everything in docker.
+
+
 # Run it
 
     python -m pavooc.pipeline
 
-runs everything required to get you started. Additionally there is a docker-environment which should get you started with
+builds up all required data
 
+    python -m pavooc.server.main
+
+and
+    cd webapp && npm start
+    
+bring up a local version of the webapp
+
+Note: training of the PAVOOC DNN requires installation of (cuda) pytorch (http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl)
+Note 2: By default a dump of the database is used to initialize all required data. To compute everything by scratch (probably takes several days), use the ONLY_INIT=0 environment variable (see pipeline.py and docker-compose.yml)
+
+# Docker
+
+Alternatively there is a docker-environment which should get you started with
+
+    docker-compose pull
     docker-compose up
 
-Note: training requires installation of (cuda) pytorch (http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl)
-Note 2: By default a dump of the database is used to initialize all required data. To compute everything by scratch (probably takes several days), use the ONLY_INIT=0 environment variable (see pipeline.py and docker-compose.yml)
 
 # Conventions
 
@@ -89,6 +113,10 @@ then simply run
 docker-compose up
 
 # Future work
+
+## adding necessary genome sequence tracks
+
+For example lnc RNAs could be helpful for many..
 
 ## exon expressions
 
