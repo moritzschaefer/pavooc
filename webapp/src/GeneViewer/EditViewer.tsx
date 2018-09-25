@@ -16,6 +16,7 @@ import SequenceViewer, { SeqEditData } from "./SequenceViewer";
 import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
 import { downloadCSV, guidesWithDomains, arraysEqual } from "../util/functions";
+import { renderAppLinks } from "../util/appLinks";
 import "./style.css";
 
 export interface Exon {
@@ -186,6 +187,8 @@ class EditViewer extends React.Component<Props, State> {
             guides={guidesWithDomains(geneData)}
             className="guideTable"
           />
+          { renderAppLinks("topLinks bottom") }
+
         </div>
       </div>
     );

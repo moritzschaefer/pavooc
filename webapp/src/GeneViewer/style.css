@@ -7,6 +7,20 @@
   background-color: '#d2f1f6';
 }
 
+.topLinks {
+    margin: 3px;
+    text-align: right;
+    font-size: 14px;
+}
+
+.topLinks a:link, .topLinks a:visited  {
+    color: #4c4c4c;
+    text-decoration: none;
+}
+.topLinks a:hover {
+    text-decoration: underline;
+}
+
 .previewContainer {
   display: flex;
   flex-direction: column;

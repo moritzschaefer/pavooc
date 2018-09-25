@@ -14,7 +14,7 @@ import Table, {
 import Paper from "material-ui/Paper";
 import "./style.css";
 import { downloadCSV, guidesWithDomains } from "../util/functions";
-import { renderAppFooter } from "../util/appFooter";
+import { renderAppLinks } from "../util/appLinks";
 
 export interface Props {
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
@@ -116,7 +116,7 @@ class KnockoutList extends React.Component<Props, object> {
             <Button onClick={() => this.props.push("/")}>Back</Button>
           </div>
         </div>
-        { renderAppFooter() }
+        { renderAppLinks("AppFooter") }
       </div>
     );
   }

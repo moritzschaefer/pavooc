@@ -17,6 +17,7 @@ import GuideLineup from "./GuideLineup";
 // import GuideTable from "./GuideTable";
 import "./style.css";
 import { Exon } from "./EditViewer";
+import { renderAppLinks } from "../util/appLinks";
 import { guidesWithDomains } from "../util/functions";
 
 export interface GeneData {
@@ -113,6 +114,7 @@ class KnockoutViewer extends React.Component<Props, State> {
 
           </div>
           <div className="topControls">
+            { renderAppLinks("topLinks") }
             <CelllineSelector />
           </div>
         </div>

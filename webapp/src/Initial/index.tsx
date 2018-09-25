@@ -1,6 +1,6 @@
 import * as React from "react";
 import "./style.css";
-import { renderAppFooter } from "../util/appFooter";
+import { renderAppLinks } from "../util/appLinks";
 import InitialForm from "./FormContainer";
 
 export interface Props {
@@ -23,7 +23,7 @@ export default class Initial extends React.Component<Props, object> {
           </div>
           <InitialForm className="bodyRight" />
         </div>
-        { renderAppFooter() }
+        { renderAppLinks("AppFooter") }
       </div>
     );
   }
