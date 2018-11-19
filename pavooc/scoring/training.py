@@ -84,9 +84,9 @@ def train_predict(combined_features, y, validation_fold, model_class,
     training_tensor = torch.from_numpy(combined_train_features)
     if cuda.is_available():
         validation_variable = Variable(
-            validation_tensor.cuda(async=True), requires_grad=False)
+            validation_tensor.cuda(), requires_grad=False)  # cuda(async=True) causes SyntaxError :/
         training_variable = Variable(
-            training_tensor.cuda(async=True), requires_grad=False)
+            training_tensor.cuda(), requires_grad=False)  # cuda(async=True) causes SyntaxError :/
     else:
         validation_variable = Variable(validation_tensor, requires_grad=False)
         training_variable = Variable(training_tensor, requires_grad=False)
@@ -117,8 +117,8 @@ def train_predict(combined_features, y, validation_fold, model_class,
     for epoch_idx in range(epochs):
         for batch_features, batch_targets in loader:
             if cuda.is_available():
-                batch_features = batch_features.cuda(async=True)
-                batch_targets = batch_targets.float().cuda(async=True)
+                batch_features = batch_features.cuda()  # cuda(async=True) causes SyntaxError :/
+                batch_targets = batch_targets.float().cuda()  # cuda(async=True) causes SyntaxError :/
             else:
                 batch_targets = batch_targets.float()
             optimizer.zero_grad()
