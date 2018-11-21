@@ -24,8 +24,6 @@ ESSENTIAL_URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz',  # noqa
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/gencode.v27.basic.annotation.gtf.gz',  # noqa
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/gencode.vM16.basic.annotation.gtf.gz', # noqa
 
     'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
     'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
@@ -45,7 +43,7 @@ ESSENTIAL_URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv']  # noqa <- this is the same file as being computed in the pipeline
 
 EXTENDEND_URLS = [
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',
+    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',  # these seem to be inaccesible. need to download from gencode now
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz'
 ] + ['http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
         'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
