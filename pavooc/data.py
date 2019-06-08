@@ -1,22 +1,23 @@
 '''
 Buffered data loading
 '''
+import logging
 import os
 import pickle
-import logging
 from itertools import chain
 
-import torch
 import pandas as pd
+# import torch
 from gtfparse import read_gtf_as_dataframe
-import azimuth
 from intervaltree import IntervalTree
 from sklearn.externals import joblib
 
-from pavooc.scoring.models import CNN38
-from pavooc.config import GENCODE_FILE, CHROMOSOMES, CHROMOSOME_RAW_FILE, \
-    DATADIR, PROTEIN_ID_MAPPING_FILE, PDB_LIST_FILE, APPRIS_FILE, \
-    MUTATIONS_FILE, CNS_FILE, BASEDIR, SCALER_FILE
+import azimuth
+from pavooc.config import (APPRIS_FILE, BASEDIR, CHROMOSOME_RAW_FILE,
+                           CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_FILE,
+                           MUTATIONS_FILE, PDB_LIST_FILE,
+                           PROTEIN_ID_MAPPING_FILE, SCALER_FILE)
+# from pavooc.scoring.models import CNN38
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)

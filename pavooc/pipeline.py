@@ -1,32 +1,35 @@
+import glob
+import logging
 import os
 import stat
 import subprocess
-import glob
-import logging
 
-from pavooc.config import BIG_BED_EXE, CHROM_SIZES_FILE, PDB_BED_FILE, \
-    EXON_BED_FILE, GUIDE_BED_FILE, DATADIR, MUTATION_BED_FILE, CNS_BED_FILE, \
-    DOMAIN_BED_FILE, MONGO_HOST, MONGO_PORT
+from pavooc.config import (BIG_BED_EXE, CHROM_SIZES_FILE, CNS_BED_FILE,
+                           DATADIR, DOMAIN_BED_FILE, EXON_BED_FILE,
+                           GUIDE_BED_FILE, MONGO_HOST, MONGO_PORT,
+                           MUTATION_BED_FILE, PDB_BED_FILE, TRAIN_MODEL)
 from pavooc.data_integration.downloader import main as main_downloader
-from pavooc.preprocessing.preprocessing import main as main_preprocessing
-from pavooc.preprocessing.preprocessing import generate_raw_chromosomes, combine_genome
-from pavooc.preprocessing.prepare_flashfry import main as main_ff
-# from pavooc.preprocessing.sgrna_finder import main as main_sgrna
 from pavooc.preprocessing.exon_guide_search import main as main_guide_search
-from pavooc.preprocessing.guides_to_db import main as main_guides_to_db
-from pavooc.preprocessing.extract_conservation_scores import main as \
-    main_extract_conservation_scores
-
-from pavooc.preprocessing.generate_pdb_bed import main as generate_pdb_bed
+from pavooc.preprocessing.extract_conservation_scores import \
+    main as main_extract_conservation_scores
+from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
+from pavooc.preprocessing.generate_domain_bed import \
+    main as generate_domain_bed
 from pavooc.preprocessing.generate_exon_bed import main as generate_exon_bed
 from pavooc.preprocessing.generate_guide_bed import main as generate_guide_bed
+from pavooc.preprocessing.generate_pdb_bed import main as generate_pdb_bed
 from pavooc.preprocessing.generate_snp_bed import main as generate_snp_bed
-from pavooc.preprocessing.generate_cns_bed import main as generate_cns_bed
-from pavooc.preprocessing.generate_domain_bed import main as \
-    generate_domain_bed
-from pavooc.scoring.training import generate_final_model
+from pavooc.preprocessing.guides_to_db import main as main_guides_to_db
+from pavooc.preprocessing.prepare_flashfry import main as main_ff
+from pavooc.preprocessing.preprocessing import (combine_genome,
+                                                generate_raw_chromosomes)
+from pavooc.preprocessing.preprocessing import main as main_preprocessing
+
+if TRAIN_MODEL:
+    from pavooc.scoring.training import generate_final_model
 
 logging.basicConfig(level=logging.INFO)
+
 
 
 def generate_bed_files(skip_generation=False):

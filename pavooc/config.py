@@ -1,6 +1,5 @@
 import os
 
-
 BASEDIR = os.path.join(os.path.split(os.path.abspath(__file__))[0], '..')
 DATADIR = os.path.join(BASEDIR, 'data')
 try:
@@ -17,10 +16,15 @@ DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 if DEBUG:
     CHROMOSOMES = ['chrY']
+    MOUSE_CHROMOSOMES = ['chrY']
 else:
     CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
-MOUSE_CHROMOSOMES = ['chr{}'.format(v)
-                     for v in range(1, 20)] + ['chrX', 'chrY']
+    MOUSE_CHROMOSOMES = ['chr{}'.format(v)
+                        for v in range(1, 20)] + ['chrX', 'chrY']
+TRAIN_MODEL = os.environ.get('TRAIN_MODEL', 'False') in \
+    ['True', 'true', '1', 'y', 'yes', 't']
+GENOME = os.environ.get('GENOME', 'hg19')
+
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 SIFTS_FILE = os.path.join(DATADIR, 'sifts', '{}')
 SIFTS_TARBALL = os.path.join(DATADIR, 'sifts.tar')
@@ -29,9 +33,9 @@ GENCODE_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
 GENCODE_HG38_FILE = os.path.join(DATADIR, 'gencode.v27.basic.annotation.gtf')
 GENCODE_MM10_FILE = os.path.join(DATADIR, 'gencode.vM16.basic.annotation.gtf')
 BIG_BED_EXE = os.path.join(DATADIR, 'bedToBigBed')
-CHROM_SIZES_FILE = os.path.join(DATADIR, 'hg19.chrom.sizes')
+CHROM_SIZES_FILE = os.path.join(DATADIR, f'{GENOME}.chrom.sizes')
 APPRIS_FILE = os.path.join(DATADIR, 'appris_data.principal.txt')
-PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, 'HUMAN_9606_idmapping.dat')
+PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, f'{"HUMAN_9606" if "hg" in GENOME else "MOUSE_10090"}_idmapping.dat')
 PDB_LIST_FILE = os.path.join(DATADIR, 'pdb_chain_uniprot.csv')
 CONSERVATION_FEATURES_FILE = os.path.join(
     DATADIR, 'conservations_features.csv')

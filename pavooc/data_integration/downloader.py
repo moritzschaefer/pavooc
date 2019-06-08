@@ -1,52 +1,80 @@
 #!/usr/bin/env python
 
-from urllib.request import urlretrieve
-from urllib.error import HTTPError
+import ftplib
 import gzip
 import logging
 import os
-import subprocess
-import ftplib
 import re
-from multiprocessing.dummy import Queue, Process
-import time
+import subprocess
 import tarfile
+import time
+from multiprocessing.dummy import Process, Queue
+from urllib.error import HTTPError
+from urllib.request import urlretrieve
 
-from pavooc.config import MOUSE_CHROMOSOMES, CHROMOSOMES, DATADIR, SIFTS_FILE, SIFTS_TARBALL, \
-    BASEDIR, S3_BUCKET_URL
+from pavooc.config import (BASEDIR, CHROMOSOMES, DATADIR, GENOME,
+                           MOUSE_CHROMOSOMES, S3_BUCKET_URL, SIFTS_FILE,
+                           SIFTS_TARBALL, TRAIN_MODEL)
 
 # needed so we download all conservation scores and training doesnt fail..
-ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
+ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v)
+                         for v in range(1, 23)] + ['chrX', 'chrY']
 
-ESSENTIAL_URLS = ['http://hgdownload.soe.ucsc.edu/goldenPath/hg19/chromosomes/{}.fa.gz'.format(c) for c in CHROMOSOMES] + [  # noqa
+ALL_MOUSE_CHROMOSOMES = ['chr{}'.format(v)
+                         for v in range(1, 23)] + ['chrX', 'chrY']
+
+ESSENTIAL_URLS = [
+    f'http://hgdownload.soe.ucsc.edu/goldenPath/{GENOME}/chromosomes/{c}.fa.gz'
+    for c in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
+] + [  # noqa
     S3_BUCKET_URL.format('cnn38.torch'),
     S3_BUCKET_URL.format('scaler.pkl'),
     'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
-    'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz',  # noqa
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
-
-    'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
-    'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
-    'ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19/database/ucscGenePfam.txt.gz',  # noqa
+    f'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/{"HUMAN_9606" if "hg" in GENOME else "MOUSE_10090"}_idmapping.dat.gz',  # noqa
     'ftp://ftp.ebi.ac.uk/pub/databases/Pfam/mappings/pdb_pfam_mapping.txt',
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz',  # noqa
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot_varsplic.fasta.gz',  # noqa
-    # 'http://apprisws.bioinfo.cnio.es/pub/current_release/datafiles/homo_sapiens/GRCh37/appris_data.principal.txt',  # noqa
+    f'ftp://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/database/ucscGenePfam.txt.gz',  # noqa
     'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed',
-    'http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.chrom.sizes',
+    f'http://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/bigZips/{GENOME}.chrom.sizes',
     'http://portals.broadinstitute.org/achilles/datasets/19/download/guide_activity_scores.tsv',  # noqa
     'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv',  # noqa
     'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
     'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz',  # noqa # NOTE that this is based on GRCh38!!
     # for conservation scores:
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump.tar.gz',
-    'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv']  # noqa <- this is the same file as being computed in the pipeline
+    'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
+]  # noqa <- this is the same file as being computed in the pipeline
+
+if GENOME == 'hg19':
+    ESSENTIAL_URLS.extend([
+        'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
+        'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
+    ])
+elif GENOME == 'hg38':
+    # TODO test and run
+    raise NotImplementedError('hg38 is not implemented yet..')
+    ESSENTIAL_URLS.extend([
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz',  # noqa
+    ])
+elif GENOME == 'mm10':
+    ESSENTIAL_URLS.extend([
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',  # noqa
+    ])
+else:
+    raise ValueError('GENOME has illegal value')
 
 EXTENDEND_URLS = [
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',  # these seem to be inaccesible. need to download from gencode now
     'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz'
-] + ['http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES] + [
-        'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'.format(c) for c in MOUSE_CHROMOSOMES]
+] + [
+    'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'
+    .format(c) for c in ALL_HUMAN_CHROMOSOMES
+] + [
+    'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'
+    .format(c) for c in ALL_MOUSE_CHROMOSOMES
+]
 
 logging.basicConfig(level=logging.INFO)
 
@@ -60,9 +88,7 @@ def file_download(url, target):
     try:
         urlretrieve(url, target)
     except HTTPError:
-        result = subprocess.run(['curl', '-f', '-o',
-                                 target,
-                                 url])
+        result = subprocess.run(['curl', '-f', '-o', target, url])
         if result.returncode != 0:
             raise RuntimeError(result.stderr)
 
@@ -78,28 +104,32 @@ def download_unzip(url, append_postfix=None):
     download_target = os.path.join(DATADIR, download_filename)
 
     if os.path.exists(os.path.join(DATADIR, download_filename)):
-        logging.warn('{} already exists. Skipping download. Delete files first \
+        # os.remove(os.path.join(DATADIR, download_filename))
+        logging.warn('{} xists, delete \
                 to force download'.format(download_filename))
         return
     logging.info('downloading {}'.format(url))
 
     # check if file exists on our S3 bucket first, then download from source
-    try:
-        file_download(S3_BUCKET_URL.format(download_filename), download_target)
-    except RuntimeError as e:
-        print('S3 download failed with error {}'.format(e))
-        file_download(url, download_target)
+    # try:
+    #     file_download(S3_BUCKET_URL.format(download_filename), download_target)
+    # except RuntimeError as e:
+    #     print('S3 download failed with error {}'.format(e))
+    file_download(url, download_target)
 
     logging.info('unpacking {}'.format(download_filename))
     if download_filename[-3:] == '.gz':
-        with gzip.open(os.path.join(DATADIR, download_filename), 'rb') as gz_file:
+        with gzip.open(os.path.join(DATADIR, download_filename),
+                       'rb') as gz_file:
             file_content = gz_file.read()
-        with open(os.path.join(DATADIR, download_filename[:-3]), 'wb') as datafile:
+        with open(os.path.join(DATADIR, download_filename[:-3]),
+                  'wb') as datafile:
             datafile.write(file_content)
         download_filename = download_filename[:-3]
 
     if download_filename[-4:] == '.tar':
-        tarfile.TarFile(os.path.join(DATADIR, download_filename)).extractall(path=DATADIR)
+        tarfile.TarFile(download_target).extractall(path=DATADIR)
+        os.remove(download_filename)
 
 
 def download_ftp(queue):
@@ -125,9 +155,7 @@ def download_sifts():
 
     if not os.path.exists(SIFTS_TARBALL):
         try:
-            urlretrieve(
-                S3_BUCKET_URL.format('sifts.tar'),
-                SIFTS_TARBALL)
+            urlretrieve(S3_BUCKET_URL.format('sifts.tar'), SIFTS_TARBALL)
         except RuntimeError:
             logging.warning('failed downloading sifts tarball')
         else:
@@ -147,14 +175,16 @@ def download_sifts():
     for filename in filenames:
         filename_queue.put(filename)
 
-    ftp_processes = [Process(target=download_ftp, args=(
-        filename_queue,)) for _ in range(10)]
+    ftp_processes = [
+        Process(target=download_ftp, args=(filename_queue, ))
+        for _ in range(10)
+    ]
     for process in ftp_processes:
         process.start()
 
     while not filename_queue.empty():
-        print('{}/{} sifts downloaded'.format(len(filenames) -
-                                              filename_queue.qsize(), len(filenames)),
+        print('{}/{} sifts downloaded'.format(
+            len(filenames) - filename_queue.qsize(), len(filenames)),
               end='\r')
         time.sleep(1)
 
@@ -164,16 +194,17 @@ def download_sifts():
 
 def main(only_init=False):
     urls = ESSENTIAL_URLS
-    if not only_init:
+    if not only_init and TRAIN_MODEL:
         urls.extend(EXTENDEND_URLS)
+        # because of duplicate names we have to download this one here separately to rename it
+        for url in [
+                'http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/{}.phastCons100way.wigFix.gz'
+                .format(c) for c in ALL_HUMAN_CHROMOSOMES
+        ]:
+            download_unzip(url, '.hg38')
 
     for url in urls:
         download_unzip(url)
-
-    if not only_init:
-        # because of duplicate names we have to download this one here separately to rename it
-        for url in ['http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/{}.phastCons100way.wigFix.gz'.format(c) for c in ALL_HUMAN_CHROMOSOMES]:
-            download_unzip(url, '.hg38')
 
     download_sifts()
 

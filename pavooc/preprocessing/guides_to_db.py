@@ -4,21 +4,21 @@ into mongoDB
 '''
 import logging
 from multiprocessing import Pool
-import mygene
 
-from tqdm import tqdm
+import mygene
 import numpy as np
 import pandas as pd
 from skbio.sequence import DNA
+from tqdm import tqdm
 
-from pavooc.config import GUIDES_FILE, COMPUTATION_CORES, DEBUG
-from pavooc.pdb import pdb_mappings
-from pavooc.util import normalize_pid, aa_cut_position, percent_peptide
+from pavooc.config import COMPUTATION_CORES, DEBUG, GENOME, GUIDES_FILE
+from pavooc.data import (cellline_mutation_trees, chromosomes, cns_trees,
+                         domain_interval_trees, gencode_exons, pdb_list,
+                         pfam_mapping, read_gencode)
 from pavooc.db import guide_collection
-from pavooc.data import gencode_exons, domain_interval_trees, pdb_list, \
-    read_gencode, cellline_mutation_trees, cns_trees, pfam_mapping, chromosomes
-from pavooc.scoring import azimuth, flashfry, pavooc
-
+from pavooc.pdb import pdb_mappings
+from pavooc.scoring import azimuth, flashfry  # , pavooc
+from pavooc.util import aa_cut_position, normalize_pid, percent_peptide
 
 logging.basicConfig(level=logging.WARN,
                     format='%(levelname)s %(asctime)s %(message)s')
@@ -273,10 +273,11 @@ def build_gene_document(gene, check_exists=True):
         azimuth_score = pd.Series(0, index=guides.index)
     logging.info('calculating pavooc score for {}'.format(gene_id))
     try:
+        raise ValueError  # we don't want pavooc score for now..
         pavooc_score = pd.Series(pavooc.score(
             gene_id, guides), index=guides.index, dtype=np.float64)
     except ValueError:  # being raised when there are no conservation scores
-        logging.warn(f'No pavooc score for  {gene_id}')
+        # logging.warn(f'No pavooc score for  {gene_id}')
         pavooc_score = pd.Series(-1, index=guides.index, dtype=np.float64)
 
     guides_file = GUIDES_FILE.format(gene_id)
@@ -330,11 +331,13 @@ def integrate():
                     build_gene_document,
                     gencode_genes), total=len(gencode_genes)):
                 if doc:
+                    doc['genome'] == GENOME
                     guide_collection.insert_one(doc)
     else:
         for gene in tqdm(gencode_genes, total=len(gencode_genes)):
             doc = build_gene_document(gene)
             if doc:
+                doc['genome'] == GENOME
                 guide_collection.insert_one(doc)
 
 
