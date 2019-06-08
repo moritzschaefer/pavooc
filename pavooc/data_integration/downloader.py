@@ -182,14 +182,18 @@ def download_sifts():
     for process in ftp_processes:
         process.start()
 
-    while not filename_queue.empty():
-        print('{}/{} sifts downloaded'.format(
-            len(filenames) - filename_queue.qsize(), len(filenames)),
-              end='\r')
-        time.sleep(1)
+    try:
+        while not filename_queue.empty():
+            print('{}/{} sifts downloaded'.format(
+                len(filenames) - filename_queue.qsize(), len(filenames)),
+                end='\r')
+            time.sleep(1)
 
-    for process in ftp_processes:
-        process.join()
+        for process in ftp_processes:
+            process.join()
+    except KeyboardInterrupt:
+        for process in ftp_processes:
+            process.kill()
 
 
 def main(only_init=False):
