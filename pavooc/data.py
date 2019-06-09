@@ -4,6 +4,7 @@ Buffered data loading
 import logging
 import os
 import pickle
+from functools import lru_cache
 from itertools import chain
 
 import pandas as pd
@@ -14,8 +15,9 @@ from sklearn.externals import joblib
 
 import azimuth
 from pavooc.config import (APPRIS_FILE, BASEDIR, CHROMOSOME_RAW_FILE,
-                           CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_FILE,
-                           MUTATIONS_FILE, PDB_LIST_FILE,
+                           CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_HG19_FILE,
+                           GENCODE_HG38_FILE, GENCODE_MM10_FILE, GENOME,
+                           MOUSE_CHROMOSOMES, MUTATIONS_FILE, PDB_LIST_FILE,
                            PROTEIN_ID_MAPPING_FILE, SCALER_FILE)
 # from pavooc.scoring.models import CNN38
 from pavooc.util import buffer_return_value
@@ -61,16 +63,21 @@ def pfam_pdb_mapping():
     return df
 
 
-@buffer_return_value
-def read_gencode():
+@lru_cache()
+def read_gencode(genome=GENOME):
     '''
     Buffered gencode read with HAVANA/ENSEMBL merged
     Swissprot IDs are merged and start-end indexing is adjusted
     Returns relevant columns only
     Returns the gencode dataframe but with havana and ensembl merged
     '''
+    if genome == 'hg19':
+        df = read_gtf_as_dataframe(GENCODE_HG19_FILE)
+    elif genome == 'hg38':
+        df = read_gtf_as_dataframe(GENCODE_HG38_FILE)
+    elif genome == 'mm10':
+        df = read_gtf_as_dataframe(GENCODE_MM10_FILE)
 
-    df = read_gtf_as_dataframe(GENCODE_FILE)
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
     df.protein_id = df.protein_id.map(lambda v: v[:15])
     df.exon_id = df.exon_id.map(lambda v: v[:15])
@@ -188,7 +195,7 @@ def compute_canonical_exons(gene):
 
 
 @buffer_return_value
-def gencode_exons():
+def gencode_exons(genome=GENOME):
     '''
 
     Return the protein-coding exons from gencode, indexed by exon_id
@@ -196,7 +203,7 @@ def gencode_exons():
     Deletes UTR (untranslated region)
     :returns: DataFrame with unique exons
     '''
-    gencode = read_gencode()
+    gencode = read_gencode(genome)
 
     prepared = gencode.groupby('gene_id').apply(compute_canonical_exons)
 
@@ -278,9 +285,10 @@ def chromosomes():
     '''
     Return dictionary with loaded chromosome data
     '''
+    chrom_names = CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES
     return {
         c: open(CHROMOSOME_RAW_FILE.format(c)).read()
-        for c in CHROMOSOMES}
+        for c in chrom_names}
 
 
 @buffer_return_value

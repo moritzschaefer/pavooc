@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-import os
 import logging
+import os
 import pickle
 
-from skbio.sequence import DNA
 from intervaltree import IntervalTree
+from skbio.sequence import DNA
 
-from pavooc.config import CHROMOSOMES, GENOME_FILE, CHROMOSOME_FILE, \
-    CHROMOSOME_RAW_FILE, EXON_DIR
-from pavooc.data import gencode_exons, chromosomes
+from pavooc.config import (CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, CHROMOSOMES,
+                           EXON_DIR, GENOME, GENOME_FILE, MOUSE_CHROMOSOMES)
+from pavooc.data import chromosomes, gencode_exons
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,7 +23,9 @@ except OSError:
 def generate_raw_chromosomes():
     # delete newlines from chromosomes
     logging.info('Convert chromosomes into raw form')
-    for chromosome_number in CHROMOSOMES:
+
+    
+    for chromosome_number in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES):
         chromosome_filename = CHROMOSOME_FILE.format(chromosome_number)
         with open(chromosome_filename) as chromosome_file:
             chromosome = chromosome_file.read()
@@ -96,8 +98,8 @@ def combine_genome():
     # done
     '''
     logging.info('Build all-in-one-file genome')
-    with open(GENOME_FILE, 'w') as genome_file:
-        for chromosome in CHROMOSOMES:
+    with open(GENOME_FILE.format(GENOME), 'w') as genome_file:
+        for chromosome in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES):
             with open(CHROMOSOME_FILE.format(chromosome)) as chr_file:
                 genome_file.write(chr_file.read())
 

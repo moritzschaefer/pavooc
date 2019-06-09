@@ -11,8 +11,6 @@ export interface SeqEditData {
 }
 
 interface State {
-  // genome: string;
-  // genes: string;
   viewStart: number;
   viewEnd: number;
   viewChromosome: string;
@@ -20,6 +18,7 @@ interface State {
 }
 
 interface Props {
+  genome: string;
   cellline: string;
   chromosome: string;
   cns?: Array<string>;
@@ -46,8 +45,6 @@ export default class SequenceViewer extends React.Component<any, State> {
     super(props);
 
     this.state = {
-      // genes: "http://www.derkholm.net:8080/das/hsa_54_36p/",
-      // genome: "http://www.derkholm.net:8080/das/hg18comp/",
       viewStart: -1,
       viewEnd: -1,
       viewChromosome: "",
@@ -225,9 +222,9 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   cnsConfig(cellline: string) {
-    const { cns } = this.props;
+    const { cns, genome } = this.props;
     // only show BED if it exists
-    if (!cns || !cns.includes(cellline)) {
+    if (genome != 'hg19' || !cns || !cns.includes(cellline)) {
       return undefined;
     }
     return {
@@ -255,9 +252,9 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   snvConfig(cellline: string) {
-    const { guides } = this.props;
+    const { guides, genome } = this.props;
     // only show BED if it exists
-    if (!guides.find((g: any) => g.mutations.includes(cellline))) {
+    if (genome != 'hg19' || !guides.find((g: any) => g.mutations.includes(cellline))) {
       return undefined;
     }
     return {
@@ -290,7 +287,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       return {
         name: "Guides",
         desc: "sgRNAs in the exome",
-        bwgURI: "/guides.bb",
+        bwgURI: `/guides_${this.props.genome}.bb`,
         style: [
           {
             type: "default",
@@ -336,8 +333,15 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   _initialSources() {
-    const { cellline, guidesUrl, editData, pdb } = this.props;
-    let genomeURI = "//www.biodalliance.org/datasets/hg19.2bit";
+      const { cellline, guidesUrl, editData, pdb, genome } = this.props;
+      let genomeURI;
+      if (genome == "hg19") {
+          genomeURI = "//www.biodalliance.org/datasets/hg19.2bit";
+      } else if (genome == "hg38") {
+          genomeURI = "//www.biodalliance.org/datasets/hg38.2bit";
+      } else if (genome == "mm10") {
+          genomeURI = "mm10.2bit"
+      }
 
     let sources: Array<any> = [
       {
@@ -347,7 +351,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       },
       {
         name: "Canonical transcripts",
-        bwgURI: "/exome.bb",
+        bwgURI: `/exome_${genome}.bb`,
         tier_type: "translation",
         subtierMax: 1,
         // stylesheet_uri: "/gencode.xml",
@@ -392,7 +396,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       {
         name: "Domains",
         desc: "Domains mapped to gene coordinates",
-        bwgURI: "/domains.bb",
+        bwgURI: `/domains_${genome}.bb`,
         noSourceFeatureInfo: true,
         subtierMax: 2,
         style: [
@@ -436,7 +440,7 @@ export default class SequenceViewer extends React.Component<any, State> {
     return {
       name: "Change PDB",
       desc: "PDBs mapped to gene coordinates",
-      bwgURI: "/pdbs.bb",
+      bwgURI: `/pdbs_${this.props.genome}.bb`,
       noSourceFeatureInfo: true,
       subtierMax: 100,
       style: [

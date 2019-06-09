@@ -20,7 +20,8 @@ export interface Props {
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
   push: (route: string) => {};
   knockoutData: Array<any>;
-  cellline: string;
+    cellline: string;
+    genome: string;
 }
 
 class KnockoutList extends React.Component<Props, object> {
@@ -96,7 +97,8 @@ class KnockoutList extends React.Component<Props, object> {
           <div className="container">
             <div className="headControl">
               <h2 style={{ flex: 6 }}>Guide recommendations</h2>
-              <CelllineSelector />
+              { this.props.genome == 'hg19': <CelllineSelector /> : null}
+              
               <Button
                 raised={true}
                 style={{ flex: 1, margin: 10 }}
@@ -125,7 +127,8 @@ class KnockoutList extends React.Component<Props, object> {
 const mapStateToProps = (state: any) => {
   // Filter guides for mutations within the selected cellline
   return {
-    cellline: state.app.cellline,
+      cellline: state.app.cellline,
+      genome: state.app.genome,
     knockoutData: state.io.knockoutData.map((gene: any) => {
       let filteredGuides = gene.guides.filter(
         (guide: any) => !guide.mutations.includes(state.app.cellline)

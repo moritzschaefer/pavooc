@@ -18,6 +18,8 @@ import { observer } from "mobx-react";
 export interface Props {
   guideCount: number;
   setGuideCount: (guideCount: number) => {};
+  genome: number;
+  setGenome: (genome: string) => {};
   goKnockout: (geneSelection: Array<string>) => {};
   goEdit: (geneId: string) => {};
   initialLoad: () => {};
@@ -127,8 +129,30 @@ export default class Form extends React.Component<Props, State> {
     );
   }
 
+    renderGenomeSelector() {
+        return (<RadioGroup
+            className="radioButtonGroup"
+            name="experimentType"
+            value={this.props.genome}
+            onChange={this.props.setGenome}
+        >
+            <FormControlLabel
+                className="radioButton"
+                value="hg19"
+                control={<Radio />}
+                label="hg19"
+            />
+            <FormControlLabel
+                className="radioButton"
+                value="mm10"
+                control={<Radio />}
+                label="mm10"
+            />
+        </RadioGroup>);
+    }
+
   render() {
-    const { genes, className, onMessage, isFetching } = this.props;
+    const { genes, className, onMessage, isFetching, genome } = this.props;
     const { experimentType, editGene } = this.state;
     let classes = "initialForm ";
     if (className) {
@@ -148,7 +172,8 @@ export default class Form extends React.Component<Props, State> {
     } catch (e) {}
     return (
       <div className={classes}>
-        <CelllineSelector />
+        { this.renderGenomeSelector() }
+        { genome === "hg19" ? <CelllineSelector /> : null }
         { experimentType === "knockout" ? this.renderGuideCountSelector() : null }
         <br />
         <RadioGroup

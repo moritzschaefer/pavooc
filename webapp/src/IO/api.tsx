@@ -7,10 +7,10 @@ function handleFetchErrors(response: Response) {
   return response;
 }
 
-export const fetchKnockoutsApi = (geneIds: Array<string>, edit: boolean) => {
+export const fetchKnockoutsApi = (geneIds: Array<string>, edit: boolean, genome: string) => {
   const request = fetch("/api/knockout", {
     method: "POST",
-    body: JSON.stringify({ gene_ids: geneIds, edit: edit })
+    body: JSON.stringify({ gene_ids: geneIds, edit: edit, genome: genome })
   })
     .then(handleFetchErrors)
     .then(response => response.json());
@@ -37,12 +37,14 @@ const renameAttribute = (obj: any, oldName: string, newName: string) => {
 }
 
 export const fetchDetailsApi = (
-  geneId: string
+    geneId: string,
+    genome: string
 ) => {
   const request = fetch("/api/details", {
     method: "POST",
     body: JSON.stringify({
-      gene_id: geneId,
+        gene_id: geneId,
+        genome: genome
     })
   })
     .then(handleFetchErrors)

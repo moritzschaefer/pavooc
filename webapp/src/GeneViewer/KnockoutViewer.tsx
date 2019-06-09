@@ -35,7 +35,8 @@ export interface GeneData {
 interface Props {
   cellline: string;
   geneId: string;
-  geneData: GeneData;
+    geneData: GeneData;
+    genome: string;
   push: (route: string) => {};
   markGeneEdit: (geneId: string) => {};
   toggleGuideSelection: (geneId: string, guideIndex: number) => {};
@@ -115,7 +116,7 @@ class KnockoutViewer extends React.Component<Props, State> {
           </div>
           <div className="topControls">
             { renderAppLinks("topLinks") }
-            <CelllineSelector />
+              { this.props.genome == 'hg19': <CelllineSelector /> : null}
           </div>
         </div>
         <div className="containerCenter">
@@ -169,7 +170,8 @@ const mapStateToProps = (
   return {
     cellline: state.app.cellline,
     geneData,
-    geneId
+      geneId,
+      genome: state.app.genome
   };
 };
 

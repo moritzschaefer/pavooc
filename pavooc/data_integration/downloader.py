@@ -21,11 +21,11 @@ ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v)
                          for v in range(1, 23)] + ['chrX', 'chrY']
 
 ALL_MOUSE_CHROMOSOMES = ['chr{}'.format(v)
-                         for v in range(1, 23)] + ['chrX', 'chrY']
+                         for v in range(1, 20)] + ['chrX', 'chrY']
 
 ESSENTIAL_URLS = [
     f'http://hgdownload.soe.ucsc.edu/goldenPath/{GENOME}/chromosomes/{c}.fa.gz'
-    for c in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
+    for c in (ALL_HUMAN_CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
 ] + [  # noqa
     S3_BUCKET_URL.format('cnn38.torch'),
     S3_BUCKET_URL.format('scaler.pkl'),
@@ -46,29 +46,22 @@ ESSENTIAL_URLS = [
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
 ]  # noqa <- this is the same file as being computed in the pipeline
 
+if not DEBUG:
+    ESSENTIAL_URLS.extend([
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz',  # noqa
+        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',  # noqa
+    ])
+else:  # DEBUG can only do hg19
+    ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz')
+
 if GENOME == 'hg19':
     ESSENTIAL_URLS.extend([
         'https://data.broadinstitute.org/ccle_legacy_data/dna_copy_number/CCLE_copynumber_2013-12-03.seg.txt',  # noqa
         'https://data.broadinstitute.org/ccle/ccle2maf_081117.txt',
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
     ])
-elif GENOME == 'hg38':
-    # TODO test and run
-    raise NotImplementedError('hg38 is not implemented yet..')
-    ESSENTIAL_URLS.extend([
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz',  # noqa
-    ])
-elif GENOME == 'mm10':
-    ESSENTIAL_URLS.extend([
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',  # noqa
-    ])
-else:
-    raise ValueError('GENOME has illegal value')
 
 EXTENDEND_URLS = [
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_human/release_27/GRCh38.p10.genome.fa.gz',  # these seem to be inaccesible. need to download from gencode now
-    'ftp://ftp.sanger.ac.uk/pub/gencode/Gencode_mouse/release_M16/GRCm38.p5.genome.fa.gz'
-] + [
     'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'
     .format(c) for c in ALL_HUMAN_CHROMOSOMES
 ] + [
@@ -143,8 +136,12 @@ def download_ftp(queue):
         target_filename = SIFTS_FILE.format(filename)
         if os.path.exists(target_filename):
             continue
-        with open(target_filename, 'wb') as f:
-            ftp.retrbinary('RETR ' + filename, f.write)
+        try:
+            with open(target_filename, 'wb') as f:
+                ftp.retrbinary('RETR ' + filename, f.write)
+        except:
+            queue.put(filename)
+            os.remove(target_filename)
     ftp.quit()
 
 
@@ -192,6 +189,7 @@ def download_sifts():
         for process in ftp_processes:
             process.join()
     except KeyboardInterrupt:
+        # TODO kill not supported by multiprocessing.dummy..
         for process in ftp_processes:
             process.kill()
 

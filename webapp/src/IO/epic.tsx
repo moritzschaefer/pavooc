@@ -34,7 +34,7 @@ const fetchEditEpic = (action$: any) =>
 
 const fetchKnockoutsEpic = (action$: any) =>
   action$.ofType(FETCH_KNOCKOUTS).mergeMap((action: FetchKnockouts) =>
-    fetchKnockoutsApi(action.geneIds, action.edit)
+    fetchKnockoutsApi(action.geneIds, action.edit, action.genome)
       .map(fetchKnockoutsSuccess)
       .catch((error: string) => Observable.of(fetchKnockoutsFailure(error)))
   );
@@ -52,7 +52,7 @@ const fetchKnockoutsSuccessEpic = (action$: any) =>
 
 const fetchDetailsEpic = (action$: any) =>
   action$.ofType(FETCH_DETAILS).mergeMap((action: FetchDetails) =>
-    fetchDetailsApi(action.geneId)
+    fetchDetailsApi(action.geneId, action.genome)
       .map(fetchDetailsSuccess)
       .catch((error: string) => Observable.of(fetchDetailsFailure(error)))
   );

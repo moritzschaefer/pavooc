@@ -1,5 +1,14 @@
 import * as t from "./actionTypes";
 
+export interface SetGenome {
+    type: typeof t.SET_GENOME;
+    genome: string;
+}
+
+export const setGenome = (genome: string): SetGenome => ({
+    type: t.SET_GENOME,
+    genome
+});
 
 export interface SetCellline {
   type: typeof t.SET_CELLLINE;

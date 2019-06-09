@@ -1,10 +1,10 @@
-import subprocess
+import logging
 import os
 import shutil
-import logging
+import subprocess
 
-from pavooc.config import JAVA_RAM, FLASHFRY_TMP_DIR, FLASHFRY_DB_FILE, \
-        GENOME_FILE, FLASHFRY_EXE
+from pavooc.config import (FLASHFRY_DB_FILE, FLASHFRY_EXE, FLASHFRY_TMP_DIR,
+                           GENOME, GENOME_FILE, JAVA_RAM)
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
             '--analysis', 'index',
             '--tmpLocation', FLASHFRY_TMP_DIR,
             '--database', FLASHFRY_DB_FILE,
-            '--reference', GENOME_FILE,
+            '--reference', GENOME_FILE.format(GENOME),
             '--enzyme', 'spcas9ngg'])
     if result.returncode != 0:
         raise RuntimeError(result)

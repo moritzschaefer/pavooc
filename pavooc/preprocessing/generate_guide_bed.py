@@ -1,5 +1,5 @@
+from pavooc.config import GENOME, GUIDE_BED_FILE
 from pavooc.db import guide_collection
-from pavooc.config import GUIDE_BED_FILE
 
 
 def guide_to_bed(gene, guide, index):
@@ -39,7 +39,7 @@ def guides_to_bed(guides, gene, bed_file):
 
 def main():
     with open(GUIDE_BED_FILE, 'w') as f:
-        for gene_guides in guide_collection.find():
+        for gene_guides in guide_collection.find({'genome': GENOME}):
             for guide_index, guide in enumerate(gene_guides['guides']):
                 f.write(guide_to_bed(gene_guides, guide, guide_index))
                 f.write('\n')

@@ -27,7 +27,8 @@ export interface Exon {
 
 
 interface Props {
-  geneData: any;
+    geneData: any;
+    genome: string;
   cellline: string;
   geneId: string;
   geneSymbol: string;
@@ -254,7 +255,8 @@ class EditViewer extends React.Component<Props, State> {
   }
 
   _renderSequenceViewer() {
-    const {
+      const {
+      genome,
       cellline,
       guides,
       pdbs,
@@ -274,6 +276,7 @@ class EditViewer extends React.Component<Props, State> {
           </div>
         ) : null}
         <SequenceViewer
+            genome={genome}
           cellline={cellline}
           editData={this._editRange()}
           onEditCodonClicked={this._onEditCodonClicked}
@@ -487,7 +490,7 @@ class EditViewer extends React.Component<Props, State> {
 
   _renderTopContainer() {
     const { selectedPdb } = this.state;
-    const { geneSymbol, pdbs, strand } = this.props;
+    const { geneSymbol, pdbs, strand, genome } = this.props;
 
     return (
       <div className="containerTop">
@@ -509,7 +512,7 @@ class EditViewer extends React.Component<Props, State> {
           </Button>
         </div>
         <div className="topControls">
-          <CelllineSelector />
+            { this.props.genome == 'hg19': <CelllineSelector /> : null}
           <Button
             raised={true}
             disabled={!this._editRange()}
@@ -538,7 +541,8 @@ class EditViewer extends React.Component<Props, State> {
 
 const mapStateToProps = (state: any) => {
   let geneData = state.io.knockoutData[0];
-  return {
+    return {
+    genome: state.app.genome,
     sequence: geneData.sequence,
     padding: state.app.padding,
     isFetching: state.io.isFetching,

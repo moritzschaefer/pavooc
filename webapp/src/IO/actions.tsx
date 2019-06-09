@@ -13,16 +13,19 @@ export const setGuideCount = (guideCount: number): SetGuideCount => ({
 export interface FetchKnockouts {
   type: typeof t.FETCH_KNOCKOUTS;
   geneIds: Array<string>;
-  edit: boolean;
+    edit: boolean;
+    genome: string;
 }
 
 export const fetchKnockouts = (
   geneIds: Array<string>,
-  edit: boolean = false
+  edit: boolean = false,
+    genome: string
 ): FetchKnockouts => ({
   type: t.FETCH_KNOCKOUTS,
   edit,
-  geneIds
+    geneIds,
+    genome
 });
 
 export interface FetchKnockoutsFailure {
@@ -96,13 +99,16 @@ export const fetchEditSuccess = (
 export interface FetchDetails {
   type: typeof t.FETCH_DETAILS;
   geneId: string;
+    genome: string;
 }
 
 export const fetchDetails = (
-  geneId: string,
+    geneId: string,
+    genome: string,
 ): FetchDetails => ({
   type: t.FETCH_DETAILS,
-  geneId
+    geneId,
+    genome
 });
 
 export interface FetchDetailsFailure {

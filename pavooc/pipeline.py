@@ -5,7 +5,7 @@ import stat
 import subprocess
 
 from pavooc.config import (BIG_BED_EXE, CHROM_SIZES_FILE, CNS_BED_FILE,
-                           DATADIR, DOMAIN_BED_FILE, EXON_BED_FILE,
+                           DATADIR, DOMAIN_BED_FILE, EXON_BED_FILE, GENOME,
                            GUIDE_BED_FILE, MONGO_HOST, MONGO_PORT,
                            MUTATION_BED_FILE, PDB_BED_FILE, TRAIN_MODEL)
 from pavooc.data_integration.downloader import main as main_downloader
@@ -37,9 +37,11 @@ def generate_bed_files(skip_generation=False):
         generate_pdb_bed()
         generate_exon_bed()
         generate_guide_bed()
-        generate_snp_bed()
-        generate_cns_bed()
+        if GENOME == 'hg19':
+            generate_snp_bed()
+            generate_cns_bed()
         generate_domain_bed()
+
 
     SORTED_TMP_FILE = os.path.join(DATADIR, 'sorted.bed')
     os.chmod(BIG_BED_EXE, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
@@ -92,12 +94,14 @@ def build_db():
     '''
     main_downloader()
     main_preprocessing()
-    main_extract_conservation_scores()
+    if TRAIN_MODEL:
+        main_extract_conservation_scores()
     main_ff()
     main_guide_search()  # ff search
     main_guides_to_db()
     generate_bed_files()
-    generate_final_model()
+    if TRAIN_MODEL:
+        generate_final_model()
     print('finished pipeline')
 
 
