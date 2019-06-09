@@ -46,14 +46,14 @@ ESSENTIAL_URLS = [
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
 ]  # noqa <- this is the same file as being computed in the pipeline
 
-if not DEBUG:
-    ESSENTIAL_URLS.extend([
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz',  # noqa
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz',  # noqa
-        'ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',  # noqa
-    ])
-else:  # DEBUG can only do hg19
+if genome == 'hg19':
     ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz')
+elif genome == 'hg38'
+    ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz')
+elif genome == 'mm10':
+    ESSENTIAL_URLS.extend(['ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',
+                           'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/mm10.2bit'
+    ])
 
 if GENOME == 'hg19':
     ESSENTIAL_URLS.extend([

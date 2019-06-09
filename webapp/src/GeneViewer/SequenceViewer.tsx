@@ -340,7 +340,7 @@ export default class SequenceViewer extends React.Component<any, State> {
       } else if (genome == "hg38") {
           genomeURI = "//www.biodalliance.org/datasets/hg38.2bit";
       } else if (genome == "mm10") {
-          genomeURI = "mm10.2bit"
+          genomeURI = "/mm10.2bit"
       }
 
     let sources: Array<any> = [

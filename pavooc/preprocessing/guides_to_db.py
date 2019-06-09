@@ -78,6 +78,8 @@ def cns_affection(exons):
     '''
     :returns: boolean whether the gene is affected by a CNS or not
     '''
+    if GENOME != 'hg19':
+        return []
     chromosome = exons.iloc[0].seqname
     start = exons.start.min()
     end = exons.end.max()
@@ -94,6 +96,8 @@ def guide_mutations(chromosome, position):
     #         cellline_mutation_trees[chromosome][position:position + 23]]
     # as long as other datais not necessary, we just return the cellline
     # TODO add CNS?
+    if GENOME != 'hg19':
+        return []
     mutations = [mut[2]['cellline'] for mut in
                  cellline_mutation_trees()[chromosome][position:position + 23]]
     return mutations
@@ -252,7 +256,7 @@ def build_gene_document(gene, check_exists=True):
     strand = exons.iloc[0]['strand']
     gene_symbol = exons.iloc[0]['gene_name']
     if check_exists and \
-            guide_collection.find({'gene_id': gene_id}, limit=1).count() == 1:
+            guide_collection.find({'gene_id': gene_id, 'genome': GENOME}, limit=1).count() == 1:
         # item exists
         return None
     try:
