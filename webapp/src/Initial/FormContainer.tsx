@@ -20,11 +20,11 @@ export function mapDispatchToProps(dispatch: any, ownProps: any) {
   return {
     setGuideCount: (guideCount: number) => dispatch(setGuideCount(guideCount)),
     setGenome: (genome: string) => dispatch(setGenome(genome)),
-    goKnockout: (geneIds: Array<string>) => {
-      dispatch(fetchKnockouts(geneIds, false, ownProps.genome));
+    goKnockout: (geneIds: Array<string>, genome:string) => {
+      dispatch(fetchKnockouts(geneIds, false, genome));
     },
-    goEdit: (geneId: string) => {
-      dispatch(fetchKnockouts([geneId], true, ownProps.genome));
+    goEdit: (geneId: string, genome: string) => {
+      dispatch(fetchKnockouts([geneId], true, genome));
     },
     initialLoad: () => dispatch(initialLoad()),
     onMessage: (message: string) => dispatch(showMessage(message)),

@@ -92,7 +92,7 @@ class KnockoutViewer extends React.Component<Props, State> {
   };
 
   render() {
-    const { geneData, cellline } = this.props;
+    const { geneData, cellline, genome } = this.props;
     const { selectedPdb, hoveredGuide, pdbSelectionOpened } = this.state;
     return (
       <div className="mainContainer">
@@ -144,6 +144,7 @@ class KnockoutViewer extends React.Component<Props, State> {
             hoveredGuide={hoveredGuide}
             cns={geneData.cns}
             guides={geneData.guides}
+            genome={genome}
             onGuideClicked={this._onGuideClicked}
             onGuideHovered={this.setHoveredGuide}
             pdb={geneData.pdbs[selectedPdb] && geneData.pdbs[selectedPdb].pdb}

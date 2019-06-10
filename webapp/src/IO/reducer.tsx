@@ -125,15 +125,13 @@ export default (state: State = INITIAL_STATE, action: any) => {
     case t.INITIAL_LOAD:
       return { ...state, isFetching: true, error: undefined };
     case t.INITIAL_LOAD_SUCCESS:
-        let genes = new Map<string, Map<string, string> >();
-        new Map(groupBy(action.genes, 'genome')).forEach((objects: any, genome: string) => {
-            genes.set(genome, new Map<string, string>(objects.map((g: any) => [g.gene_id, g.gene_symbol])));
-          });
+          let grouped = Object.entries(groupBy(action.genes, 'genome'));
+          let mapped: any = grouped.map((entry: [string, any]) => [entry[0], new Map<string, string>(entry[1].map((g: any) => [g.gene_id, g.gene_symbol]))]);
       return {
         ...state,
         isFetching: false,
         error: undefined,
-        genes: genes,
+        genes: new Map<string, Map<string, string>>(mapped),
         celllines: action.celllines,
         editData: INITIAL_EDIT_DATA
       };

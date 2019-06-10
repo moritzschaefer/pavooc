@@ -20,8 +20,8 @@ export interface Props {
   setGuideCount: (guideCount: number) => {};
   genome: string;
   setGenome: (genome: string) => {};
-  goKnockout: (geneSelection: Array<string>) => {};
-  goEdit: (geneId: string) => {};
+  goKnockout: (geneSelection: Array<string>, genome:string) => {};
+  goEdit: (geneId: string, genome:string) => {};
   initialLoad: () => {};
   genes: Map<string, string>;
   className: string;
@@ -84,10 +84,11 @@ export default class Form extends React.Component<Props, State> {
 
   _goButtonClick = () => {
     const { experimentType, editGene } = this.state;
+    const { genome } = this.props;
     if (experimentType === "knockout") {
-      this.props.goKnockout(Array.from(this.geneSelection.keys()));
+      this.props.goKnockout(Array.from(this.geneSelection.keys()), genome);
     } else if (experimentType === "edit") {
-      this.props.goEdit(editGene[0]);
+      this.props.goEdit(editGene[0], genome);
     }
   };
 
@@ -154,7 +155,7 @@ export default class Form extends React.Component<Props, State> {
           Array.from(genes.entries()).map(([key, value]: [string, string]): [
             string,
             string
-          ] => [value, key])
+          ] => [value.toUpperCase(), key])
         );
     } catch (e) {}
     return (

@@ -180,8 +180,8 @@ export default class AutoComplete extends React.Component<Props, State> {
                     .filter(
                       e =>
                         !inputValue ||
-                        e[0].includes(inputValue.toUpperCase()) ||
-                        e[1].includes(inputValue.toUpperCase())
+                        e[0].toUpperCase().includes(inputValue.toUpperCase()) ||
+                         e[1].toUpperCase().includes(inputValue.toUpperCase())
                     )
                     .slice(0, 20)
                     .map((item, index) =>
