@@ -31,6 +31,7 @@ api = Api(app, doc='/api/')
 @app.after_request
 def after_request(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 ns = api.namespace('api', description='API')
 
