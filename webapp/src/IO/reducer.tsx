@@ -1,12 +1,12 @@
 import * as t from "./actionTypes";
 
-import { guidesWithDomains } from "../util/functions";
+import { guidesWithDomains, groupBy } from "../util/functions";
 
 export type State = {
   readonly isFetching: boolean;
   readonly error: string | undefined;
   readonly knockoutData: any | undefined;
-  readonly genes: Map<string, string>;
+  readonly genes: Map<string, Map<string, string> >;
   readonly celllines: Array<string>;
   readonly editData: any;
   readonly detailsData: any;
@@ -35,7 +35,7 @@ const INITIAL_STATE: State = {
   knockoutData: undefined,
   editData: INITIAL_EDIT_DATA,
   detailsData: {},
-  genes: new Map<string, string>(),
+  genes: new Map<string, Map<string, string> >(),
   celllines: [],
   guideCount: 5
 };
@@ -125,13 +125,15 @@ export default (state: State = INITIAL_STATE, action: any) => {
     case t.INITIAL_LOAD:
       return { ...state, isFetching: true, error: undefined };
     case t.INITIAL_LOAD_SUCCESS:
+        let genes = new Map<string, Map<string, string> >();
+        new Map(groupBy(action.genes, 'genome')).forEach((objects: any, genome: string) => {
+            genes.set(genome, new Map<string, string>(objects.map((g: any) => [g.gene_id, g.gene_symbol])));
+          });
       return {
         ...state,
         isFetching: false,
         error: undefined,
-        genes: new Map(
-          action.genes.map((g: any) => [g.gene_id, g.gene_symbol])
-        ),
+        genes: genes,
         celllines: action.celllines,
         editData: INITIAL_EDIT_DATA
       };
@@ -196,7 +198,7 @@ export default (state: State = INITIAL_STATE, action: any) => {
           ...gene
         }))
       };
-    default:
+    default: 
       return state;
   }
 };

@@ -10,7 +10,7 @@ export function mapStateToProps(state: any) {
   return {
     guideCount: state.io.guideCount,
     genome: state.app.genome,
-    genes: state.io.genes,
+    genes: state.io.genes.get(state.app.genome) || new Map<string, string>(),
     cellline: state.app.cellline,
     isFetching: state.io.isFetching
   }

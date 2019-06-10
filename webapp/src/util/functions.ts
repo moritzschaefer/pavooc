@@ -214,3 +214,10 @@ export const urlExists = (url: string , callback: (successful: boolean) => void)
     };
     http.send();
 };
+
+export const groupBy = (xs: Array<object>, key: string) =>  {
+    return xs.reduce((rv: any, x: any) => {
+        (rv[x[key]] = rv[x[key]] || []).push(x);
+        return rv;
+    }, {});
+};

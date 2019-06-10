@@ -56,6 +56,11 @@ export default class Form extends React.Component<Props, State> {
   };
     
     _setGenome = (event: any) => {
+        // delete all selected genes!
+        this.setState({
+            editGene: ["", ""]
+        });
+        this.geneSelection.clear();
         this.props.setGenome(event.target.value);
     };
 

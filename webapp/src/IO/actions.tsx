@@ -145,7 +145,7 @@ export const initialLoad = (): InitialLoad => ({
 
 export interface InitialLoadSuccess {
   type: typeof t.INITIAL_LOAD_SUCCESS;
-  genes: Array<{gene_id: string, gene_symbol: string}>;
+  genes: Array<{gene_id: string, gene_symbol: string, genome: string}>;
   celllines: Array<string>;
 }
 

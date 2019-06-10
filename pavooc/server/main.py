@@ -24,7 +24,6 @@ from pavooc.preprocessing.generate_guide_bed import guides_to_bed
 sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
 
-
 app = Flask(__name__)
 api = Api(app, doc='/api/')
 
@@ -112,8 +111,8 @@ knockout_output = api.model('KnockoutGuides', {
 
 
 gene_details_input = api.model('GeneDetailsInput', {
-    'gene_id': fields.String
-    'genome': fields.String()
+    'gene_id': fields.String,
+    'genome': fields.String
 })
 
 
@@ -195,7 +194,7 @@ class KnockoutGuides(Resource):
         # influence the guides. For now return the 6 best guides
         aggregation_pipeline = [
             # filter our genes
-            {'$match': {'$and': [{'gene_id': {'$in': gene_ids}}, {'genome': genome} ]},
+            {'$match': {'$and': [{'gene_id': {'$in': gene_ids}}, {'genome': genome} ]}},
             # unwind guides so we can access their score
             # {'$unwind': '$guides'},
             # # sort by score
@@ -238,7 +237,7 @@ class Details(Resource):
             raise BadRequest('gene_id not set')
 
         gene_data = guide_collection.aggregate([
-            {"$match": {"$and": [{"gene_id": gene_id}, {"genome": genome}}]},
+            {"$match": {"$and": [{"gene_id": gene_id}, {"genome": genome}]}},
             {"$unwind": "$exons"},
             {"$group": {
                 "_id": "$_id",
