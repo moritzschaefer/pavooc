@@ -2,15 +2,16 @@
 Create a bed file for each pdb
 '''
 
-import os
 import logging
-from tqdm import tqdm
+import os
+
 import numpy as np
+from tqdm import tqdm
 
 from pavooc.config import PDB_BED_FILE, SINGLE_PDBS
-from pavooc.util import normalize_pid
 from pavooc.data import gencode_exons, pdb_list
 from pavooc.pdb import pdb_mappings
+from pavooc.util import normalize_pid
 
 
 def pdb_coordinates(pdb, pdb_exons):

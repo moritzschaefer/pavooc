@@ -17,7 +17,7 @@ import azimuth
 from pavooc.config import (APPRIS_FILE, BASEDIR, CHROMOSOME_RAW_FILE,
                            CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_HG19_FILE,
                            GENCODE_HG38_FILE, GENCODE_MM10_FILE, GENOME,
-                           MOUSE_CHROMOSOMES, MUTATIONS_FILE, PDB_LIST_FILE,
+                           MUTATIONS_FILE, PDB_LIST_FILE,
                            PROTEIN_ID_MAPPING_FILE, SCALER_FILE)
 # from pavooc.scoring.models import CNN38
 from pavooc.util import buffer_return_value
@@ -79,10 +79,10 @@ def read_gencode(genome=GENOME):
         df = read_gtf_as_dataframe(GENCODE_MM10_FILE)
 
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
-    df.protein_id = df.protein_id.map(lambda v: v[:15])
-    df.exon_id = df.exon_id.map(lambda v: v[:15])
-    df.gene_id = df.gene_id.map(lambda v: v[:15])
-    df.transcript_id = df.transcript_id.map(lambda v: v[:15])
+    df.protein_id = df.protein_id.map(lambda v: v[:v.find('.')])
+    df.exon_id = df.exon_id.map(lambda v: v[:v.find('.')])
+    df.gene_id = df.gene_id.map(lambda v: v[:v.find('.')])
+    df.transcript_id = df.transcript_id.map(lambda v: v[:v.find('.')])
 
     # only take protein_coding genes/transcripts/exons
     df = df[
@@ -285,10 +285,9 @@ def chromosomes():
     '''
     Return dictionary with loaded chromosome data
     '''
-    chrom_names = CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES
     return {
         c: open(CHROMOSOME_RAW_FILE.format(c)).read()
-        for c in chrom_names}
+        for c in CHROMOSOMES}
 
 
 @buffer_return_value

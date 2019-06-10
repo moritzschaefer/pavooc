@@ -1,1 +1,0 @@
-../../data/exome.bb

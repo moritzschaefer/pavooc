@@ -13,19 +13,12 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from pavooc.config import (BASEDIR, CHROMOSOMES, DATADIR, GENOME,
-                           MOUSE_CHROMOSOMES, S3_BUCKET_URL, SIFTS_FILE,
-                           SIFTS_TARBALL, TRAIN_MODEL)
-
-# needed so we download all conservation scores and training doesnt fail..
-ALL_HUMAN_CHROMOSOMES = ['chr{}'.format(v)
-                         for v in range(1, 23)] + ['chrX', 'chrY']
-
-ALL_MOUSE_CHROMOSOMES = ['chr{}'.format(v)
-                         for v in range(1, 20)] + ['chrX', 'chrY']
+                           HUMAN_CHROMOSOMES, MOUSE_CHROMOSOMES, S3_BUCKET_URL,
+                           SIFTS_FILE, SIFTS_TARBALL, TRAIN_MODEL)
 
 ESSENTIAL_URLS = [
     f'http://hgdownload.soe.ucsc.edu/goldenPath/{GENOME}/chromosomes/{c}.fa.gz'
-    for c in (ALL_HUMAN_CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
+    for c in (HUMAN_CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
 ] + [  # noqa
     S3_BUCKET_URL.format('cnn38.torch'),
     S3_BUCKET_URL.format('scaler.pkl'),
@@ -46,11 +39,11 @@ ESSENTIAL_URLS = [
     'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
 ]  # noqa <- this is the same file as being computed in the pipeline
 
-if genome == 'hg19':
+if GENOME == 'hg19':
     ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz')
-elif genome == 'hg38'
+elif GENOME == 'hg38':
     ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz')
-elif genome == 'mm10':
+elif GENOME == 'mm10':
     ESSENTIAL_URLS.extend(['ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',
                            'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/mm10.2bit'
     ])
@@ -63,10 +56,10 @@ if GENOME == 'hg19':
 
 EXTENDEND_URLS = [
     'http://hgdownload.cse.ucsc.edu/goldenpath/hg19/phastCons100way/hg19.100way.phastCons/{}.phastCons100way.wigFix.gz'
-    .format(c) for c in ALL_HUMAN_CHROMOSOMES
+    .format(c) for c in HUMAN_CHROMOSOMES
 ] + [
     'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/phastCons60way/mm10.60way.phastCons/{}.phastCons60way.wigFix.gz'
-    .format(c) for c in ALL_MOUSE_CHROMOSOMES
+    .format(c) for c in MOUSE_CHROMOSOMES
 ]
 
 logging.basicConfig(level=logging.INFO)
@@ -201,7 +194,7 @@ def main(only_init=False):
         # because of duplicate names we have to download this one here separately to rename it
         for url in [
                 'http://hgdownload.cse.ucsc.edu/goldenPath/hg38/phastCons100way/hg38.100way.phastCons/{}.phastCons100way.wigFix.gz'
-                .format(c) for c in ALL_HUMAN_CHROMOSOMES
+                .format(c) for c in HUMAN_CHROMOSOMES
         ]:
             download_unzip(url, '.hg38')
 

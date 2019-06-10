@@ -116,7 +116,7 @@ class KnockoutViewer extends React.Component<Props, State> {
           </div>
           <div className="topControls">
             { renderAppLinks("topLinks") }
-              { this.props.genome == 'hg19': <CelllineSelector /> : null}
+              { this.props.genome == 'hg19' ?  <CelllineSelector /> : null}
           </div>
         </div>
         <div className="containerCenter">

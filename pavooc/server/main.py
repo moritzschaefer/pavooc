@@ -27,6 +27,12 @@ sys.path.append(path.join(path.dirname(path.abspath(__file__)), '../..'))
 
 app = Flask(__name__)
 api = Api(app, doc='/api/')
+
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
 ns = api.namespace('api', description='API')
 
 guide_field = fields.Nested(api.model('Guide', {

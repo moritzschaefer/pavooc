@@ -18,7 +18,7 @@ import { observer } from "mobx-react";
 export interface Props {
   guideCount: number;
   setGuideCount: (guideCount: number) => {};
-  genome: number;
+  genome: string;
   setGenome: (genome: string) => {};
   goKnockout: (geneSelection: Array<string>) => {};
   goEdit: (geneId: string) => {};
@@ -54,6 +54,10 @@ export default class Form extends React.Component<Props, State> {
   _setExperimentType = (event: any) => {
     this.setState({ experimentType: event.target.value });
   };
+    
+    _setGenome = (event: any) => {
+        this.props.setGenome(event.target.value);
+    };
 
   addGene = (geneId: string) => {
     const { experimentType } = this.state;
@@ -129,28 +133,6 @@ export default class Form extends React.Component<Props, State> {
     );
   }
 
-    renderGenomeSelector() {
-        return (<RadioGroup
-            className="radioButtonGroup"
-            name="experimentType"
-            value={this.props.genome}
-            onChange={this.props.setGenome}
-        >
-            <FormControlLabel
-                className="radioButton"
-                value="hg19"
-                control={<Radio />}
-                label="hg19"
-            />
-            <FormControlLabel
-                className="radioButton"
-                value="mm10"
-                control={<Radio />}
-                label="mm10"
-            />
-        </RadioGroup>);
-    }
-
   render() {
     const { genes, className, onMessage, isFetching, genome } = this.props;
     const { experimentType, editGene } = this.state;
@@ -172,7 +154,25 @@ export default class Form extends React.Component<Props, State> {
     } catch (e) {}
     return (
       <div className={classes}>
-        { this.renderGenomeSelector() }
+          <RadioGroup
+              className="radioButtonGroup"
+              name="genome"
+              value={this.props.genome}
+              onChange={this._setGenome}
+          >
+              <FormControlLabel
+                  className="radioButton"
+                  value="hg19"
+                  control={<Radio />}
+                  label="hg19"
+              />
+              <FormControlLabel
+                  className="radioButton"
+                  value="mm10"
+                  control={<Radio />}
+                  label="mm10"
+              />
+          </RadioGroup>
         { genome === "hg19" ? <CelllineSelector /> : null }
         { experimentType === "knockout" ? this.renderGuideCountSelector() : null }
         <br />

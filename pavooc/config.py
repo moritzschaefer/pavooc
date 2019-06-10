@@ -11,19 +11,21 @@ try:
 except FileExistsError:
     pass
 
-S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavoocdata/{}'
+S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavooc/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
+GENOME = os.environ.get('GENOME', 'mm10')
+MOUSE_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 20)] + ['chrX', 'chrY']
+HUMAN_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
 if DEBUG:
     CHROMOSOMES = ['chrY']
-    MOUSE_CHROMOSOMES = ['chrY']
 else:
-    CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
-    MOUSE_CHROMOSOMES = ['chr{}'.format(v)
-                        for v in range(1, 20)] + ['chrX', 'chrY']
+    if 'hg' in GENOME:
+        CHROMOSOMES = HUMAN_CHROMOSOMES
+    else:
+        CHROMOSOMES = MOUSE_CHROMOSOMES
 TRAIN_MODEL = os.environ.get('TRAIN_MODEL', 'False') in \
     ['True', 'true', '1', 'y', 'yes', 't']
-GENOME = os.environ.get('GENOME', 'hg19')
 
 PROTOSPACER_POSITIONS_FILE = os.path.join(DATADIR, 'protospacer_positions.csv')
 SIFTS_FILE = os.path.join(DATADIR, 'sifts', '{}')

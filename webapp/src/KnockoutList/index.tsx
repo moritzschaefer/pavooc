@@ -97,8 +97,7 @@ class KnockoutList extends React.Component<Props, object> {
           <div className="container">
             <div className="headControl">
               <h2 style={{ flex: 6 }}>Guide recommendations</h2>
-              { this.props.genome == 'hg19': <CelllineSelector /> : null}
-              
+              { this.props.genome == 'hg19' ? <CelllineSelector /> : null }
               <Button
                 raised={true}
                 style={{ flex: 1, margin: 10 }}

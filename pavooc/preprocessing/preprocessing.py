@@ -8,7 +8,7 @@ from intervaltree import IntervalTree
 from skbio.sequence import DNA
 
 from pavooc.config import (CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, CHROMOSOMES,
-                           EXON_DIR, GENOME, GENOME_FILE, MOUSE_CHROMOSOMES)
+                           EXON_DIR, GENOME, GENOME_FILE)
 from pavooc.data import chromosomes, gencode_exons
 
 logging.basicConfig(level=logging.INFO)
@@ -24,8 +24,8 @@ def generate_raw_chromosomes():
     # delete newlines from chromosomes
     logging.info('Convert chromosomes into raw form')
 
-    
-    for chromosome_number in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES):
+
+    for chromosome_number in CHROMOSOMES:
         chromosome_filename = CHROMOSOME_FILE.format(chromosome_number)
         with open(chromosome_filename) as chromosome_file:
             chromosome = chromosome_file.read()
@@ -41,9 +41,11 @@ def exon_to_fasta(exon_id, exon_data):
     :returns: a string with two lines, one with a fasta header
     and one with the exon sequence
     '''
-    assert len(exon_data['start'].unique()) == 1
-    assert len(exon_data['end'].unique()) == 1
-
+    try:
+        assert len(exon_data['start'].unique()) == 1
+        assert len(exon_data['end'].unique()) == 1
+    except:
+        import ipdb; ipdb.set_trace()
     exon = exon_data.iloc[0]
 
     exon_slice = slice(exon['start'] - 16, exon['end'] + 16)
@@ -99,7 +101,7 @@ def combine_genome():
     '''
     logging.info('Build all-in-one-file genome')
     with open(GENOME_FILE.format(GENOME), 'w') as genome_file:
-        for chromosome in (CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES):
+        for chromosome in CHROMOSOMES:
             with open(CHROMOSOME_FILE.format(chromosome)) as chr_file:
                 genome_file.write(chr_file.read())
 

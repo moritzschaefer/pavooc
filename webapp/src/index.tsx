@@ -15,7 +15,7 @@ import {
 import { createEpicMiddleware, combineEpics } from "redux-observable";
 import createHistory from "history/createBrowserHistory";
 
-import registerServiceWorker from "./registerServiceWorker";
+// import registerServiceWorker from "./registerServiceWorker";
 import "./index.css";
 
 import App from "./App";

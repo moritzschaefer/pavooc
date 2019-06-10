@@ -512,7 +512,7 @@ class EditViewer extends React.Component<Props, State> {
           </Button>
         </div>
         <div className="topControls">
-            { this.props.genome == 'hg19': <CelllineSelector /> : null}
+            { genome == 'hg19' ? <CelllineSelector /> : null}
           <Button
             raised={true}
             disabled={!this._editRange()}

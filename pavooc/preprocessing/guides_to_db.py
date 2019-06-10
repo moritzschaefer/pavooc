@@ -3,11 +3,13 @@ load guides-files (filtered FlashFry output) and integrate
 into mongoDB
 '''
 import logging
+import time
 from multiprocessing import Pool
 
 import mygene
 import numpy as np
 import pandas as pd
+from requests.exceptions import ConnectionError
 from skbio.sequence import DNA
 from tqdm import tqdm
 
@@ -63,14 +65,11 @@ def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5
     return seq
 
 
-def filter_bad_guides(guides, pavooc_score):
-    # delete all guides with scores below 0.47 or with BsaI site or other
-    # sequences, that hinder their function
-    delete_indices = guides.index[(pavooc_score < 0.45) |
+def filter_bad_guides(guides, score):
+    # delete all guides with scores below 0.45 or with some sequence that hinder their function
+    delete_indices = guides.index[(score < 0.45) |
                                   (guides.target.str.startswith('GGGGG')) |
-                                  (guides.target.str.contains('TTTT')) |
-                                  (guides.target.str.contains('GGTCTC')) |
-                                  (guides.target.str.contains('GAGACC'))]
+                                  (guides.target.str.contains('TTTT'))]
     guides.drop(delete_indices, inplace=True)
 
 
@@ -112,7 +111,7 @@ def pdbs_for_gene(gene_id):
     canonical_pids = np.unique([normalize_pid(pid)
                                 for pid in protein_ids if pid]).astype('O')
     if len(canonical_pids) > 1:
-        logging.warn('Gene {} has {} "canonical" protein ids: {}"'.format(
+        logging.warning('Gene {} has {} "canonical" protein ids: {}"'.format(
             gene_id,
             len(canonical_pids),
             canonical_pids
@@ -150,7 +149,7 @@ def _absolute_position(row, chromosome):
     try:
         exon = gencode_exons().loc[row.exon_id]
     except KeyError:
-        logging.warn('missing exon: {}'.format(row.exon_id))
+        logging.warning('missing exon: {}'.format(row.exon_id))
         raise
 
     if isinstance(exon, pd.DataFrame):
@@ -168,17 +167,22 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
 
     interval_domains = domain_tree[gene_start:gene_end]
 
-    try:
-        mygene_domains = mg.getgene(gene_id, 'pfam')['pfam']
-    except TypeError:
-        print(f'No MyGene information for {gene_id}')
-        # wildcard
-        mygene_domains = [domain[2][0] for domain in interval_domains]
-    except KeyError:
-        mygene_domains = []
-    else:
-        if type(mygene_domains) != list:
-            mygene_domains = [mygene_domains]
+    mygene_domains = None
+    while mygene_domains is None:
+        try:
+            mygene_domains = mg.getgene(gene_id, 'pfam')['pfam']
+        except TypeError:
+            print(f'No MyGene information for {gene_id}')
+            # wildcard
+            mygene_domains = [domain[2][0] for domain in interval_domains]
+        except KeyError:
+            mygene_domains = []
+        except ConnectionError:
+            logging.warning('There was an error accessing mygene. Waiting 5 seconds and retrying')
+            time.sleep(5)
+        else:
+            if type(mygene_domains) != list:
+                mygene_domains = [mygene_domains]
 
     pfam_names = set(
         [pfam_mapping().loc[pfam_acc].PFAM_Name
@@ -219,10 +223,10 @@ def load_guides(gene_id, exons):
             (7 if row['orientation'] == 'RVS' else 16),
             axis=1)
     except ValueError as e:  # guides is empty and apply returned a DataFrame
-        logging.warn('no guides: {}'.format(e))
+        logging.warning('no guides: {}'.format(e))
         raise ValueError('No guides')
     except KeyError as e:  # exon_id from guides doesnt exist
-        logging.warn('. gene: {}'.format(e, gene_id))
+        logging.warning('. gene: {}'.format(e, gene_id))
         return None
 
     # AA number of canonical transcript cut position for each guide
@@ -276,19 +280,20 @@ def build_gene_document(gene, check_exists=True):
             f'Gene {gene_id} had problems. saved {gene_id}.csv. Error: {e}')
         azimuth_score = pd.Series(0, index=guides.index)
     logging.info('calculating pavooc score for {}'.format(gene_id))
+
+    guides_file = GUIDES_FILE.format(gene_id)
+    flashfry_scores = flashfry.score(guides_file)
+    flashfry_scores.fillna(0, inplace=True)
     try:
         raise ValueError  # we don't want pavooc score for now..
         pavooc_score = pd.Series(pavooc.score(
             gene_id, guides), index=guides.index, dtype=np.float64)
     except ValueError:  # being raised when there are no conservation scores
-        # logging.warn(f'No pavooc score for  {gene_id}')
+        # logging.warning(f'No pavooc score for  {gene_id}')
         pavooc_score = pd.Series(-1, index=guides.index, dtype=np.float64)
-
-    guides_file = GUIDES_FILE.format(gene_id)
-    flashfry_scores = flashfry.score(guides_file)
-    flashfry_scores.fillna(0, inplace=True)
-
-    filter_bad_guides(guides, pavooc_score)
+        filter_bad_guides(guides, azimuth_score)
+    else:
+        filter_bad_guides(guides, pavooc_score)
 
     logging.info(
         'Insert gene {} with its data into mongodb'.format(gene_id))
@@ -335,13 +340,13 @@ def integrate():
                     build_gene_document,
                     gencode_genes), total=len(gencode_genes)):
                 if doc:
-                    doc['genome'] == GENOME
+                    doc['genome'] = GENOME
                     guide_collection.insert_one(doc)
     else:
         for gene in tqdm(gencode_genes, total=len(gencode_genes)):
             doc = build_gene_document(gene)
             if doc:
-                doc['genome'] == GENOME
+                doc['genome'] = GENOME
                 guide_collection.insert_one(doc)
 
 
