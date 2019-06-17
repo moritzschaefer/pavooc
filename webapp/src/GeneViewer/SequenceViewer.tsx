@@ -63,7 +63,7 @@ export default class SequenceViewer extends React.Component<any, State> {
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
-    const { hoveredGuide, guides, cellline, guidesUrl, editData, pdbSelectionOpened, pdb } = this.props;
+    const { hoveredGuide, guides, cellline, guidesUrl, editData, pdbSelectionOpened, pdb, genome } = this.props;
     const { browser } = this.state;
     if (!browser) {
       console.log("Error: browser must not be undefined"); // TODO make this throw instead of log
@@ -122,7 +122,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         browser.addTier(this.allPdbConfig());
       } else {
         browser.removeTier(this.allPdbConfig());
-        browser.addTier(this.singlePdbConfig(pdb));
+        browser.addTier(this.singlePdbConfig(genome, pdb));
       }
     }
 
@@ -195,11 +195,11 @@ export default class SequenceViewer extends React.Component<any, State> {
     }
   }
 
-  singlePdbConfig(pdb: string) {
+  singlePdbConfig(genome: string, pdb: string) {
     return {
       name: "PDB",
       desc: "The selected PDB mapped to gene coordinates",
-      uri: `/pdbs/${pdb}.bed`,
+      uri: `/pdbs/${genome}_${pdb}.bed`,
       tier_type: "memstore",
       payload: "bed",
       noSourceFeatureInfo: true,
@@ -416,7 +416,7 @@ export default class SequenceViewer extends React.Component<any, State> {
         collapseSuperGroups: true
       }    ];
     if (pdb) { // PDBs do exist
-      sources.push(this.singlePdbConfig(pdb));
+      sources.push(this.singlePdbConfig(genome, pdb));
     }
 
     let cnsConfig = this.cnsConfig(cellline);
