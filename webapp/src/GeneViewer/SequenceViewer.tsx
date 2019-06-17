@@ -467,7 +467,8 @@ export default class SequenceViewer extends React.Component<any, State> {
       // const
       chromosome,
       geneStart,
-      geneEnd,
+        geneEnd,
+        genome,
       onPdbClicked,
       onGuideHovered,
       onEditCodonClicked,
@@ -483,11 +484,11 @@ export default class SequenceViewer extends React.Component<any, State> {
       disablePoweredBy: true,
       disableDefaultFeaturePopup: true,
       coordSystem: {
-        speciesName: "Human",
-        taxon: 9606,
-        auth: "GRCh",
-        version: "37",
-        ucscName: "hg19"
+        speciesName: genome.includes('hg') ? "Human" : "Mouse",
+          taxon: genome.includes('hg') ? 9606 : 10090,
+        auth: genome.includes('hg') ? "GRCh" : "GRCm",
+        version: genome == 'hg19' ? "37" : "38",
+        ucscName: genome
       },
       sources: this._initialSources()
     });
