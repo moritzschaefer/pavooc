@@ -6,8 +6,8 @@ The server application
 import os
 import sys
 import time
-from os import path
 from functools import lru_cache
+from os import path
 
 from flask import Flask, request
 from flask_restplus import Api, Resource, fields
@@ -140,7 +140,7 @@ initial_output = api.model('InitialData', {
 })
 
 
-@lru_cache
+@lru_cache()
 def gene_list():
     return list(guide_collection.find(
         {}, projection=['gene_id', 'gene_symbol', 'genome']))
