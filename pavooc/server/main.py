@@ -5,9 +5,9 @@ The server application
 
 import os
 import sys
-import tempfile
 import time
 from os import path
+from functools import lru_cache
 
 from flask import Flask, request
 from flask_restplus import Api, Resource, fields
@@ -140,6 +140,12 @@ initial_output = api.model('InitialData', {
 })
 
 
+@lru_cache
+def gene_list():
+    return list(guide_collection.find(
+        {}, projection=['gene_id', 'gene_symbol', 'genome']))
+
+
 @ns.route('/initial')  # TODO rename
 class InitialData(Resource):
     '''
@@ -164,10 +170,7 @@ class InitialData(Resource):
         #         "end": {"$max": "$exons.end"}}}], allowDiskUse=True)
         # genes = [{field: v[field] for field in fields} for v in genes]
 
-        genes = guide_collection.find(
-            {}, projection=['gene_id', 'gene_symbol', 'genome'])
-
-        return {'genes': list(genes), 'celllines': celllines()}
+        return {'genes': gene_list(), 'celllines': celllines()}
 
 
 # TODO make sure only JSON gets accepted
