@@ -1,0 +1,10 @@
+.ImpressumContent {
+    top: 0px;
+    bottom: 50px;
+    position: relative;
+}
+
+.ImpressumContent .AppFooter {
+    position: relative;
+    margin: 20px;
+}
