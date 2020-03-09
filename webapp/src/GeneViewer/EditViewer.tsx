@@ -313,6 +313,7 @@ class EditViewer extends React.Component<Props, State> {
         exon_id: g.exon_id
       })),
       gene_id: geneId,
+      gene_symbol: geneData.gene_symbol,
       chromosome,
       cns: geneCns,
       domains: geneData.domains
