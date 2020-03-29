@@ -98,6 +98,8 @@ def build_db():
         main_extract_conservation_scores()
     main_ff()
     main_guide_search()  # ff search
+    print('exon guide search done')
+    return
     main_guides_to_db()
     generate_bed_files()
     if TRAIN_MODEL:
