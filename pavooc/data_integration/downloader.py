@@ -13,40 +13,46 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 from pavooc.config import (BASEDIR, CHROMOSOMES, DATADIR, GENOME,
-                           HUMAN_CHROMOSOMES, MOUSE_CHROMOSOMES, S3_BUCKET_URL,
+                           HUMAN_CHROMOSOMES, MOUSE_CHROMOSOMES, MONKEY_CHROMOSOMES, S3_BUCKET_URL,
                            SIFTS_FILE, SIFTS_TARBALL, TRAIN_MODEL)
 
-ESSENTIAL_URLS = [
-    f'http://hgdownload.soe.ucsc.edu/goldenPath/{GENOME}/chromosomes/{c}.fa.gz'
-    for c in (HUMAN_CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
-] + [  # noqa
-    S3_BUCKET_URL.format('cnn38.torch'),
-    S3_BUCKET_URL.format('scaler.pkl'),
-    'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
-    f'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/{"HUMAN_9606" if "hg" in GENOME else "MOUSE_10090"}_idmapping.dat.gz',  # noqa
-    'ftp://ftp.ebi.ac.uk/pub/databases/Pfam/mappings/pdb_pfam_mapping.txt',
-    'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz',  # noqa
-    'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot_varsplic.fasta.gz',  # noqa
-    f'ftp://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/database/ucscGenePfam.txt.gz',  # noqa
-    'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed',
-    f'http://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/bigZips/{GENOME}.chrom.sizes',
-    'http://portals.broadinstitute.org/achilles/datasets/19/download/guide_activity_scores.tsv',  # noqa
-    'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv',  # noqa
-    'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
-    'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz',  # noqa # NOTE that this is based on GRCh38!!
-    # for conservation scores:
-    'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump.tar.gz',
-    'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
-]  # noqa <- this is the same file as being computed in the pipeline
+if 'cs' in GENOME:
+    ESSENTIAL_URLS = ['http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed', 'ftp://ftp.ensembl.org/pub/release-99/gtf/chlorocebus_sabaeus/Chlorocebus_sabaeus.ChlSab1.1.99.chr.gtf.gz'] + \
+        [f'ftp://ftp.ensembl.org/pub/release-99/fasta/chlorocebus_sabaeus/dna/Chlorocebus_sabaeus.ChlSab1.1.dna.chromosome.{c[3:]}.fa.gz'
+        for c in MONKEY_CHROMOSOMES
+    ]
+else:
+    ESSENTIAL_URLS = [
+        f'http://hgdownload.soe.ucsc.edu/goldenPath/{GENOME}/chromosomes/{c}.fa.gz'
+        for c in (HUMAN_CHROMOSOMES if 'hg' in GENOME else MOUSE_CHROMOSOMES)
+    ] + [  # noqa
+        #S3_BUCKET_URL.format('cnn38.torch'),
+        #S3_BUCKET_URL.format('scaler.pkl'),
+        'ftp://ftp.ebi.ac.uk/pub/databases/msd/sifts/flatfiles/csv/pdb_chain_uniprot.csv.gz',  # noqa
+        f'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/{"HUMAN_9606" if "hg" in GENOME else "MOUSE_10090"}_idmapping.dat.gz',  # noqa
+        'ftp://ftp.ebi.ac.uk/pub/databases/Pfam/mappings/pdb_pfam_mapping.txt',
+        'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz',  # noqa
+        'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot_varsplic.fasta.gz',  # noqa
+        f'ftp://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/database/ucscGenePfam.txt.gz',  # noqa
+        'http://hgdownload.cse.ucsc.edu/admin/exe/linux.x86_64/bedToBigBed',
+        f'http://hgdownload.cse.ucsc.edu/goldenPath/{GENOME}/bigZips/{GENOME}.chrom.sizes',
+        'http://portals.broadinstitute.org/achilles/datasets/19/download/guide_activity_scores.tsv',  # noqa
+        'http://portals.broadinstitute.org/achilles/datasets/19/download/sgRNA_mapping.tsv',  # noqa
+        'https://s3-eu-west-1.amazonaws.com/pstorage-npg-968563215/7195484/13059_2016_1012_MOESM14_ESM.tsv',
+        'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.fasta.gz',  # noqa # NOTE that this is based on GRCh38!!
+        # for conservation scores:
+        #'https://s3.eu-central-1.amazonaws.com/pavoocdata/mongodump.tar.gz',
+        #'https://s3.eu-central-1.amazonaws.com/pavoocdata/conservations_features.csv'
+    ]  # noqa <- this is the same file as being computed in the pipeline
 
 if GENOME == 'hg19':
     ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_19/gencode.v19.annotation.gtf.gz')
 elif GENOME == 'hg38':
     ESSENTIAL_URLS.append('ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_30/gencode.v30.annotation.gtf.gz')
-elif GENOME == 'mm10':
-    ESSENTIAL_URLS.extend(['ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',
-                           'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/mm10.2bit'
-    ])
+# elif GENOME == 'mm10':
+#     ESSENTIAL_URLS.extend(['ftp://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_mouse/release_M21/gencode.vM21.annotation.gtf.gz',
+#                            'http://hgdownload.cse.ucsc.edu/goldenPath/mm10/bigZips/mm10.2bit'
+#     ])
 
 if GENOME == 'hg19':
     ESSENTIAL_URLS.extend([
@@ -86,12 +92,18 @@ def download_unzip(url, append_postfix=None):
             download_filename = download_filename[:-3] + append_postfix + '.gz'
         else:
             download_filename = download_filename + append_postfix
+    if download_filename[-4:] == '.fna':  # workaround for monkey filenames
+        download_filename = download_filename[:-4] + '.fa'
+    match = re.match('Chlorocebus_sabaeus.ChlSab1.1.dna.chromosome\.([0-9XY]{1,2})\.fa\.gz', download_filename)
+    if match:
+        download_filename = f'chr{match.groups()[0]}.fa.gz'
+
 
     download_target = os.path.join(DATADIR, download_filename)
 
     if os.path.exists(os.path.join(DATADIR, download_filename)):
         # os.remove(os.path.join(DATADIR, download_filename))
-        logging.warn('{} xists, delete \
+        logging.warn('{} exists, delete \
                 to force download'.format(download_filename))
         return
     logging.info('downloading {}'.format(url))
@@ -201,7 +213,8 @@ def main(only_init=False):
     for url in urls:
         download_unzip(url)
 
-    download_sifts()
+    if 'cs' not in GENOME:
+        download_sifts()
 
 
 if __name__ == "__main__":

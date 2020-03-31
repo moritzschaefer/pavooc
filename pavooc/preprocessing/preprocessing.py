@@ -3,6 +3,7 @@
 import logging
 import os
 import pickle
+import re
 
 from intervaltree import IntervalTree
 from skbio.sequence import DNA
@@ -24,16 +25,17 @@ def generate_raw_chromosomes():
     # delete newlines from chromosomes
     logging.info('Convert chromosomes into raw form')
 
-
     for chromosome_number in CHROMOSOMES:
         chromosome_filename = CHROMOSOME_FILE.format(chromosome_number)
         with open(chromosome_filename) as chromosome_file:
             chromosome = chromosome_file.read()
+        # cut first line:
+        chromosome = chromosome[chromosome.find('\n'):]
 
         raw_chromose_file = CHROMOSOME_RAW_FILE.format(chromosome_number)
         with open(raw_chromose_file, 'w') as chromosome_file:
             chromosome_file.write(
-                chromosome[2 + len(chromosome_number):].replace('\n', ''))
+                chromosome.replace('\n', ''))
 
 
 def exon_to_fasta(exon_id, exon_data):
@@ -77,8 +79,6 @@ def generate_gene_files():
     # for each exon create one file
     for gene_id, exons in gencode_exons().groupby('gene_id'):
         with open(os.path.join(EXON_DIR, gene_id), 'w') as gene_file:
-            # TODO double check if it works the other way round: group by
-            # start, end and check if if is the same exon_id always...
             for exon_id, exon_group in exons.groupby('exon_id'):
                 logging.debug('Write exon {} to gene file {}'
                               .format(exon_id, exon_group.iloc[0]['gene_id']))
@@ -103,7 +103,8 @@ def combine_genome():
     with open(GENOME_FILE.format(GENOME), 'w') as genome_file:
         for chromosome in CHROMOSOMES:
             with open(CHROMOSOME_FILE.format(chromosome)) as chr_file:
-                genome_file.write(chr_file.read())
+                seq = chr_file.read()
+                genome_file.write(f'>{chromosome}' + seq[seq.find('\n'):])
 
 
 def main():

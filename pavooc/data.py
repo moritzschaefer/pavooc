@@ -10,40 +10,44 @@ from itertools import chain
 import pandas as pd
 # import torch
 from gtfparse import read_gtf_as_dataframe
-from intervaltree import IntervalTree
 from sklearn.externals import joblib
 
 import azimuth
+from intervaltree import IntervalTree
 from pavooc.config import (APPRIS_FILE, BASEDIR, CHROMOSOME_RAW_FILE,
-                           CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_HG19_FILE,
-                           GENCODE_HG38_FILE, GENCODE_MM10_FILE, GENOME,
-                           MUTATIONS_FILE, PDB_LIST_FILE,
-                           PROTEIN_ID_MAPPING_FILE, SCALER_FILE)
+                           CHROMOSOMES, CNS_FILE, DATADIR, GENCODE_CS1_1_FILE,
+                           GENCODE_HG19_FILE, GENCODE_HG38_FILE,
+                           GENCODE_MM10_FILE, GENOME, MUTATIONS_FILE,
+                           PDB_LIST_FILE, PROTEIN_ID_MAPPING_FILE, SCALER_FILE)
 # from pavooc.scoring.models import CNN38
 from pavooc.util import buffer_return_value
 
 logging.basicConfig(level=logging.INFO)
 
-# TODO 'ENSG00000101464.6' for example has a CDS-feature with a protein_id
-# but its exon-feature has no protein_id assigned. Is it good to filter it
-# out though?
-
 
 def _filter_best_transcript(gene):
-    appris_values = set(chain.from_iterable(gene.tag.apply(
-        lambda v: [x for x in v.split(',') if 'appris' in x]).values))
-    for appris_type in ['appris_principal',
-                        'appris_candidate_longest',
-                        'appris_candidate']:
-        if appris_type in appris_values:
-            transcript_id = gene[gene.tag.str.contains(
-                appris_type)].iloc[0].transcript_id
-            break
+    if 'cs' in GENOME:  # just return the one with the fewest exons, thus optimizing for transcript overlap (hopefully)
+        try:
+            exon_counts = gene[gene['feature'] == 'exon'].groupby('transcript_id').count()['exon_id']
+            transcript_id = exon_counts.idxmin()
+        except KeyError:
+            print(f'_filter_best_transcript exon_id not found {gene}')
+            transcript_id = gene[gene['feature'] == 'transcript'].iloc[0]['transcript_id']
     else:
-        transcript_id = gene[gene.feature == 'transcript'].transcript_id
-        # if len(transcript_id) > 1:
-        #     print(gene.gene_id.iloc[0])
-        transcript_id = transcript_id.iloc[0]
+        appris_values = set(chain.from_iterable(gene.tag.apply(
+            lambda v: [x for x in v.split(',') if 'appris' in x]).values))
+        for appris_type in ['appris_principal',
+                            'appris_candidate_longest',
+                            'appris_candidate']:
+            if appris_type in appris_values:
+                transcript_id = gene[gene.tag.str.contains(
+                    appris_type)].iloc[0].transcript_id
+                break
+        else:
+            transcript_id = gene[gene.feature == 'transcript'].transcript_id
+            # if len(transcript_id) > 1:
+            #     print(gene.gene_id.iloc[0])
+            transcript_id = transcript_id.iloc[0]
 
     return gene[(gene.feature == 'gene') |
                 (gene.transcript_id == transcript_id)]
@@ -62,6 +66,13 @@ def pfam_pdb_mapping():
     df = pd.read_csv(os.path.join(DATADIR, 'pdb_pfam_mapping.txt'), sep='\t')
     return df
 
+# would be required for RefSeq
+# TODO translate chromosome names (e.g. NC_023672.1 -> chrY, 42 -> chr1), convert gff to gtf, check about isoforms (are there any?)
+# def read_cs1_1_gff():
+#     df = pd.read_csv('GCF_000409795.2_Chlorocebus_sabeus_1.1_gnomon_model.gff', sep='\t', skiprows=3, names=['chrom', 'method', 'feature', 'start', 'end', 'dot', 'strand', 'dot2', 'attributes'], header=None)
+#     df.fillna('', inplace=True)
+#     df_att = pd.DataFrame(df.attributes.apply(lambda att: dict([v.split('=') for v in att.split(';') if len(v.split('=')) == 2])).tolist())
+#     df = df.join(df_att)
 
 @lru_cache()
 def read_gencode(genome=GENOME):
@@ -77,43 +88,50 @@ def read_gencode(genome=GENOME):
         df = read_gtf_as_dataframe(GENCODE_HG38_FILE)
     elif genome == 'mm10':
         df = read_gtf_as_dataframe(GENCODE_MM10_FILE)
+    elif genome == 'cs1.1':
+        df = read_gtf_as_dataframe(GENCODE_CS1_1_FILE)
+        df['seqname'] = df['seqname'].apply(lambda v: f'chr{v}' if f'chr{v}' in CHROMOSOMES else v)  # add 'chr' to seqname (e.g. 1 -> chr1)
+        df.rename(columns={'transcript_biotype': 'transcript_type', 'gene_biotype': 'gene_type'}, inplace=True)
 
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
-    df.protein_id = df.protein_id.map(lambda v: v[:v.find('.')])
-    df.exon_id = df.exon_id.map(lambda v: v[:v.find('.')])
-    df.gene_id = df.gene_id.map(lambda v: v[:v.find('.')])
-    df.transcript_id = df.transcript_id.map(lambda v: v[:v.find('.')])
 
     # only take protein_coding genes/transcripts/exons
-    df = df[
+    df = df.loc[
         (df['gene_type'] == 'protein_coding') &
         (df['feature'].isin(['gene', 'transcript', 'exon', 'UTR'])) &
         (df['seqname'].isin(CHROMOSOMES))]
-    # drop all transcripts and exons that have no protein_id
-    df.drop(df.index[(df.protein_id == '') & (
-        df.feature.isin(['exon', 'transcript', 'UTR']))], inplace=True)
+    if 'cs' not in genome:
+        # trim versions
+        df.protein_id = df.protein_id.map(lambda v: v[:v.find('.')])
+        df.exon_id = df.exon_id.map(lambda v: v[:v.find('.')])
+        df.gene_id = df.gene_id.map(lambda v: v[:v.find('.')])
+        df.transcript_id = df.transcript_id.map(lambda v: v[:v.find('.')])
 
-    # only take exons and transcripts which contain a basic-tag
-    non_basic_transcripts = (df['feature'].isin(['transcript', 'exon', 'UTR'])) & \
-        ~(df['tag'].str.contains('basic'))
-    df.drop(df.index[non_basic_transcripts], inplace=True)
+        # drop all transcripts and exons that have no protein_id
+        df.drop(df.index[(df.protein_id == '') & (
+            df.feature.isin(['exon', 'transcript', 'UTR']))], inplace=True)
 
-    # add swissprot id mappings
-    protein_id_mapping = load_protein_mapping()
-    protein_id_mapping = protein_id_mapping[
-        protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
-        ['swissprot_id', 'protein_id']]
+        # only take exons and transcripts which contain a basic-tag
+        non_basic_transcripts = (df['feature'].isin(['transcript', 'exon', 'UTR'])) & \
+            ~(df['tag'].str.contains('basic'))
+        df.drop(df.index[non_basic_transcripts], inplace=True)
 
-    df = df.merge(protein_id_mapping, how='left', on='protein_id')
+        # add swissprot id mappings
+        protein_id_mapping = load_protein_mapping()
+        protein_id_mapping = protein_id_mapping[
+            protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
+            ['swissprot_id', 'protein_id']]
 
-    # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
-    mixed_ids = df[['gene_id', 'source']].drop_duplicates()
+        df = df.merge(protein_id_mapping, how='left', on='protein_id')
 
-    counts = mixed_ids.gene_id.value_counts()
-    duplicate_ids = counts.index[counts == 2]
-    df.drop(df.index[
-        df.gene_id.isin(duplicate_ids) &
-        (df.source == 'ENSEMBL')], inplace=True)
+        # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
+        mixed_ids = df[['gene_id', 'source']].drop_duplicates()
+
+        counts = mixed_ids.gene_id.value_counts()
+        duplicate_ids = counts.index[counts == 2]
+        df.drop(df.index[
+            df.gene_id.isin(duplicate_ids) &
+            (df.source == 'ENSEMBL')], inplace=True)
 
     # fix indexing
     df.start -= 1
@@ -121,7 +139,7 @@ def read_gencode(genome=GENOME):
     # drop alternative_3or5_UTR transcripts
     # df = df.drop(df.index[df.tag.str.contains('alternative_')])
 
-    # drop all genes which have no transcripts
+    # drop all genes that have no transcripts
     valid_genes = df[df['feature'] == 'transcript'].gene_id.drop_duplicates()
     # double check, there are no orphan-exons or so
     assert set(valid_genes) == \
@@ -131,13 +149,18 @@ def read_gencode(genome=GENOME):
     # select best transcript
     df = df.groupby('gene_id').apply(_filter_best_transcript)
     df.reset_index(level=0, drop=True, inplace=True)
-
-    return df[[
-        'feature', 'gene_id', 'transcript_id',
-        'start', 'end', 'exon_id', 'exon_number',
-        'gene_name', 'transcript_type', 'strand',
-        'gene_type', 'tag', 'protein_id', 'swissprot_id',
-        'score', 'seqname', 'source']]
+    if 'cs' in genome:
+        return df[['feature', 'gene_id', 'transcript_id',
+            'start', 'end', 'exon_id', 'exon_number',
+            'gene_name', 'transcript_type', 'strand',
+            'gene_type', 'score', 'seqname', 'source']]
+    else:
+        return df[[
+            'feature', 'gene_id', 'transcript_id',
+            'start', 'end', 'exon_id', 'exon_number',
+            'gene_name', 'transcript_type', 'strand',
+            'gene_type', 'tag', 'protein_id', 'swissprot_id',
+            'score', 'seqname', 'source']]
 
 
 @buffer_return_value
@@ -185,9 +208,14 @@ def compute_canonical_exons(gene):
     df = pd.DataFrame(result_exons)
     # df.index.name = 'exon_id'
     try:
-        return df.reset_index()[[
-            'seqname', 'start', 'end', 'strand', 'transcript_id',
-            'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+        if 'cs' in GENOME:
+            return df.reset_index()[[
+                'seqname', 'start', 'end', 'strand', 'transcript_id',
+                'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+        else:
+            return df.reset_index()[[
+                'seqname', 'start', 'end', 'strand', 'transcript_id',
+                'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
     except KeyError:
         logging.error(
             f'fixme at data.py canonical_exons: {gene.iloc[0].gene_id}')

@@ -15,15 +15,18 @@ S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavooc/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 GENOME = os.environ.get('GENOME', 'mm10')
-MOUSE_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 20)] + ['chrX', 'chrY']
-HUMAN_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
+MOUSE_CHROMOSOMES  = ['chr{}'.format(v) for v in range(1, 20)] + ['chrX', 'chrY']
+HUMAN_CHROMOSOMES  = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
+MONKEY_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 30)] + ['chrX', 'chrY']
 if DEBUG:
     CHROMOSOMES = ['chrY']
 else:
     if 'hg' in GENOME:
         CHROMOSOMES = HUMAN_CHROMOSOMES
-    else:
+    elif 'mm' in GENOME:
         CHROMOSOMES = MOUSE_CHROMOSOMES
+    elif 'cs' in GENOME:  # cs1.1
+        CHROMOSOMES = MONKEY_CHROMOSOMES
 TRAIN_MODEL = os.environ.get('TRAIN_MODEL', 'False') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 
@@ -35,10 +38,13 @@ SIFTS_TARBALL = os.path.join(DATADIR, 'sifts.tar')
 GENCODE_HG19_FILE = os.path.join(DATADIR, 'gencode.v19.annotation.gtf')
 GENCODE_HG38_FILE = os.path.join(DATADIR, 'gencode.v30.annotation.gtf')
 GENCODE_MM10_FILE = os.path.join(DATADIR, 'gencode.vM21.annotation.gtf')
+GENCODE_CS1_1_FILE = os.path.join(DATADIR, 'Chlorocebus_sabaeus.ChlSab1.1.99.chr.gtf')
+
 BIG_BED_EXE = os.path.join(DATADIR, 'bedToBigBed')
 CHROM_SIZES_FILE = os.path.join(DATADIR, f'{GENOME}.chrom.sizes')
 APPRIS_FILE = os.path.join(DATADIR, 'appris_data.principal.txt')
-PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, f'{"HUMAN_9606" if "hg" in GENOME else "MOUSE_10090"}_idmapping.dat')
+
+PROTEIN_ID_MAPPING_FILE = os.path.join(DATADIR, f'{"HUMAN_9606" if "hg" in GENOME else ("MOUSE_10090" if "mm" in GENOME else "")}_idmapping.dat')  # file not exists. fine..
 PDB_LIST_FILE = os.path.join(DATADIR, 'pdb_chain_uniprot.csv')
 CONSERVATION_FEATURES_FILE = os.path.join(
     DATADIR, 'conservations_features.csv')
