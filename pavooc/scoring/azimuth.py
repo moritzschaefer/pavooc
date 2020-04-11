@@ -22,12 +22,18 @@ def score(guides, chromosome):
     if len(guides) == 0:
         return []
 
+    # workaround error for 'N' nucleotides
+    errors = guides.context.apply(lambda c: 'N' in c)
+    contexts = guides.context.apply(lambda c: c.replace('N', 'A'))
+
     try:
-        return azimuth_predict(
-                guides.context.values,
+        results = azimuth_predict(
+                contexts.values,
                 aa_cut=guides.aa_cut_position.values,
                 percent_peptide=guides.percent_peptide.values,
                 model=azimuth_model())
+        results[errors] = 0
+        return results
     except AssertionError as e:
         import ipdb
         ipdb.set_trace()

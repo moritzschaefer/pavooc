@@ -4,6 +4,7 @@ into mongoDB
 '''
 import logging
 import time
+import os
 from multiprocessing import Pool
 
 import mygene
@@ -13,16 +14,16 @@ from requests.exceptions import ConnectionError
 from skbio.sequence import DNA
 from tqdm import tqdm
 
-from pavooc.config import COMPUTATION_CORES, DEBUG, GENOME, GUIDES_FILE
+from pavooc.config import COMPUTATION_CORES, DEBUG, GENOME, GUIDES_FILE, DATADIR
 from pavooc.data import (cellline_mutation_trees, chromosomes, cns_trees,
                          domain_interval_trees, gencode_exons, pdb_list,
-                         pfam_mapping, read_gencode)
+                         pfam_mapping, read_gencode, cs_pfam_domains, gencode_cds_exons)
 from pavooc.db import guide_collection
 from pavooc.pdb import pdb_mappings
 from pavooc.scoring import azimuth, flashfry  # , pavooc
 from pavooc.util import aa_cut_position, normalize_pid, percent_peptide
 
-logging.basicConfig(level=logging.WARN,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(levelname)s %(asctime)s %(message)s')
 
 
@@ -105,8 +106,11 @@ def guide_mutations(chromosome, position):
 def pdbs_for_gene(gene_id):
     gencode = read_gencode()
     pdbs = pdb_list()
-    protein_ids = gencode.loc[(gencode['gene_id'] == gene_id)
-                              ]['swissprot_id'].drop_duplicates().dropna()
+    try:
+        protein_ids = gencode.loc[(gencode['gene_id'] == gene_id)
+                                ]['swissprot_id'].drop_duplicates().replace("", float('NaN')).dropna()
+    except KeyError:
+        return pd.DataFrame()
 
     canonical_pids = np.unique([normalize_pid(pid)
                                 for pid in protein_ids if pid]).astype('O')
@@ -162,7 +166,69 @@ def _absolute_position(row, chromosome):
     return exon.start + row['start']
 
 
+def get_cs_domains(chromosome, strand, gene_id, gene_start, gene_end):
+    gencode = read_gencode()
+    try:
+        gene = gencode.loc[(gencode['gene_id'] == gene_id)]
+        protein_id = gene['swissprot_id'].drop_duplicates().replace('',  float("NaN")).dropna().iloc[0]
+        strand = gene.iloc[0]['strand']
+        exons = gencode_exons().loc[gencode_exons().gene_id == gene_id]
+        cds_exons = gencode_cds_exons().loc[gencode_cds_exons().gene_id == gene_id]
+    except KeyError:
+        logging.debug(f'KeyError for {gene_id}')
+        return []
+
+    logging.debug(f'{gene_id} uses protein "{protein_id}"')
+
+    cs_domains = cs_pfam_domains()
+
+    domains = cs_domains.loc[cs_domains['seq id'] == protein_id]
+
+    # traverse the gene to map domains to genome positions
+    # note: this spans over introns also..
+    def _project_domain(domain):
+        offset = 0
+        align_start = (domain['alignment start']) * 3
+        align_end = domain['alignment end'] * 3
+        align_length = align_end - align_start
+
+        for _, exon in cds_exons.sort_values('exon_number').iterrows():  # exons are sorted already
+            exon_length = (exon.end - exon.start)
+            if offset <= align_start and align_start < (offset + exon_length):  # align_start is within exon
+                if strand == '+':
+                    in_exon_start = exon.start + (align_start - offset)
+                else:
+                    in_exon_end = exon.end - (align_start - offset)
+            if offset <= align_end and (offset + exon_length) >= align_end:  # align_end is within this exon
+                if strand == '+':
+                    in_exon_end = exon.start + (align_end - offset)
+                    break
+                else:
+                    in_exon_start = exon.end  - (align_end - offset)
+                    break
+
+            offset += exon_length
+        try:
+            in_exon_start
+        except NameError:
+            print('warning nameError start!!')
+            in_exon_start = cds_exons['start'].min()
+        try:
+            in_exon_end
+        except NameError:
+            in_exon_end = cds_exons['end'].max()
+            print('warning nameError end!!')
+
+        return {'name': domain['hmm name'],
+                'start': in_exon_start,
+                'end': in_exon_end}
+
+    return ([_project_domain(domain) for index, domain in domains.iterrows()])
+
+
 def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
+    if 'cs' in GENOME:
+        return get_cs_domains(chromosome, strand, gene_id, gene_start, gene_end)
     domain_tree = domain_interval_trees()[chromosome]
 
     interval_domains = domain_tree[gene_start:gene_end]
@@ -245,6 +311,15 @@ def load_guides(gene_id, exons):
         row['start'],
         row['orientation'],
         chromosome), axis=1)
+
+    # find CDS for transcript_id and filter start and end
+    # this is a workaround, since I was too stupid to not just use the CDS (instead of exons) right away.. :/
+    cds_exons = gencode_cds_exons().loc[gencode_cds_exons().gene_id == gene_id]
+    filter_offguides = (cds_exons['start'].min() < guides.start) & (guides.start + 23 < cds_exons['end'].max())   # guides that are within the gene sequence
+    if filter_offguides.sum() < len(guides):
+        # print(f'Filtered {(~filter_offguides).sum()} guides outside of the CDS')
+        pass
+    guides = guides.loc[filter_offguides]
 
     return guides
 

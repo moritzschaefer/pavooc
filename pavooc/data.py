@@ -54,6 +54,15 @@ def _filter_best_transcript(gene):
 
 
 @buffer_return_value
+def cs_pfam_domains():
+    # ftp://ftp.ebi.ac.uk/pub/databases/Pfam/current_release/proteomes/60711.tsv.gz
+
+    # TODO accelerate
+    domains = pd.read_csv(os.path.join(DATADIR, '60711.tsv'), sep='\t', index_col=None, skiprows=range(3), header=None, names='seq id> <alignment start> <alignment end> <envelope start> <envelope end> <hmm acc> <hmm name> <type> <hmm start> <hmm end> <hmm length> <bit score> <E-value> <clan'.split('> <'))
+    domains['alignment start'] -= 1
+    return domains
+
+@buffer_return_value
 def pfam_mapping():
     df = pd.read_csv(os.path.join(DATADIR, 'pdb_pfam_mapping.txt'), sep='\t')
     df = df[['PFAM_ACC', 'PFAM_Name']].drop_duplicates()
@@ -95,10 +104,15 @@ def read_gencode(genome=GENOME):
 
     df.exon_number = df.exon_number.apply(pd.to_numeric, errors='coerce')
 
+    if 'cs' in genome:
+        # only CDSes have protein_id, so I have to add protein_id values to the transcript
+        pids = df.loc[df['feature'] == 'CDS'].groupby('transcript_id')['protein_id'].first()
+        df['protein_id'] = df.apply(lambda row: pids.get(row['transcript_id']), axis=1)
+
     # only take protein_coding genes/transcripts/exons
     df = df.loc[
         (df['gene_type'] == 'protein_coding') &
-        (df['feature'].isin(['gene', 'transcript', 'exon', 'UTR'])) &
+        (df['feature'].isin(['gene', 'transcript', 'exon', 'UTR', 'CDS'])) &  # TODO it would have been smarter to just use the CDS instead of stripping the exons..
         (df['seqname'].isin(CHROMOSOMES))]
     if 'cs' not in genome:
         # trim versions
@@ -109,20 +123,12 @@ def read_gencode(genome=GENOME):
 
         # drop all transcripts and exons that have no protein_id
         df.drop(df.index[(df.protein_id == '') & (
-            df.feature.isin(['exon', 'transcript', 'UTR']))], inplace=True)
+            df.feature.isin(['exon', 'transcript', 'UTR', 'CDS']))], inplace=True)
 
         # only take exons and transcripts which contain a basic-tag
-        non_basic_transcripts = (df['feature'].isin(['transcript', 'exon', 'UTR'])) & \
+        non_basic_transcripts = (df['feature'].isin(['transcript', 'exon', 'UTR', 'CDS'])) & \
             ~(df['tag'].str.contains('basic'))
         df.drop(df.index[non_basic_transcripts], inplace=True)
-
-        # add swissprot id mappings
-        protein_id_mapping = load_protein_mapping()
-        protein_id_mapping = protein_id_mapping[
-            protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
-            ['swissprot_id', 'protein_id']]
-
-        df = df.merge(protein_id_mapping, how='left', on='protein_id')
 
         # delete ENSEMBL entries which come from both, HAVANA and ENSEMBL
         mixed_ids = df[['gene_id', 'source']].drop_duplicates()
@@ -132,6 +138,14 @@ def read_gencode(genome=GENOME):
         df.drop(df.index[
             df.gene_id.isin(duplicate_ids) &
             (df.source == 'ENSEMBL')], inplace=True)
+
+    # add swissprot id mappings
+    protein_id_mapping = load_protein_mapping()
+    protein_id_mapping = protein_id_mapping[
+        protein_id_mapping.ID_NAME == 'Ensembl_PRO'][
+        ['swissprot_id', 'protein_id']]
+
+    df = df.merge(protein_id_mapping, how='left', on='protein_id')
 
     # fix indexing
     df.start -= 1
@@ -153,7 +167,8 @@ def read_gencode(genome=GENOME):
         return df[['feature', 'gene_id', 'transcript_id',
             'start', 'end', 'exon_id', 'exon_number',
             'gene_name', 'transcript_type', 'strand',
-            'gene_type', 'score', 'seqname', 'source']]
+            'gene_type', 'protein_id', 'swissprot_id',
+            'score', 'seqname', 'source']]
     else:
         return df[[
             'feature', 'gene_id', 'transcript_id',
@@ -208,14 +223,9 @@ def compute_canonical_exons(gene):
     df = pd.DataFrame(result_exons)
     # df.index.name = 'exon_id'
     try:
-        if 'cs' in GENOME:
-            return df.reset_index()[[
-                'seqname', 'start', 'end', 'strand', 'transcript_id',
-                'gene_id', 'gene_name', 'exon_id', 'exon_number']]
-        else:
-            return df.reset_index()[[
-                'seqname', 'start', 'end', 'strand', 'transcript_id',
-                'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
+        return df.reset_index()[[
+            'seqname', 'start', 'end', 'strand', 'transcript_id',
+            'swissprot_id', 'gene_id', 'gene_name', 'exon_id', 'exon_number']]
     except KeyError:
         logging.error(
             f'fixme at data.py canonical_exons: {gene.iloc[0].gene_id}')
@@ -248,6 +258,13 @@ def gencode_exons(genome=GENOME):
     #
     # prepared = prepared[prepared.transcript_id.isin(
     #     longest_transcripts.index.get_level_values(1))]
+
+@buffer_return_value
+def gencode_cds_exons(genome=GENOME):
+    gencode = read_gencode(genome)
+    exons = gencode_exons(genome)
+
+    return gencode.loc[(gencode['feature'] == 'CDS') & (gencode['transcript_id'].isin(exons.transcript_id.drop_duplicates()))].set_index('exon_id')
 
 
 @buffer_return_value
