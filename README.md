@@ -2,20 +2,26 @@
 
 *Prediction and visualization of on- and off-targets for CRISPR*
 
-**CONTRIBUTIONS welcome**: The software should be easy to set up and work with on your local machine. If you have feature requests, file an issue (along with ideas on how to realize it).
+For the moment hg19 and mm10 are supported on the website and I generated a library for CRISPRko and CRISPRa for the Chlorecebus sabaeus. 
 
-The platform is based on hg19. hg38 is used only for the model generation to be in sync with the azimuth dataset.
+hg38 is used only for the model generation to be in sync with the azimuth dataset.
 
-# Install
+The easiest way to run everything is to run the prebuilt docker container (docker-compose pull). Building the docker container might fail, since some things received updates and APIs broke, however everything runs just fine within the docker environment.
+
+# Docker
+
+There is a docker-environment which should get you started with
+
+    docker-compose pull
+    docker-compose up
+
+# Install outside Docker
 
 python3 with pip, mongodb and mongodb-tools (mongorestore) and npm are required.
 
     pip install -r requirements.txt
     cd webapp && npm install
     
-
-Alternatively you can run everything in docker.
-
 
 # Run it
 
@@ -32,13 +38,6 @@ bring up a local version of the webapp
 
 Note: training of the PAVOOC DNN requires installation of (cuda) pytorch (http://download.pytorch.org/whl/cpu/torch-0.3.1-cp36-cp36m-linux_x86_64.whl)
 Note 2: By default a dump of the database is used to initialize all required data. To compute everything by scratch (probably takes several days), use the ONLY_INIT=0 environment variable (see pipeline.py and docker-compose.yml)
-
-# Docker
-
-Alternatively there is a docker-environment which should get you started with
-
-    docker-compose pull
-    docker-compose up
 
 
 # Conventions
