@@ -15,6 +15,7 @@ S3_BUCKET_URL = 'https://s3.eu-central-1.amazonaws.com/pavooc/{}'
 DEBUG = os.environ.get('DEBUG', 'True') in \
     ['True', 'true', '1', 'y', 'yes', 't']
 GENOME = os.environ.get('GENOME', 'mm10')
+CRISPR_MODE = os.environ.get('CRISPR_MODE', 'knockout')  # knockout, activation, inhibition(unsupported)
 MOUSE_CHROMOSOMES  = ['chr{}'.format(v) for v in range(1, 20)] + ['chrX', 'chrY']
 HUMAN_CHROMOSOMES  = ['chr{}'.format(v) for v in range(1, 23)] + ['chrX', 'chrY']
 MONKEY_CHROMOSOMES = ['chr{}'.format(v) for v in range(1, 30)] + ['chrX', 'chrY']

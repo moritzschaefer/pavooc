@@ -9,8 +9,8 @@ from intervaltree import IntervalTree
 from skbio.sequence import DNA
 
 from pavooc.config import (CHROMOSOME_FILE, CHROMOSOME_RAW_FILE, CHROMOSOMES,
-                           EXON_DIR, GENOME, GENOME_FILE)
-from pavooc.data import chromosomes, gencode_exons
+                           EXON_DIR, GENOME, GENOME_FILE, CRISPR_MODE)
+from pavooc.data import chromosomes, gencode_exons, read_gencode
 
 logging.basicConfig(level=logging.INFO)
 
@@ -71,6 +71,23 @@ def exon_to_fasta(exon_id, exon_data):
         exon_seq)
 
 
+def pretss_to_fasta(gene_id):
+    df = read_gencode()
+    gene = df.loc[(df.gene_id == gene_id) & (df['feature'] == 'gene')].iloc[0]
+    if gene['strand'] == '+':
+        seq_slice = slice(gene['start'] - 250, gene['start'] - 60)  # TODO these lengths should be stored in config.py. They are also used in guides_to_db
+    else:
+        seq_slice = slice(gene['end'] + 60, gene['end'] + 250)
+
+    seq = chromosomes()[gene['seqname']][seq_slice].upper()
+
+    return '>pretss;{};{};{}\n{}\n'.format(
+        gene['strand'],
+        seq_slice.start + 16,
+        seq_slice.stop - 16,
+        seq)
+
+
 def generate_gene_files():
     '''
     Generate fasta(-like) files containing all exons for a given gene
@@ -79,10 +96,15 @@ def generate_gene_files():
     # for each exon create one file
     for gene_id, exons in gencode_exons().groupby('gene_id'):
         with open(os.path.join(EXON_DIR, gene_id), 'w') as gene_file:
-            for exon_id, exon_group in exons.groupby('exon_id'):
-                logging.debug('Write exon {} to gene file {}'
-                              .format(exon_id, exon_group.iloc[0]['gene_id']))
-                gene_file.write(exon_to_fasta(exon_id, exon_group))
+            if CRISPR_MODE == 'knockout':
+                for exon_id, exon_group in exons.groupby('exon_id'):
+                    logging.debug('Write exon {} to gene file {}'
+                                .format(exon_id, exon_group.iloc[0]['gene_id']))
+                    gene_file.write(exon_to_fasta(exon_id, exon_group))
+            elif CRISPR_MODE == 'activation':
+                logging.debug('Write TSS to gene file {}'.format(gene_id))
+                gene_file.write(pretss_to_fasta(gene_id))
+
         # TODO i think this is resolved
         # group by start,end, check that exon_id is the same for each group
         # for each group

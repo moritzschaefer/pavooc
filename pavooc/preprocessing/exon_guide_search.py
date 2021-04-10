@@ -11,7 +11,7 @@ import numpy as np
 
 from azimuth.model_comparison import predict as azimuth_predict
 from pavooc.config import JAVA_RAM, FLASHFRY_DB_FILE, EXON_DIR, \
-    GUIDES_FILE, COMPUTATION_CORES, FLASHFRY_EXE
+    GUIDES_FILE, COMPUTATION_CORES, FLASHFRY_EXE, CRISPR_MODE
 from pavooc.data import read_gencode, exon_interval_trees, chromosomes, \
     azimuth_model, gencode_exons
 from pavooc.preprocessing.guides_to_db import guide_mutations
@@ -69,29 +69,30 @@ def off_targets_relevant(off_targets, gene_id, mismatches):
         else:
             raise ValueError('strand must be either R or F but is {}'
                              .format(strand))
-        in_exons = exon_interval_trees()[chromosome][position]
+        if CRISPR_MODE == 'knockout':
+            in_exons = exon_interval_trees()[chromosome][position]
 
-        try:
-            mismatches[(
-                bool(in_exons),
-                int(result.group('mismatch_count'))
-            )] += int(result.group('occurences'))
-        except KeyError:
-            mismatches[(
-                bool(in_exons),
-                int(result.group('mismatch_count'))
-            )] = int(result.group('occurences'))
-        # (either, we sort out guides, that cut the same gene while
-        # cutting another gene which might sort out many good guides)
-        # (depends on the design of FF). Right now:
-        # Disallow guides only if that off_target is away from the gene
-        # np.all, because np.any would make this relevant if it was on the
-        # same gene, when there is another exon on the reverse strand
-        # furthermore check if this is in an isozyme
-        if bool(in_exons) and \
-                np.all([not gene_names_similar(exon[2][0], gene_id)
-                        for exon in in_exons]):
-            return True
+            try:
+                mismatches[(
+                    bool(in_exons),
+                    int(result.group('mismatch_count'))
+                )] += int(result.group('occurences'))
+            except KeyError:
+                mismatches[(
+                    bool(in_exons),
+                    int(result.group('mismatch_count'))
+                )] = int(result.group('occurences'))
+            # (either, we sort out guides, that cut the same gene while
+            # cutting another gene which might sort out many good guides)
+            # (depends on the design of FF). Right now:
+            # Disallow guides only if that off_target is away from the gene
+            # np.all, because np.any would make this relevant if it was on the
+            # same gene, when there is another exon on the reverse strand
+            # furthermore check if this is in an isozyme
+            if bool(in_exons) and \
+                    np.all([not gene_names_similar(exon[2][0], gene_id)
+                            for exon in in_exons]):
+                return True
 
     return False
 

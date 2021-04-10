@@ -29,13 +29,24 @@ def rate_guide(guide, domains, exons):
                 early_exon_bonus = EARLY_EXON_BONUS
             break
 
-    return domain_bonus + early_exon_bonus + FACTOR_ONTARGET * guide['scores']['azimuth'] + FACTOR_OFFTARGET * (1-guide['scores']['Doench2016CFDScore']), domain_name
+    # if 'contain_polyn' in guide['scores']:
+    #     print(guide['scores']['contain_polyn'])
+    # if 'noffscore' in guide['scores']:
+    #     print(guide['scores']['noffscore'])
+
+    penalty = 0
+    if int(guide['scores'].get('contain_polyn', '0')) != 0:
+        penalty -= 1
+    if int(guide['scores'].get('noffscore', '0')) != 0:
+        penalty -= 1
+
+    return penalty + domain_bonus + early_exon_bonus + FACTOR_ONTARGET * guide['scores']['azimuth'] + FACTOR_OFFTARGET * (1-guide['scores']['Doench2016CFDScore']), domain_name
 
 def pick_gene_guides(gene):
     guide_scores = [(guide, *rate_guide(guide, gene['domains'], gene['exons'])) for guide in gene['guides']]
     guide_scores.sort(key=operator.itemgetter(1), reverse=True)
 
-    return guide_scores[:NUM_GUIDES]
+    return guide_scores[:NUM_GUIDES * 2]
 
 def main():
     dfs = []
@@ -52,9 +63,19 @@ def main():
             'chromosome': gene['chromosome'],
             'gene_strand': gene['strand'],
         }))
-    pd.concat(dfs).reset_index(drop=True).to_csv('vervet_library.csv')
+    df = pd.concat(dfs).reset_index(drop=True)
 
+    protospacer = df['guide_sequence'].apply(lambda s: s[:-3])
 
+    duplicated = protospacer.duplicated(keep=False)
+    print(f'{duplicated.sum()} / {len(duplicated)} are duplicated and are deleted')
+    df = df.loc[~duplicated]
+
+    # select the first 4 guides. As rows are sorted by key, head gives the 4 highest  # TODO double check by looking at the first 10 genes
+    df = df.groupby('gene_id').head(NUM_GUIDES).reset_index(drop=True)
+
+    df.to_csv('vervet_library.csv')
+    print(df.gene_id.value_counts().value_counts())
 if __name__ == '__main__':
     main()
 

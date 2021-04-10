@@ -2,6 +2,7 @@
 load guides-files (filtered FlashFry output) and integrate
 into mongoDB
 '''
+import re
 import logging
 import time
 import os
@@ -14,7 +15,7 @@ from requests.exceptions import ConnectionError
 from skbio.sequence import DNA
 from tqdm import tqdm
 
-from pavooc.config import COMPUTATION_CORES, DEBUG, GENOME, GUIDES_FILE, DATADIR
+from pavooc.config import COMPUTATION_CORES, DEBUG, GENOME, GUIDES_FILE, DATADIR, CRISPR_MODE, EXON_DIR
 from pavooc.data import (cellline_mutation_trees, chromosomes, cns_trees,
                          domain_interval_trees, gencode_exons, pdb_list,
                          pfam_mapping, read_gencode, cs_pfam_domains, gencode_cds_exons)
@@ -30,7 +31,7 @@ logging.basicConfig(level=logging.DEBUG,
 mg = mygene.MyGeneInfo()
 
 
-def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5):
+def _context_guide(gene_id, start, guide_direction, context_length=5):
     '''
     :exon_id: ensembl id
     :start: bp position start of guide(!) relative to chromosome
@@ -40,20 +41,15 @@ def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5
     :returns: azimuth compliant context 30mers (that is 5bp+protospacer+5bp) in
         capital letters
     '''
-    exon = gencode_exons().loc[exon_id]
 
-    if isinstance(exon, pd.DataFrame):
-        exon = exon[exon.seqname == chromosome]
-        if len(exon.start.unique()) != 1:
-            logging.error(f'azimuth.py: same exon_id with different starts {exon}')
-        exon = exon.iloc[0]
-
+    df = read_gencode()
+    gene = df.loc[(df.gene_id == gene_id) & (df['feature'] == 'gene')].iloc[0]
     if guide_direction == 'RVS':
         start -= 3
     else:
         start -= 4
 
-    seq = chromosomes()[exon['seqname']
+    seq = chromosomes()[gene['seqname']
                         ][start:start + 30].upper()
 
     # if the strands don't match, it needs to be reversed
@@ -62,13 +58,13 @@ def _context_guide(exon_id, start, guide_direction, chromosome, context_length=5
 
     assert seq[25:27] == 'GG', \
         'the generated context is invalid (PAM) site. {}, {}, {}'.format(
-        seq, exon['strand'], guide_direction)
+        seq, gene['strand'], guide_direction)
     return seq
 
 
 def filter_bad_guides(guides, score):
     # delete all guides with scores below 0.45 or with some sequence that hinder their function
-    delete_indices = guides.index[(score < 0.45) |
+    delete_indices = guides.index[ # (score < 0.45) |  # TODO reenable
                                   (guides.target.str.startswith('GGGGG')) |
                                   (guides.target.str.contains('TTTT'))]
     guides.drop(delete_indices, inplace=True)
@@ -149,7 +145,15 @@ def pdbs_for_gene(gene_id):
 
 
 # TODO DRY with azimuth.py:20
-def _absolute_position(row, chromosome):
+def _absolute_position(row, chromosome, gene_id=None):
+    if row.exon_id == 'pretss':
+        df = read_gencode()
+        gene = df.loc[(df.gene_id == gene_id) & (df['feature'] == 'gene')].iloc[0]
+        if gene['strand'] == '+':
+            return gene['start'] - 250 + 16 + row['start']
+        else:
+            return gene['end'] + 60 + 16 + row['start']
+
     try:
         exon = gencode_exons().loc[row.exon_id]
     except KeyError:
@@ -264,7 +268,7 @@ def get_domains(chromosome, strand, gene_id, gene_start, gene_end):
     return domains
 
 
-def load_guides(gene_id, exons):
+def load_guides(gene_id, exons, fill_guides=0):
     chromosome = exons.iloc[0]['seqname']
     strand = exons.iloc[0]['strand']
     try:
@@ -276,14 +280,49 @@ def load_guides(gene_id, exons):
         return None
 
     guides['exon_id'] = guides['contig'].apply(lambda v: v.split(';')[0])
+    guides['proper_filter'] = 1
 
-    # delete padding introduced before guide-finding (flashfry)
+    # manually pick additional guides, if there are not enough
+    if len(guides) < fill_guides:
+        with open(EXON_DIR + gene_id) as f:
+            seq = f.readlines()[1].strip()
+
+        matches = [(match.start(), match.group(), 'FWD') for match in re.finditer('[ACTG]{21}GG', seq)] + \
+                [(match.start(), match.group(), 'RVS') for match in re.finditer('CC[ACTG]{21}', seq)]
+
+        # go over matches by position. sort by distance to "center" (95 is best).
+        matches = sorted(matches, key=lambda m: abs((m[0] + (23 if m[2] == 'RVS' else 0)) - 95))
+
+        while len(guides) < fill_guides:
+            try:
+                match = matches.pop(0)  # pop front to get most central guides first
+            except IndexError:
+                print(f'{gene_id}: len(guides) still only {len(guides)}, but no more matches are available')
+                break
+            if (guides['target'] == match[1]).any():  # this guide has previously been selected by FlashFry
+                # print('already selected')  # this is a debug message that should come up often.
+                continue
+
+            guides = guides.append({
+                'exon_id': 'pretss',
+                'start': match[0],
+                'target': match[1],
+                'orientation': match[2],
+                'otCount': 0,
+                'offTargets': '',
+                'proper_filter': 0
+            }, ignore_index=True)
+
+
+    # delete padding introduced before guide-finding (flashfry or manual)
     guides['start'] -= 16
+
+
     guides['in_exon_start'] = guides['start']
 
     try:
         guides['start'] = guides.apply(
-            lambda row: _absolute_position(row, chromosome), axis=1)
+            lambda row: _absolute_position(row, chromosome, gene_id), axis=1)
         guides['cut_position'] = guides.apply(
             lambda row: row['start'] +
             (7 if row['orientation'] == 'RVS' else 16),
@@ -307,19 +346,18 @@ def load_guides(gene_id, exons):
         axis=1)
 
     guides['context'] = guides.apply(lambda row: _context_guide(
-        row['exon_id'],
+        gene_id,
         row['start'],
-        row['orientation'],
-        chromosome), axis=1)
-
+        row['orientation']), axis=1)
     # find CDS for transcript_id and filter start and end
     # this is a workaround, since I was too stupid to not just use the CDS (instead of exons) right away.. :/
-    cds_exons = gencode_cds_exons().loc[gencode_cds_exons().gene_id == gene_id]
-    filter_offguides = (cds_exons['start'].min() < guides.start) & (guides.start + 23 < cds_exons['end'].max())   # guides that are within the gene sequence
-    if filter_offguides.sum() < len(guides):
-        # print(f'Filtered {(~filter_offguides).sum()} guides outside of the CDS')
-        pass
-    guides = guides.loc[filter_offguides]
+    if CRISPR_MODE == 'knockout':
+        cds_exons = gencode_cds_exons().loc[gencode_cds_exons().gene_id == gene_id]
+        filter_offguides = (cds_exons['start'].min() < guides.cut_position) & (guides.cut_position < cds_exons['end'].max())   # guides that are within the gene sequence
+        if filter_offguides.sum() < len(guides):
+            # print(f'Filtered {(~filter_offguides).sum()} guides outside of the CDS')
+            pass
+        guides = guides.loc[filter_offguides]
 
     return guides
 
@@ -339,7 +377,7 @@ def build_gene_document(gene, check_exists=True):
         # item exists
         return None
     try:
-        guides = load_guides(gene_id, exons)
+        guides = load_guides(gene_id, exons, fill_guides=(6 if CRISPR_MODE == 'activation' else 0))
     except ValueError:
         return None
     gene_start = exons['start'].min()
@@ -359,6 +397,7 @@ def build_gene_document(gene, check_exists=True):
     guides_file = GUIDES_FILE.format(gene_id)
     flashfry_scores = flashfry.score(guides_file)
     flashfry_scores.fillna(0, inplace=True)
+
     try:
         raise ValueError  # we don't want pavooc score for now..
         pavooc_score = pd.Series(pavooc.score(
@@ -366,27 +405,29 @@ def build_gene_document(gene, check_exists=True):
     except ValueError:  # being raised when there are no conservation scores
         # logging.warning(f'No pavooc score for  {gene_id}')
         pavooc_score = pd.Series(-1, index=guides.index, dtype=np.float64)
-        filter_bad_guides(guides, azimuth_score)
+        # filter_bad_guides(guides, azimuth_score)
     else:
-        filter_bad_guides(guides, pavooc_score)
+        # filter_bad_guides(guides, pavooc_score)
+        pass
 
-    logging.info(
-        'Insert gene {} with its data into mongodb'.format(gene_id))
+    contain_polyn = ((guides.target.str.startswith('GGGGG')) | (guides.target.str.contains('TTTT')))
 
     # transform dataframe to list of dicts and extract scores into
     # a nested format
     guides_list = [{
         **row[
             ['exon_id', 'start', 'orientation', 'otCount', 'target',
-                'cut_position', 'aa_cut_position']].to_dict(),
+                'cut_position', 'aa_cut_position', 'proper_filter']].to_dict(),
         'mutations': guide_mutations(chromosome, row['start']),
-        'scores': {**flashfry_scores.loc[index][
+        'contain_polyn': int(contain_polyn.loc[index]),
+        'noffscore': int(index not in flashfry_scores.index),
+        'scores': {**flashfry_scores[
             ['Doench2014OnTarget', 'Doench2016CFDScore',
              'dangerous_GC', 'dangerous_polyT',
-             'dangerous_in_genome', 'Hsu2013']].to_dict(),
+             'dangerous_in_genome', 'Hsu2013']].T.get(index, pd.Series()).to_dict(),
             'azimuth': azimuth_score.loc[index],
-            'pavooc': pavooc_score.loc[index]}
-    } for index, row in guides.iterrows() if index in flashfry_scores.index]
+            }
+    } for index, row in guides.iterrows()]
 
     return {
         'gene_id': gene_id,
@@ -405,7 +446,7 @@ def build_gene_document(gene, check_exists=True):
 
 def integrate():
     # TODO make a CLI switch or so to drop or not drop..
-    if DEBUG:
+    if True:
         guide_collection.drop()
     gencode_genes = gencode_exons().groupby('gene_id')
 
@@ -415,12 +456,16 @@ def integrate():
                     build_gene_document,
                     gencode_genes), total=len(gencode_genes)):
                 if doc:
+                    logging.info(
+                        'Insert gene {} with its data into mongodb'.format(doc['gene_id']))
                     doc['genome'] = GENOME
                     guide_collection.insert_one(doc)
     else:
         for gene in tqdm(gencode_genes, total=len(gencode_genes)):
             doc = build_gene_document(gene)
             if doc:
+                logging.info(
+                    'Insert gene {} with its data into mongodb'.format(doc['gene_id']))
                 doc['genome'] = GENOME
                 guide_collection.insert_one(doc)
 

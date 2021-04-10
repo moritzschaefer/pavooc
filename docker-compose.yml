@@ -58,6 +58,7 @@ services:
       MONGO_PORT: "27017"
       DEBUG: 0
       GENOME: "cs1.1"
+      CRISPR_MODE: "activation"
       ONLY_INIT: 0
     command: ["python", "-m", "pavooc.pipeline"] 
     #command: ["echo", "data processing done"]
